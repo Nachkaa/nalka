@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef, useTransition } from "react";
+import { Suspense, useEffect, useMemo, useState, useRef, useTransition } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -10,7 +10,15 @@ import { Label } from "@/components/ui/label";
 import { sendMagicLink } from "./actions";
 import { Loader2 } from "lucide-react";
 
-export default function LoginPage() {
+export default function Page() {
+  return (
+    <Suspense fallback={<main className="grid min-h-screen place-items-center"><p className="text-sm text-muted-foreground">Loading…</p></main>}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const { status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,13 +53,12 @@ export default function LoginPage() {
     return "";
   }, [email]);
 
-  // Bind server action to the form. Do not call it imperatively.
   async function action(formData: FormData) {
     setError("");
     const provided = String(formData.get("email") || "");
     startSend(async () => {
       try {
-        await sendMagicLink(formData); // server action receives FormData and sets redirectTo internally
+        await sendMagicLink(formData);
         setEmail(provided);
         setSent(true);
       } catch {
@@ -89,15 +96,16 @@ export default function LoginPage() {
                 const provided = String(fd.get("email") || "");
                 startSend(async () => {
                   try {
-                    await sendMagicLink(fd); // server action on the server
+                    await sendMagicLink(fd);
                     setEmail(provided);
-                    setSent(true);           // switches UI to "Lien envoyé"
+                    setSent(true);
                   } catch {
                     setError("Envoi impossible. Vérifiez l’adresse.");
                     setSent(false);
                   }
                 });
               }}
+              action={action}
             >
               <CardContent className="space-y-8">
                 <div className="grid gap-4">

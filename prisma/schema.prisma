@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -258,9 +258,9 @@ model InviteToken {
 }
 
 model RateLimitHit {
-  id   String   @id @default(cuid())
-  key  String
-  ts   DateTime @default(now())
+  id  String   @id @default(cuid())
+  key String
+  ts  DateTime @default(now())
 
   @@index([key, ts])
-} 
+}

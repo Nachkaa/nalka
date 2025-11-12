@@ -17,17 +17,19 @@ export async function requireUser() {
 
 export async function requireMemberOnEvent(eventId: string) {
   const { userId } = await requireUser();
-  const m = await prisma.membership.findUnique({
+
+  const m = await prisma.eventMember.findUnique({
     where: { userId_eventId: { userId, eventId } },
     select: { role: true },
   });
+
   if (!m) throw new HttpError(404, "NOT_MEMBER", "Membre introuvable");
   return { userId, role: m.role };
 }
 
 export async function requireAdminOnEvent(eventId: string) {
   const { userId, role } = await requireMemberOnEvent(eventId);
-  if (role !== "admin") throw new HttpError(403, "NOT_AUTHORIZED", "Admin requis");
+  if (role !== "ADMIN") throw new HttpError(403, "NOT_AUTHORIZED", "Admin requis");
   return { userId };
 }
 
