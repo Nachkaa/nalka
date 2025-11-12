@@ -1,0 +1,266 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum EventBudgetMode {
+  NONE
+  FIXED
+}
+
+enum EventMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  CANCELLED
+}
+
+enum ReservationStatus {
+  RESERVED
+  PURCHASED
+  RELEASED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  isAdmin       Boolean   @default(false) // platform-wide admin
+
+  accounts Account[]
+  sessions Session[]
+
+  // relations
+  eventMemberships EventMember[]
+  eventInvitesSent EventInvite[] @relation("InvitedBy")
+  giftLists        GiftList[]
+  reservations     Reservation[]
+  ideas            Idea[]
+  ownedEvents      Event[]       @relation("OwnedEvents")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // owner
+  ownerId String
+  owner   User   @relation("OwnedEvents", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // core
+  title       String
+  description String?
+  eventOn     DateTime
+  location    String?
+  colorHex    String   @default("#0ea5e9")
+
+  // access
+  linkEnabled Boolean @default(false)
+  joinCode    String? @unique
+  slug        String  @unique
+
+  // budget (optional global hints)
+  budgetMode  EventBudgetMode @default(NONE)
+  budgetCents Int?
+
+  // RULES — flat, explicit
+  isNoSpoil          Boolean @default(true)
+  isAnonReservations Boolean @default(true)
+  isSecondHandOk     Boolean @default(false)
+  isHandmadeOk       Boolean @default(false)
+  isSecretSanta      Boolean @default(false) // ← NEW
+
+  budgetCapCents Int?
+
+  // misc
+  settings Json?
+
+  // children
+  memberships EventMember[]
+  invites     EventInvite[]
+  lists       GiftList[]
+
+  memberLimit  Int           @default(50)
+  inviteTokens InviteToken[] @relation("Event_InviteTokens")
+
+  @@index([ownerId, eventOn])
+}
+
+model EventMember {
+  id        String          @id @default(cuid())
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  eventId   String
+  userId    String
+  role      EventMemberRole @default(MEMBER)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId], name: "userId_eventId")
+  @@index([userId])
+  @@index([eventId])
+}
+
+model EventInvite {
+  id          String          @id @default(cuid())
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  eventId     String
+  email       String
+  role        EventMemberRole @default(MEMBER)
+  token       String          @unique
+  status      InviteStatus    @default(PENDING)
+  invitedById String
+  expiresAt   DateTime
+
+  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitedBy User  @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([eventId, status])
+  @@index([email])
+}
+
+model GiftList {
+  id        String   @id @default(cuid())
+  title     String   @default("Ma liste")
+  ownerId   String
+  eventId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  event Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  items GiftItem[]
+
+  @@unique([ownerId, eventId], name: "ownerId_eventId")
+  @@index([eventId])
+}
+
+model GiftItem {
+  id         String   @id @default(cuid())
+  listId     String
+  title      String
+  url        String?
+  priceCents Int?
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  list         GiftList      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
+  ideas        Idea[]
+
+  @@index([listId])
+}
+
+model Reservation {
+  id        String            @id @default(cuid())
+  itemId    String
+  byUserId  String
+  status    ReservationStatus @default(RESERVED)
+  anonymous Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  item   GiftItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  byUser User     @relation(fields: [byUserId], references: [id], onDelete: Cascade)
+
+  @@index([itemId, status])
+  @@index([byUserId, status])
+}
+
+model Idea {
+  id        String   @id @default(cuid())
+  itemId    String
+  byUserId  String
+  text      String
+  anonymous Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  item   GiftItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  byUser User     @relation(fields: [byUserId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([byUserId])
+}
+
+model SecretSantaAssignment {
+  id         String   @id @default(cuid())
+  eventId    String
+  giverId    String
+  receiverId String
+  createdAt  DateTime @default(now())
+
+  @@unique([eventId, giverId], name: "eventId_giverId")
+}
+
+model InviteToken {
+  id            String    @id @default(cuid())
+  eventId       String
+  event         Event     @relation("Event_InviteTokens", fields: [eventId], references: [id], onDelete: Cascade)
+  code          String    @unique
+  remainingUses Int       @default(1) // single-use default
+  expiresAt     DateTime?
+  createdById   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model RateLimitHit {
+  id   String   @id @default(cuid())
+  key  String
+  ts   DateTime @default(now())
+
+  @@index([key, ts])
+} 
