@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import EventForm from "@/components/forms/EventForm";
 import { updateEvent } from "./actions"; // create this or reuse your existing action
+import { DeleteEventSection } from "./DeleteEventSection";
 
 export default async function EditEventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -54,6 +55,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
         submitLabel="Enregistrer les modifications"
         hideSuggestions
       />
+      <DeleteEventSection eventId={e.id} title={e.title} />
     </main>
   );
 }

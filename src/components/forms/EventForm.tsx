@@ -114,13 +114,13 @@ export default function EventForm({
 
   const rulesRef = useRef<HTMLFieldSetElement>(null);
 
-  const search =
-    typeof window === "undefined" ? null : new URLSearchParams(window.location.search);
-  const mode = search?.get("mode");
-  const isSantaFromUrl = mode === "santa";
+//  const search =
+//    typeof window === "undefined" ? null : new URLSearchParams(window.location.search);
+//  const mode = search?.get("mode");
+//  const isSantaFromUrl = mode === "santa";
 
   const [secretSanta, setSecretSanta] = useState<boolean>(
-    initial?.rules?.isSecretSanta ?? isSantaFromUrl ?? false,
+    initial?.rules?.isSecretSanta ?? false,
   );
 
   const suggestions = [

@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 import Providers from "./providers";
 import SiteHeader from "@/components/site-header";
 import { inter, lora } from "@/styles/fonts";
-import { ClientLayout } from "./ClientLayout";
 import { Footer } from "@/components/layout/Footer";
 import { CookieConsent } from "@/components/privacy/CookieConsent";
+import { ClientLayout } from "./ClientLayout";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -17,13 +17,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-screen">
         <Providers>
           <SiteHeader />
-          <main className="mx-auto max-w-6xl p-6">
+          
+          {/* IMPORTANT : le main ne doit PAS boxer la homepage */}
+          <main className="min-h-dvh">
             <ClientLayout>{children}</ClientLayout>
           </main>
+
         </Providers>
+
         <Footer />
         <CookieConsent />
-      </body>     
+      </body>
     </html>
   );
 }

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { normalizeUrl } from "@/lib/url";
+import { processGiftImage } from "@/lib/gift-image";
 
 export async function updateGift(slug: string, itemId: string, formData: FormData) {
   const session = await auth();
@@ -32,9 +33,34 @@ export async function updateGift(slug: string, itemId: string, formData: FormDat
 
   const url = urlRaw ? normalizeUrl(urlRaw) : null;
 
+  const imageFile = formData.get("image") as File | null;
+  const rawImageUrl = formData.get("imageUrl");
+  const imageUrl =
+    typeof rawImageUrl === "string" && rawImageUrl.trim().length > 0
+      ? rawImageUrl.trim()
+      : null;
+
+  let imagePath: string | null | undefined;
+
+  if (imageFile && imageFile.size > 0) {
+    // nouveau fichier uploadé → priorité
+    imagePath = await processGiftImage(imageFile);
+  } else if (imageUrl) {
+    // pas de fichier mais une image issue du lien
+    imagePath = imageUrl;
+  } else {
+    // ni fichier ni URL → on ne touche pas à l’image existante
+    imagePath = undefined;
+  }
+
   await prisma.giftItem.update({
     where: { id: itemId },
-    data: { title, url, note },
+    data: {
+      title,
+      url,
+      note,
+      ...(imagePath !== undefined ? { imagePath } : {}),
+    },
   });
 
   revalidatePath(`/event/${slug}`);

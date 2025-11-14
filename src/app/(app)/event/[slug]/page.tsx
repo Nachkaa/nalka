@@ -20,15 +20,17 @@
     AlertDialogAction,
   } from "@/components/ui/alert-dialog";
   import { Gift, Lock, Pencil, Trash2, ArrowLeft, Calendar, MapPin, EyeOff, Recycle, Hammer, UserMinus, Link2  } from "lucide-react";
-  import EditEventDialog from "./EditEventDialog";
   import GiftListAnimated, { GiftItemVM } from "./GiftListAnimated";
   import LeaveEventDialog from "./LeaveEventDialog";
   import SecretSantaExperience from "./SecretSantaExperience";
   import { InviteShareDialog } from "./InviteShareDialog";
   import { requireEventForUser } from "@/features/events/permissions";
   import ExpandableText from "@/components/ui/expandable-text";
+  import { GiftImagePreview } from "@/components/gifts/GiftImagePreview";
+
   export const runtime = "nodejs";
   export const dynamic = "force-dynamic";
+
 
   type PageProps = { params: Promise<{ slug?: string }> };
   const STATUS = RS;
@@ -217,71 +219,105 @@
                 const dim = !event.isNoSpoil && hasActive;
               
                 return (
-                <li key={item.id} className="flex items-center justify-between border-b py-2 text-sm">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      {dim && (
-                        <span title="Déjà réservé" className="inline-flex">
-                          <Lock className="h-4 w-4 text-[var(--muted-foreground)]" aria-hidden="true" />
-                        </span>
-                      )}
-                      <span className={`truncate ${dim ? "opacity-70" : ""}`}>{item.title}</span>
-                      {/* chip lien si présent */}
-                      {(() => {
-                        if (!item.url) return null;
-                        let domain: string | null = null;
-                        try {
-                          domain = new URL(item.url).hostname.replace(/^www\./, "");
-                        } catch {
-                          domain = null;
-                        }
-                        return (
-                          domain && (
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
-                              title={item.url}
-                            >
-                              <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-                              {domain}
-                            </a>
-                          )
-                        );
-                      })()}
-                    </div>
-                    
-                    {/* note sous le titre si présente */}
-                    {item.note && (
-                      <ExpandableText
-                        text={item.note}
-                        maxLines={2}
-                        className="mt-1 text-xs"
+                <li
+                  key={item.id}
+                  className="flex items-start justify-between gap-3 border-b py-2 text-sm"
+                >
+                  {/* Image + texte */}
+                  <div className="flex min-w-0 flex-1 gap-3">
+                    {item.imagePath && (
+                      <GiftImagePreview
+                        src={item.imagePath}
+                        alt={item.title}
+                        sizeClassName="h-24 w-24"
                       />
                     )}
 
-                    {/* info réservation si spoil autorisé */}
-                    {showSpoil && (() => {
-                      const names = activeRes.map((r) => displayName(r.byUser));
-                      return (
-                        <p className="mt-1 text-xs leading-snug text-[var(--muted-foreground)]">
-                          Réservé par {names.slice(0, 3).join(", ")}
-                          {names.length > 3 ? ` (+${names.length - 3})` : ""}
-                        </p>
-                      );
-                    })()}
-                  </div>          
-                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      {/* titre + lock + chip lien sur une ligne */}
+                      <div className="flex items-center gap-2">
+                        {dim && (
+                          <span title="Déjà réservé" className="inline-flex">
+                            <Lock
+                              className="h-4 w-4 text-[var(--muted-foreground)]"
+                              aria-hidden="true"
+                            />
+                          </span>
+                        )}
+
+                        <span className={`truncate ${dim ? "opacity-70" : ""}`}>
+                          {item.title}
+                        </span>
+                      
+                        {/* chip lien si présent */}
+                        {(() => {
+                          if (!item.url) return null;
+                          let domain: string | null = null;
+                          try {
+                            domain = new URL(item.url).hostname.replace(/^www\./, "");
+                          } catch {
+                            domain = null;
+                          }
+                          return (
+                            domain && (
+                              <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+                                title={item.url}
+                              >
+                                <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                                {domain}
+                              </a>
+                            )
+                          );
+                        })()}
+                      </div>
+                      
+                      {/* description sous le titre */}
+                      {item.note && (
+                        <ExpandableText
+                          text={item.note}
+                          maxLines={4}
+                          className="mt-1 text-xs"
+                        />
+                      )}
+
+                      {/* info réservation si spoil autorisé */}
+                      {showSpoil && (() => {
+                        const names = activeRes.map((r) => displayName(r.byUser));
+                        return (
+                          <p className="mt-1 text-xs leading-snug text-[var(--muted-foreground)]">
+                            Réservé par {names.slice(0, 3).join(", ")}
+                            {names.length > 3 ? ` (+${names.length - 3})` : ""}
+                          </p>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                    
+                  {/* Actions à droite */}
+                  <div className="flex flex-shrink-0 items-center gap-2">
                     <Link href={`/event/${slug}/gift/${item.id}/edit`}>
-                      <Button variant="outline" size="icon" className="h-8 w-8" title="Modifier">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Modifier"
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </Link>
-
+                    
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="icon" className="h-8 w-8" title="Supprimer">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Supprimer"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
@@ -308,6 +344,7 @@
                     </AlertDialog>
                   </div>
                 </li>
+
                 );
               })}
 
@@ -418,6 +455,7 @@
               note: item.note ?? null,
               isMine: !!my,
               isTakenByOther: !!other,
+              imagePath: item.imagePath ?? null,
               reservedByName: !event.isAnonReservations && other?.byUser
                 ? displayName(other.byUser)
                 : null,

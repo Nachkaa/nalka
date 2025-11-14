@@ -10,15 +10,28 @@ type Props = {
   urlInputId: string;
   titleInputId: string;
   noteInputId: string;
+  imageInputId?: string;
+  onImageUrlChange?: (url: string) => void;
 };
 
-export default function FetchFromLink({ urlInputId, titleInputId, noteInputId }: Props) {
+type UrlMetaResponse = {
+  url?: string;
+  title?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+};
+
+export default function FetchFromLink({ urlInputId, titleInputId, noteInputId, imageInputId, onImageUrlChange,}: Props) {
   const [pending, setPending] = useState(false);
 
   async function onClick() {
     const urlEl = document.getElementById(urlInputId) as HTMLInputElement | null;
     const titleEl = document.getElementById(titleInputId) as HTMLInputElement | null;
     const noteEl = document.getElementById(noteInputId) as HTMLTextAreaElement | null;
+    const imageEl = imageInputId
+      ? (document.getElementById(imageInputId) as HTMLInputElement | null)
+      : null;
+
     if (!urlEl) return;
 
     const raw = urlEl.value?.trim();
@@ -31,7 +44,8 @@ export default function FetchFromLink({ urlInputId, titleInputId, noteInputId }:
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ url: raw }),
       });
-      const data: { url?: string; title?: string | null; description?: string | null } = await res.json();
+      //const data: { url?: string; title?: string | null; description?: string | null } = await res.json();
+      const data: UrlMetaResponse = await res.json();
 
       if (data.url && urlEl.value !== data.url) {
         urlEl.value = data.url;
@@ -51,6 +65,18 @@ export default function FetchFromLink({ urlInputId, titleInputId, noteInputId }:
           noteEl.dispatchEvent(new Event("input", { bubbles: true }));
         }
       }
+
+      if (imageEl && typeof data.imageUrl === "string" && data.imageUrl) {
+        if (imageEl.value !== data.imageUrl) {
+          imageEl.value = data.imageUrl;
+          imageEl.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }
+
+      if (typeof data.imageUrl === "string" && data.imageUrl && onImageUrlChange) {
+        onImageUrlChange(data.imageUrl);
+      }
+      
     } finally {
       setPending(false);
     }

@@ -60,37 +60,6 @@ export async function deleteGift(formData: FormData) {
   revalidatePath(`/app/event/${eventId}`);
 }
 
-export async function updateGift(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.email) throw new Error("Non autorisé");
-
-  const slug  = formData.get("slug")?.toString();            // ← use slug
-  const itemId  = formData.get("itemId")?.toString();
-  const title   = formData.get("title")?.toString().trim();
-  const url     = normalizeUrl(formData.get("url")?.toString());
-  const note    = formData.get("note")?.toString()?.trim() || null;
-
-  if (!slug || !itemId || !title) throw new Error("Champs requis");
-
-  const me = await prisma.user.findUnique({ where: { email: session.user.email } });
-  if (!me) throw new Error("Utilisateur introuvable");
-
-  const item = await prisma.giftItem.findUnique({
-    where: { id: itemId },
-    include: { list: true },
-  });
-  if (!item || item.list.ownerId !== me.id) throw new Error("Interdit");
-
-  await prisma.giftItem.update({
-    where: { id: itemId },
-    data: { title, url, note },
-  });
-
-  revalidatePath(`/event/${slug}`);                          // ← correct path
-  redirect(`/event/${slug}`);
-}
-
-
 export async function inviteMember(formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) throw new Error("Unauthorized");

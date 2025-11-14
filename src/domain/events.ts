@@ -6,6 +6,15 @@ const startOfToday = () => {
   return d;
 };
 
+const checkboxFromForm = z
+  .union([
+    z.literal("true"),
+    z.literal("false"),
+    z.null(),
+    z.undefined(),
+  ])
+  .transform((v) => v === "true");
+
 export const EventCreateSchema = z.object({
   title: z.string().min(1).max(120),
   description: z.string().max(500).optional().nullable().transform((v) => v || null),
@@ -17,11 +26,11 @@ export const EventCreateSchema = z.object({
   location: z.string().max(120).optional().nullable().transform((v) => v || null),
 
   // booleans envoyés via hidden input "true" | ""
-  isNoSpoil: z.coerce.boolean().default(false),
-  isAnonReservations: z.coerce.boolean().default(false),
-  isSecondHandOk: z.coerce.boolean().default(false),
-  isHandmadeOk: z.coerce.boolean().default(false),
-  isSecretSanta: z.coerce.boolean().default(false),
+  isNoSpoil: checkboxFromForm,
+  isAnonReservations: checkboxFromForm,
+  isSecondHandOk: checkboxFromForm,
+  isHandmadeOk: checkboxFromForm,
+  isSecretSanta: checkboxFromForm,
 
   // budget en euros -> cents ou null
   budgetCap: z

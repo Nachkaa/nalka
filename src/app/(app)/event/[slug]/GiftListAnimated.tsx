@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import ReserveButton from "./ReserveButton";
 import { Link2 } from "lucide-react";
 import ExpandableText from "@/components/ui/expandable-text";
+import { GiftImagePreview } from "@/components/gifts/GiftImagePreview";
 
 export type GiftItemVM = {
   id: string;
@@ -17,12 +18,12 @@ export type GiftItemVM = {
   isMine: boolean;
   /** name/email if not anonymous and taken by other */
   reservedByName: string | null;
+  imagePath?: string | null;
 };
 
 export default function GiftListAnimated({
   items,
   eventId,
-  showNames,
 }: {
   items: GiftItemVM[];
   eventId: string;
@@ -68,68 +69,89 @@ export default function GiftListAnimated({
 
   return (
     <motion.ul layout className="mt-2 space-y-1">
-    {ordered.map((it) => (
-      <motion.li
-        key={it.id}
-        layout
-        transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.7 }}
-        className={`
-          grid gap-2 border-b py-2 text-sm transition-opacity
-          md:flex md:items-start md:justify-between md:gap-3
-          ${it.isMine ? "font-bold" : ""} ${it.isTakenByOther && !it.isMine ? "opacity-60" : ""}
-        `}
-      >
-        {/* Left column */}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="truncate">{it.title}</span>
-            {it.url && (
-              <a
-                href={it.url}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="inline-flex items-center gap-1 rounded-full bg-[var(--secondary)] px-2 py-0.5 text-xs text-[var(--sidebar-primary)] hover:underline"
-                title={`Ouvrir le lien (${getDomain(it.url)})`}
-              >
-                <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-                <span className="hidden sm:inline">{getDomain(it.url)}</span>
-              </a>
-            )}
+      {ordered.map((it) => (
+        <motion.li
+          key={it.id}
+          layout
+          transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.7 }}
+          className={`
+            grid gap-2 border-b py-2 text-sm transition-opacity
+            md:flex md:items-start md:justify-between md:gap-3
+            ${it.isMine ? "font-bold" : ""} ${
+              it.isTakenByOther && !it.isMine ? "opacity-60" : ""
+            }
+          `}
+        >
+          {/* Colonne gauche : image + texte */}
+          <div className="flex min-w-0 flex-1 gap-4">
+            {it.imagePath && (
+                <GiftImagePreview
+                  src={it.imagePath}
+                  alt={it.title}
+                  sizeClassName="h-24 w-24"
+                />
+              )}
+
+            <div className="min-w-0 flex-1">
+              {/* Titre + chip lien */}
+              <div className="flex items-center gap-2">
+                <span className="truncate font-medium">{it.title}</span>
+                {it.url && (
+                  <a
+                    href={it.url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="inline-flex items-center gap-1 rounded-full bg-[var(--secondary)] px-2 py-0.5 text-xs text-[var(--sidebar-primary)] hover:underline"
+                  >
+                    <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="hidden sm:inline">{getDomain(it.url)}</span>
+                  </a>
+                )}
+              </div>
+              
+              {/* Description */}
+              {it.note && (
+                <ExpandableText
+                  text={it.note}
+                  maxLines={2}
+                  className="mt-1.5 text-xs leading-snug"
+                />
+              )}
+            </div>
           </div>
-          
-          {it.note && (
-            <ExpandableText text={it.note} maxLines={2} className="mt-1 text-xs" />
-          )}
-        </div>
-        
-        {/* Desktop CTA (right) */}
-        <div className="hidden md:block md:pl-4">
-          <ReserveButton
-            key={`${it.id}-${it.reservedByName ? "anon" : "named"}`}
-            itemId={it.id}
-            eventId={eventId}
-            initialIsMine={it.isMine}
-            initialTakenByOther={it.isTakenByOther}
-            reservedByName={it.reservedByName}
-            onOptimisticChange={(next) => handleOptimisticChange(it.id, next)}
-          />
-        </div>
-        
-        {/* Mobile CTA (full width below) */}
-        <div className="md:hidden">
-          <ReserveButton
-            key={`m-${it.id}-${it.reservedByName ? "anon" : "named"}`}
-            itemId={it.id}
-            eventId={eventId}
-            initialIsMine={it.isMine}
-            initialTakenByOther={it.isTakenByOther}
-            reservedByName={it.reservedByName}
-            onOptimisticChange={(next) => handleOptimisticChange(it.id, next)}
-            className="w-full"
-          />
-        </div>
-      </motion.li>
-    ))}
-  </motion.ul>
+            
+          {/* Desktop CTA (right) */}
+          <div className="hidden md:block md:pl-4">
+            <ReserveButton
+              key={`${it.id}-${it.reservedByName ? "anon" : "named"}`}
+              itemId={it.id}
+              eventId={eventId}
+              initialIsMine={it.isMine}
+              initialTakenByOther={it.isTakenByOther}
+              reservedByName={it.reservedByName}
+              onOptimisticChange={(next) =>
+                handleOptimisticChange(it.id, next)
+              }
+            />
+          </div>
+            
+          {/* Mobile CTA (full width below) */}
+          <div className="md:hidden">
+            <ReserveButton
+              key={`m-${it.id}-${it.reservedByName ? "anon" : "named"}`}
+              itemId={it.id}
+              eventId={eventId}
+              initialIsMine={it.isMine}
+              initialTakenByOther={it.isTakenByOther}
+              reservedByName={it.reservedByName}
+              onOptimisticChange={(next) =>
+                handleOptimisticChange(it.id, next)
+              }
+              className="w-full"
+            />
+          </div>
+        </motion.li>
+      ))}
+    </motion.ul>
     );
 }
