@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { limit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/req";
 import { nanoid } from "nanoid";
+import { EventGiftMode } from "@prisma/client";
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
@@ -43,6 +44,20 @@ function parseDateOrThrow(v: unknown): Date {
   return d;
 }
 
+function toPrismaGiftMode(
+  mode: "host-list" | "secret-santa" | "personal-lists",
+): EventGiftMode {
+  switch (mode) {
+    case "host-list":
+      return "HOST_LIST";
+    case "secret-santa":
+      return "SECRET_SANTA";
+    case "personal-lists":
+    default:
+      return "PERSONAL_LISTS";
+  }
+}
+
 export async function createEvent(formData: FormData) {
   const ownerId = await requireUserId();
 
@@ -56,14 +71,22 @@ export async function createEvent(formData: FormData) {
     description: formData.get("description"),
     date: formData.get("date"),
     location: formData.get("location"),
+
+    hasGifts: formData.get("rules.hasGifts"),
+    giftMode: formData.get("rules.mode"),
+
     isNoSpoil: formData.get("rules.isNoSpoil"),
     isAnonReservations: formData.get("rules.isAnonReservations"),
     isSecondHandOk: formData.get("rules.isSecondHandOk"),
     isHandmadeOk: formData.get("rules.isHandmadeOk"),
     budgetCap: formData.get("rules.budgetCap"),
-    isSecretSanta: formData.get("rules.isSecretSanta"),
+
   });
-  if (!parsed.success) throw new Error("Invalid input");
+  if (!parsed.success) {
+    console.error(parsed.error.format());
+    throw new Error("Invalid input");
+  }
+
   const data = parsed.data;
 
   const base = slugify(data.title) || nanoid(6);
@@ -80,12 +103,15 @@ export async function createEvent(formData: FormData) {
         eventOn,
         location: data.location || null,
         ownerId,
+
+        hasGifts: data.hasGifts,
+        giftMode: toPrismaGiftMode(data.giftMode),
+
         isNoSpoil: !!data.isNoSpoil,
         isAnonReservations: !!data.isAnonReservations,
         isSecondHandOk: !!data.isSecondHandOk,
         isHandmadeOk: !!data.isHandmadeOk,
-        isSecretSanta: !!data.isSecretSanta,
-        budgetCapCents: data.budgetCap ?? null,
+        budgetCapCents: data.budgetCap,
       },
       select: { id: true, slug: true },
     });

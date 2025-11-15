@@ -21,7 +21,8 @@ export async function getUserEventSummaries(userId: string): Promise<EventSummar
       title: true,
       eventOn: true,
       location: true,
-      isSecretSanta: true,        // <— NEW
+      hasGifts: true,
+      giftMode: true, // "HOST_LIST" | "SECRET_SANTA" | "PERSONAL_LISTS"
       memberships: { select: { userId: true } },
     },
   });
@@ -67,6 +68,8 @@ export async function getUserEventSummaries(userId: string): Promise<EventSummar
     ? new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long", year: "numeric" }).format(e.eventOn)
     : null;
 
+  const isSecretSanta = e.giftMode === "SECRET_SANTA";
+
   return {
     id: e.id,
     slug: e.slug,
@@ -76,7 +79,7 @@ export async function getUserEventSummaries(userId: string): Promise<EventSummar
     location: e.location ?? null,
     invitedCount: memberIds.length,
       progress,
-      isSecretSanta: !!e.isSecretSanta,
+      isSecretSanta,
       hasDraw: (ssCountMap.get(e.id) ?? 0) > 0,
     };
   });

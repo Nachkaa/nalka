@@ -32,7 +32,8 @@ type Props = {
     description: string | null;
     eventOn: Date | null;
     location: string | null;
-    isSecretSanta: boolean;
+    giftMode: "HOST_LIST" | "SECRET_SANTA" | "PERSONAL_LISTS";
+    hasGifts: boolean;
     hasDraw?: boolean;
     isNoSpoil: boolean;
     isAnonReservations: boolean;
@@ -86,25 +87,22 @@ export default function SecretSantaExperience({ event, meId, slug, isAdmin }: Pr
         };
 
       const [target, setTarget] = useState<MeTarget>(null);
-        useEffect(() => {
-          let alive = true;
-          fetch(`/api/secret-santa/${event.id}/me`, { cache: "no-store" })
-            .then((r) => (r.ok ? r.json() : null))
-            .then((data) => { if (alive && data?.receiver) setTarget(data); })
-            .catch(() => {});
-          return () => { alive = false; };
-        }, [event.id]);
-      const targetId = target?.receiver.id ?? null;
-      const hasDraw = (event as any).hasDraw ?? !!target;
-
+      
       useEffect(() => {
         let alive = true;
         fetch(`/api/secret-santa/${event.id}/me`, { cache: "no-store" })
           .then((r) => (r.ok ? r.json() : null))
-          .then((data) => { if (alive && data?.receiver) setTarget(data); })
+          .then((data) => {
+            if (alive && data?.receiver) setTarget(data);
+          })
           .catch(() => {});
-        return () => { alive = false; };
+        return () => {
+          alive = false;
+        };
       }, [event.id]);
+
+      const targetId = target?.receiver.id ?? null;
+      const hasDraw = event.hasDraw ?? !!target;
 
       async function fetchMyTarget(eventId: string): Promise<MeTarget> {
         try {

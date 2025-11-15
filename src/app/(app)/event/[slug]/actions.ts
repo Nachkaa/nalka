@@ -211,68 +211,6 @@ export async function removeMember(fd: FormData): Promise<void> {
   revalidatePath(slug ? `/event/${slug}` : "/event");
 }
 
-export async function updateEvent(eventId: string, slug: string, fd: FormData) {
-  const session = await auth();
-  if (!session?.user?.email) throw new Error("Non autorisé");
-
-  const me = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
-  if (!me) throw new Error("Utilisateur introuvable");
-
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    select: { id: true },
-  });
-  if (!event) throw new Error("Événement introuvable");
-
-  const membership = await prisma.eventMember.findUnique({
-    where: { userId_eventId: { userId: me.id, eventId } },
-    select: { role: true },
-  });
-  if (!membership || !["OWNER", "ADMIN"].includes(membership.role)) {
-    throw new Error("Interdit");
-  }
-
-  const title = fd.get("title")?.toString().trim();
-  const description = fd.get("description")?.toString().trim() || null;
-  const location = fd.get("location")?.toString().trim() || null;
-
-  // date en local-only (évite TZ issues). Choix: 12:00 local pour neutraliser.
-  const dateRaw = fd.get("date")?.toString().trim();
-  const eventOn = dateRaw ? new Date(`${dateRaw}T12:00:00`) : undefined;
-
-  const budgetCapCents = parseBudgetCents(fd.get("rules.budgetCap")?.toString());
-
-  // ⬇️ Nouveau: Secret Santa + forçage visibilité
-  const isSecretSanta = bool(fd, "rules.isSecretSanta");
-  const isNoSpoil = isSecretSanta ? true : bool(fd, "rules.isNoSpoil");
-  const isAnonReservations = isSecretSanta ? true : bool(fd, "rules.isAnonReservations");
-  const isSecondHandOk = bool(fd, "rules.isSecondHandOk");
-  const isHandmadeOk = bool(fd, "rules.isHandmadeOk");
-
-  await prisma.event.update({
-    where: { id: eventId },
-    data: {
-      ...(title ? { title } : {}),
-      description,
-      location,
-      ...(eventOn ? { eventOn } : {}),
-      // règles persistées
-      isSecretSanta,
-      isNoSpoil,
-      isAnonReservations,
-      isSecondHandOk,
-      isHandmadeOk,
-      budgetCapCents,
-    },
-  });
-
-  revalidatePath(`/event/${slug}`);
-  return { ok: true };
-}
-
 export async function deleteEvent(fd: FormData) {
   const session = await auth();
   if (!session?.user?.email) throw new Error("Unauthorized");

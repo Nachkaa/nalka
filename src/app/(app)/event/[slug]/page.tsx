@@ -1,6 +1,10 @@
   import { auth } from "@/auth";
   import { prisma } from "@/lib/prisma";
-  import { ReservationStatus as RS, EventMemberRole as ER } from "@prisma/client";
+  import {
+    ReservationStatus as RS,
+    EventMemberRole as ER,
+    EventGiftMode as EGM,
+  } from "@prisma/client";
   import InviteMemberChip from "./InviteMemberChip";
   import { deleteGift, removeMember } from "./actions";
   import { InviteEmptyStateCTA } from "./AddEventMembers";
@@ -35,6 +39,7 @@
   type PageProps = { params: Promise<{ slug?: string }> };
   const STATUS = RS;
   const ROLE = ER;
+  const MODE = EGM;
 
   export default async function EventPage({ params }: PageProps) {
     const { slug } = await params;
@@ -70,7 +75,7 @@
       return false;
     };
 
-    if (event.isSecretSanta) {
+    if (event.giftMode === MODE.SECRET_SANTA) {
       return (
         <SecretSantaExperience
           event={event}
@@ -83,6 +88,11 @@
 
     const myList = event.lists.find((l) => l.ownerId === meId) ?? null;
     const otherLists = event.lists.filter((l) => l.ownerId !== meId);
+
+    const showBudget =
+      event.hasGifts &&
+      event.giftMode !== MODE.HOST_LIST &&
+      typeof event.budgetCapCents === "number";
 
     const displayName = (u?: { name: string | null; email: string | null } | null) => {
       if (!u) return "Inconnu";
@@ -167,7 +177,7 @@
               {event.location}
             </span>
           )}
-          {typeof event.budgetCapCents === "number" && (
+          {showBudget && (
             <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1">
               Budget max par cadeau : {fmtEUR(event.budgetCapCents)}
             </span>
@@ -203,7 +213,8 @@
        </section>
 
         {/* Ma liste */}
-        <Card>
+        {event.hasGifts && (
+          <Card>
           <CardHeader>
             <CardTitle>Ma liste</CardTitle>
           </CardHeader>
@@ -357,6 +368,8 @@
             </ul>
           </CardContent>
         </Card>
+        )}
+        
 
         {/* Participants et listes */}
         <section className="space-y-6">

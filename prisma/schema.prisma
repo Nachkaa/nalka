@@ -30,6 +30,12 @@ enum ReservationStatus {
   RELEASED
 }
 
+enum EventGiftMode {
+  HOST_LIST        // seulement ma liste
+  SECRET_SANTA     // Secret Santa
+  PERSONAL_LISTS   // une liste par personne
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -114,11 +120,12 @@ model Event {
   budgetCents Int?
 
   // RULES — flat, explicit
-  isNoSpoil          Boolean @default(true)
-  isAnonReservations Boolean @default(true)
-  isSecondHandOk     Boolean @default(false)
-  isHandmadeOk       Boolean @default(false)
-  isSecretSanta      Boolean @default(false)
+  hasGifts            Boolean       @default(true)
+  giftMode            EventGiftMode @default(PERSONAL_LISTS)
+  isNoSpoil           Boolean @default(true)
+  isAnonReservations  Boolean @default(true)
+  isSecondHandOk      Boolean @default(false)
+  isHandmadeOk        Boolean @default(false)
 
   budgetCapCents Int?
 
