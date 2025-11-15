@@ -56,9 +56,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   session: { strategy: "database" },
 
+  pages: {
+    signIn: "/login",
+    error: "/login", // /api/auth/error?error=Verification -> /login?error=Verification
+  },
+
+
   providers: [
     Nodemailer({
       id: "nodemailer",
+      // 🔽 nouveau : durée de validité du lien (ici 7 jours)
+      maxAge: 60 * 60 * 24 * 7,
       server: {
         host: process.env.SMTP_HOST || "",
         port: Number(process.env.SMTP_PORT || 587),
@@ -90,10 +98,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             : MagicLinkEmail({
                 url,
                 appName: "Nalka",
-                supportEmail: "support@giftlist.local",
+                supportEmail: "contact@nalka.fr",
               })
         );
-      
+
         const transporter = await getTransporter();
         const info = await transporter.sendMail({
           to: identifier,
@@ -103,7 +111,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             : "Votre lien de connexion Nalka",
           html,
         });
-      
+
         const nodemailer = (await import("nodemailer")).default;
         const preview = (nodemailer as any).getTestMessageUrl?.(info);
         if (preview) console.log("[auth mail] Preview:", preview);

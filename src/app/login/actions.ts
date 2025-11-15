@@ -40,7 +40,7 @@ export async function sendMagicLink(input: unknown) {
   const redirectToIn = pickSafePath(raw?.redirectTo);
   const callbackUrlIn = pickSafePath(raw?.callbackUrl);
 
-  let redirectTo = redirectToIn || callbackUrlIn || "/event";
+  let redirectTo = redirectToIn || callbackUrlIn || "/event/new";
 
   if (redirectTo.startsWith("/join")) {
     const code = new URL("http://x" + redirectTo).searchParams.get("code") || "";
