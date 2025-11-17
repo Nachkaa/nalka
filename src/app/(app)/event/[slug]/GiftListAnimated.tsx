@@ -24,6 +24,7 @@ export type GiftItemVM = {
 export default function GiftListAnimated({
   items,
   eventId,
+  showNames,
 }: {
   items: GiftItemVM[];
   eventId: string;
@@ -75,28 +76,32 @@ export default function GiftListAnimated({
           layout
           transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.7 }}
           className={`
-            grid gap-2 border-b py-2 text-sm transition-opacity
-            md:flex md:items-start md:justify-between md:gap-3
+            flex flex-col gap-3 border-b py-3 text-sm
+            md:flex-row md:items-start md:justify-between md:gap-3
             ${it.isMine ? "font-bold" : ""} ${
               it.isTakenByOther && !it.isMine ? "opacity-60" : ""
             }
           `}
         >
           {/* Colonne gauche : image + texte */}
-          <div className="flex min-w-0 flex-1 gap-4">
+          <div className="flex min-w-0 flex-1 gap-3">
             {it.imagePath && (
-                <GiftImagePreview
-                  src={it.imagePath}
-                  alt={it.title}
-                  sizeClassName="h-24 w-24"
-                />
-              )}
+              <GiftImagePreview
+                src={it.imagePath}
+                alt={it.title}
+                sizeClassName="h-20 w-20 md:h-24 md:w-24"
+              />
+            )}
 
             <div className="min-w-0 flex-1">
-              {/* Titre + chip lien */}
+              {/* Titre */}
               <div className="flex items-center gap-2">
                 <span className="truncate font-medium">{it.title}</span>
-                {it.url && (
+              </div>
+
+              {/* Chip lien sur ligne dédiée (evite la bouillie mobile) */}
+              {it.url && (
+                <div className="mt-1">
                   <a
                     href={it.url}
                     target="_blank"
@@ -104,54 +109,57 @@ export default function GiftListAnimated({
                     className="inline-flex items-center gap-1 rounded-full bg-[var(--secondary)] px-2 py-0.5 text-xs text-[var(--sidebar-primary)] hover:underline"
                   >
                     <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span className="hidden sm:inline">{getDomain(it.url)}</span>
+                    <span>{getDomain(it.url)}</span>
                   </a>
-                )}
-              </div>
-              
+                </div>
+              )}
+
               {/* Description */}
               {it.note && (
                 <ExpandableText
                   text={it.note}
-                  maxLines={2}
+                  maxLines={3}
                   className="mt-1.5 text-xs leading-snug"
                 />
               )}
+
+              {/* Info sur qui a réservé (si non anonyme, pas moi) */}
+              {showNames && !it.isMine && it.isTakenByOther && it.reservedByName && (
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  Réservé par {it.reservedByName}
+                </p>
+              )}
             </div>
           </div>
-            
+
           {/* Desktop CTA (right) */}
           <div className="hidden md:block md:pl-4">
             <ReserveButton
-              key={`${it.id}-${it.reservedByName ? "anon" : "named"}`}
+              key={`${it.id}-${it.reservedByName ? "named" : "anon"}`}
               itemId={it.id}
               eventId={eventId}
               initialIsMine={it.isMine}
               initialTakenByOther={it.isTakenByOther}
               reservedByName={it.reservedByName}
-              onOptimisticChange={(next) =>
-                handleOptimisticChange(it.id, next)
-              }
+              onOptimisticChange={(next) => handleOptimisticChange(it.id, next)}
             />
           </div>
-            
+
           {/* Mobile CTA (full width below) */}
           <div className="md:hidden">
             <ReserveButton
-              key={`m-${it.id}-${it.reservedByName ? "anon" : "named"}`}
+              key={`m-${it.id}-${it.reservedByName ? "named" : "anon"}`}
               itemId={it.id}
               eventId={eventId}
               initialIsMine={it.isMine}
               initialTakenByOther={it.isTakenByOther}
               reservedByName={it.reservedByName}
-              onOptimisticChange={(next) =>
-                handleOptimisticChange(it.id, next)
-              }
+              onOptimisticChange={(next) => handleOptimisticChange(it.id, next)}
               className="w-full"
             />
           </div>
         </motion.li>
       ))}
     </motion.ul>
-    );
+  );
 }

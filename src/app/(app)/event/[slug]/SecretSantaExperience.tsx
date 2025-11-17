@@ -139,7 +139,7 @@ export default function SecretSantaExperience({ event, meId, slug, isAdmin }: Pr
         <div className="flex flex-wrap gap-2 md:items-center">
           <InviteShareDialog eventRef={slug} />
 
-          {isAdmin ? (
+          {isAdmin && (
             <Button
               asChild
               variant="secondary"
@@ -152,8 +152,6 @@ export default function SecretSantaExperience({ event, meId, slug, isAdmin }: Pr
                 Modifier
               </Link>
             </Button>
-          ) : (
-            <LeaveEventDialog eventId={event.id} />
           )}
         </div>
       </header>

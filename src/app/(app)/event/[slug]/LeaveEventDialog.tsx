@@ -4,9 +4,15 @@ import { useState, useTransition } from "react";
 import { leaveEvent } from "./leave";
 import { Button } from "@/components/ui/button";
 import {
-  AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
-  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter,
-  AlertDialogCancel, AlertDialogAction,
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { LogOut } from "lucide-react";
 
@@ -23,17 +29,23 @@ export default function LeaveEventDialog({ eventId }: { eventId: string }) {
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button size="sm" variant="ghost" className="gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-2"
+        >
           <LogOut className="h-4 w-4" aria-hidden="true" />
-          Quitter
+          Quitter l’événement
         </Button>
       </AlertDialogTrigger>
 
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Quitter l’événement ?</AlertDialogTitle>
+          <AlertDialogTitle>Quitter cet événement&nbsp;?</AlertDialogTitle>
           <AlertDialogDescription>
-            Vous allez manquer à vos proches !
+            Vous ne verrez plus les listes ni les mises à jour liées à cet
+            événement. Vous pourrez revenir uniquement si l’organisateur vous
+            réinvite.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -41,8 +53,12 @@ export default function LeaveEventDialog({ eventId }: { eventId: string }) {
           <form action={action}>
             <input type="hidden" name="eventId" value={eventId} />
             <AlertDialogAction asChild>
-              <Button type="submit" variant="destructive" disabled={isPending}>
-                {isPending ? "…" : "Confirmer"}
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={isPending}
+              >
+                {isPending ? "…" : "Oui, quitter l’événement"}
               </Button>
             </AlertDialogAction>
           </form>

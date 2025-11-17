@@ -23,7 +23,7 @@
     AlertDialogCancel,
     AlertDialogAction,
   } from "@/components/ui/alert-dialog";
-  import { Gift, Lock, Pencil, Trash2, ArrowLeft, Calendar, MapPin, EyeOff, Recycle, Hammer, UserMinus, Link2  } from "lucide-react";
+  import { Gift, Lock, Pencil, Trash2, ArrowLeft, Calendar, MapPin, EyeOff, Recycle, Hammer, UserMinus, Link2, CheckCircle2, Info } from "lucide-react";
   import GiftListAnimated, { GiftItemVM } from "./GiftListAnimated";
   import LeaveEventDialog from "./LeaveEventDialog";
   import SecretSantaExperience from "./SecretSantaExperience";
@@ -31,6 +31,7 @@
   import { requireEventForUser } from "@/features/events/permissions";
   import ExpandableText from "@/components/ui/expandable-text";
   import { GiftImagePreview } from "@/components/gifts/GiftImagePreview";
+  import { FinalizeGiftListDialog } from "./FinalizeGiftListDialog";
 
   export const runtime = "nodejs";
   export const dynamic = "force-dynamic";
@@ -132,28 +133,19 @@
             <div className="flex flex-wrap gap-2 md:items-center">
               {/* compact buttons on mobile */}
               <div className="contents [&>button]:h-8 [&>button]:px-2 [&>button]:text-xs md:[&>button]:h-9 md:[&>button]:px-3 md:[&>button]:text-sm">
-                {isAdmin ? (
-                  <>
-                    <div className="flex flex-wrap gap-2 md:items-center">
-                      <InviteShareDialog eventRef={event.slug} />
-                                    
-                      {/* Edit: Button component, navigates to the edit page */}
-                      <Button
-                        asChild
-                        variant="secondary"
-                        size="sm"
-                        className="rounded-full px-3"
-                        aria-label="Modifier l’événement"
-                      >
-                        <Link href={`/event/${slug}/edit`} prefetch={false}>
-                          <Pencil className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                          Modifier
-                        </Link>
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <LeaveEventDialog eventId={event.id} />
+                {isAdmin && (
+                  <Button
+                    asChild
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-full px-3"
+                    aria-label="Modifier l’événement"
+                  >
+                    <Link href={`/event/${slug}/edit`} prefetch={false}>
+                      <Pencil className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                      Modifier
+                    </Link>
+                  </Button>
                 )}
               </div>
             </div>
@@ -213,152 +205,326 @@
        </section>
 
         {/* Ma liste */}
-        {event.hasGifts && (
-          <Card>
-          <CardHeader>
-            <CardTitle>Ma liste</CardTitle>
+        {event.hasGifts && myList && (
+        <Card>
+          <CardHeader className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+              <CardTitle>Ma liste</CardTitle>
+              
+              {myList.isFinalized ? (
+                <>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Info className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Ta liste est finalisée. Tu peux encore faire des changements si besoin.</span>
+                </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Tu peux ajouter ou modifier tes idées. Quand tu es prêt, valide ta liste
+                  pour que les autres sachent qu’ils peuvent réserver en confiance.
+                </p>
+              )}
+            </div>
+            
+            {myList.isFinalized ? (
+              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                
+              </span>
+            ) : (
+              <FinalizeGiftListDialog eventId={event.id} />
+            )}
           </CardHeader>
+          
           <CardContent>
             <ul className="space-y-1">
-              {(myList?.items ?? []).map((item) => {
+              {(myList.items ?? []).map((item) => {
                 const activeRes = (item.reservations ?? []).filter(
                   (r) => r.status !== STATUS.RELEASED
                 );
-                const showSpoil = !event.isNoSpoil && activeRes.length > 0;
-
+                const isNoSpoil = event.isNoSpoil;
                 const hasActive = activeRes.length > 0;
+                const isFinalized = !!myList.isFinalized;
+                const showSpoil = !isNoSpoil && hasActive;
                 const dim = !event.isNoSpoil && hasActive;
               
                 return (
-                <li
-                  key={item.id}
-                  className="flex items-start justify-between gap-3 border-b py-2 text-sm"
-                >
-                  {/* Image + texte */}
-                  <div className="flex min-w-0 flex-1 gap-3">
-                    {item.imagePath && (
-                      <GiftImagePreview
-                        src={item.imagePath}
-                        alt={item.title}
-                        sizeClassName="h-24 w-24"
-                      />
-                    )}
-
-                    <div className="min-w-0 flex-1">
-                      {/* titre + lock + chip lien sur une ligne */}
-                      <div className="flex items-center gap-2">
-                        {dim && (
-                          <span title="Déjà réservé" className="inline-flex">
-                            <Lock
-                              className="h-4 w-4 text-[var(--muted-foreground)]"
-                              aria-hidden="true"
-                            />
-                          </span>
-                        )}
-
-                        <span className={`truncate ${dim ? "opacity-70" : ""}`}>
-                          {item.title}
-                        </span>
-                      
-                        {/* chip lien si présent */}
-                        {(() => {
-                          if (!item.url) return null;
-                          let domain: string | null = null;
-                          try {
-                            domain = new URL(item.url).hostname.replace(/^www\./, "");
-                          } catch {
-                            domain = null;
-                          }
-                          return (
-                            domain && (
-                              <a
-                                href={item.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
-                                title={item.url}
-                              >
-                                <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-                                {domain}
-                              </a>
-                            )
-                          );
-                        })()}
-                      </div>
-                      
-                      {/* description sous le titre */}
-                      {item.note && (
-                        <ExpandableText
-                          text={item.note}
-                          maxLines={4}
-                          className="mt-1 text-xs"
+                  <li
+                    key={item.id}
+                    className="flex flex-col gap-3 border-b py-3 text-sm md:flex-row md:items-start md:justify-between"
+                  >
+                    {/* Image + texte */}
+                    <div className="flex min-w-0 flex-1 gap-3">
+                      {item.imagePath && (
+                        <GiftImagePreview
+                          src={item.imagePath}
+                          alt={item.title}
+                          sizeClassName="h-24 w-24"
                         />
                       )}
-
-                      {/* info réservation si spoil autorisé */}
-                      {showSpoil && (() => {
-                        const names = activeRes.map((r) => displayName(r.byUser));
-                        return (
-                          <p className="mt-1 text-xs leading-snug text-[var(--muted-foreground)]">
-                            Réservé par {names.slice(0, 3).join(", ")}
-                            {names.length > 3 ? ` (+${names.length - 3})` : ""}
-                          </p>
-                        );
-                      })()}
+      
+                      <div className="min-w-0 flex-1">
+                        {/* titre + lock + chip lien sur une ligne */}
+                        <div className="flex items-center gap-2">
+                          {dim && (
+                            <span title="Déjà réservé" className="inline-flex">
+                              <Lock
+                                className="h-4 w-4 text-[var(--muted-foreground)]"
+                                aria-hidden="true"
+                              />
+                            </span>
+                          )}
+      
+                          <span className={`truncate ${dim ? "opacity-70" : ""}`}>
+                            {item.title}
+                          </span>
+                          </div>
+                        
+                          {/* chip lien si présent */}
+                          {(() => {
+                            if (!item.url) return null;
+                            let domain: string | null = null;
+                            try {
+                              domain = new URL(item.url).hostname.replace(/^www\./, "");
+                            } catch {
+                              domain = null;
+                            }
+                            return (
+                              domain && (
+                                <div className="mt-1">
+                                  <a
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+                                    title={item.url}
+                                  >
+                                    <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                                    {domain}
+                                  </a>
+                                </div>
+                              )
+                            );
+                          })()}
+                        
+                        
+                        {/* description sous le titre */}
+                        {item.note && (
+                          <ExpandableText
+                            text={item.note}
+                            maxLines={4}
+                            className="mt-1 text-xs"
+                          />
+                        )}
+      
+                        {/* info réservation si spoil autorisé */}
+                        {showSpoil &&
+                          (() => {
+                            const names = activeRes.map((r) => displayName(r.byUser));
+                            return (
+                              <p className="mt-1 text-xs leading-snug text-[var(--muted-foreground)]">
+                                Réservé par {names.slice(0, 3).join(", ")}
+                                {names.length > 3 ? ` (+${names.length - 3})` : ""}
+                              </p>
+                            );
+                          })()}
+                      </div>
                     </div>
-                  </div>
+                        
+                    {/* Actions à droite */}
+                  <div className="mt-1 flex items-center justify-end gap-2 md:mt-0 md:flex-shrink-0">
+                  {/* ÉDITION */}
+                      {!isFinalized ? (
+                        // Avant validation : édition directe
+                        <Link href={`/event/${slug}/gift/${item.id}/edit`}>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Modifier"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      ) : isNoSpoil ? (
+                        // Après validation + no-spoil : on ne sait PAS si c'est réservé
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Modifier"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Modifier ce cadeau&nbsp;?</AlertDialogTitle>
+                              <AlertDialogDescription asChild>
+                                <div className="space-y-2 text-sm text-muted-foreground">
+                                  <p>
+                                    Ta liste est finalisée. Modifier ce cadeau peut impacter
+                                    quelqu’un qui avait prévu de te l’offrir.
+                                  </p>
+                                  <p>
+                                    Si quelqu’un l’a déjà réservé, il sera prévenu de ton
+                                    changement.
+                                  </p>
+                                  <p>Tu veux quand même continuer&nbsp;?</p>
+                                </div>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuler</AlertDialogCancel>
+                              <AlertDialogAction asChild>
+                                <Link href={`/event/${slug}/gift/${item.id}/edit`}>
+                                  <Button variant="outline">Continuer</Button>
+                                </Link>
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : hasActive ? (
+                        // Après validation + spoil + déjà réservé : on peut le dire clairement
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Modifier"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Ce cadeau est déjà réservé</AlertDialogTitle>
+                              <AlertDialogDescription asChild>
+                                <div className="space-y-2 text-sm text-muted-foreground">
+                                  <p>
+                                    Modifier ces informations peut impacter la personne qui te
+                                    l’offrira.
+                                  </p>
+                                  <p>Tu veux quand même continuer&nbsp;?</p>
+                                </div>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuler</AlertDialogCancel>
+                              <AlertDialogAction asChild>
+                                <Link href={`/event/${slug}/gift/${item.id}/edit`}>
+                                  <Button variant="outline">Continuer</Button>
+                                </Link>
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : (
+                        // Après validation + spoil + pas réservé : édition directe
+                        <Link href={`/event/${slug}/gift/${item.id}/edit`}>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Modifier"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      )}
                     
-                  {/* Actions à droite */}
-                  <div className="flex flex-shrink-0 items-center gap-2">
-                    <Link href={`/event/${slug}/gift/${item.id}/edit`}>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        title="Modifier"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </Link>
+                      {/* SUPPRESSION */}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
                     
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Supprimer ce cadeau ?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            « {item.title} » sera retiré de votre liste.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
-                          <form action={deleteGift}>
-                            <input type="hidden" name="itemId" value={item.id} />
-                            <input type="hidden" name="eventId" value={event.id} />
-                            <AlertDialogAction asChild>
-                              <Button type="submit" variant="destructive">
-                                Supprimer
-                              </Button>
-                            </AlertDialogAction>
-                          </form>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </li>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {!isFinalized
+                                ? "Supprimer ce cadeau ?"
+                                : isNoSpoil
+                                ? "Retirer ce cadeau ?"
+                                : hasActive
+                                ? "Ce cadeau est réservé"
+                                : "Supprimer ce cadeau ?"}
+                            </AlertDialogTitle>
+                              
+                            <AlertDialogDescription asChild>
+                              <div className="space-y-2 text-sm text-muted-foreground">
+                                {/* Avant finalisation : simple confirmation anti-missclick */}
+                                {!isFinalized && (
+                                  <p>
+                                    « {item.title} » sera retiré de ta liste.
+                                  </p>
+                                )}
+                    
+                                {/* Après finalisation + no-spoil : on reste en mode "peut-être réservé" */}
+                                {isFinalized && isNoSpoil && (
+                                  <>
+                                    <p>
+                                      Tu veux vraiment retirer « {item.title} » de ta liste&nbsp;?
+                                    </p>
+                                    <p>
+                                      Si quelqu’un l’a déjà réservé, il sera prévenu et pourra
+                                      choisir autre chose.
+                                    </p>
+                                  </>
+                                )}
+                    
+                                {/* Après finalisation + spoil + déjà réservé */}
+                                {isFinalized && !isNoSpoil && hasActive && (
+                                  <>
+                                    <p>
+                                      Tu veux retirer « {item.title} » de ta liste&nbsp;?
+                                    </p>
+                                    <p>
+                                      La personne qui l’avait réservé sera prévenue et pourra
+                                      choisir autre chose.
+                                    </p>
+                                  </>
+                                )}
+                    
+                                {/* Après finalisation + spoil + pas réservé */}
+                                {isFinalized && !isNoSpoil && !hasActive && (
+                                  <p>
+                                    « {item.title} » sera retiré de ta liste.
+                                  </p>
+                                )}
+                              </div>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                              
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <form action={deleteGift}>
+                              <input type="hidden" name="itemId" value={item.id} />
+                              <input type="hidden" name="eventId" value={event.id} />
+                              <AlertDialogAction asChild>
+                                <Button type="submit" variant="destructive">
+                                  {isFinalized ? "Retirer de ma liste" : "Supprimer"}
+                                </Button>
+                              </AlertDialogAction>
+                            </form>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
 
+                  </li>
                 );
               })}
-
+      
               <Link
                 href={`/event/${slug}/add`}
                 className="mt-4 block rounded-lg bg-[var(--primary)] py-3 text-center font-medium text-[var(--primary-foreground)] transition hover:bg-[color-mix(in_oklch,var(--primary),black_10%)]"
@@ -368,7 +534,7 @@
             </ul>
           </CardContent>
         </Card>
-        )}
+      )}
         
 
         {/* Participants et listes */}
@@ -482,8 +648,20 @@
                 className={hasMine ? "ring-1 ring-[var(--primary)] border-[var(--primary)]" : ""}
               >
                 <CardHeader className="flex items-start justify-between">
-                  <div>
-                    <CardTitle>{list.owner.name ?? list.owner.email}</CardTitle>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CardTitle>{list.owner.name ?? list.owner.email}</CardTitle>
+
+                      {list.isFinalized && (
+                        <span className="inline-flex items-center gap-1 rounded-full
+                          border border-[var(--border)] px-2 py-0.5
+                          text-[10px] font-medium text-[var(--muted-foreground)]">
+                          <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                          Finalisée
+                        </span>
+                      )}
+                    </div>
+                    
                     {reservedCount > 0 && (
                       <p className="text-sm font-medium text-[var(--primary)]">
                         🎁 {reservedCount} {reservedCount > 1 ? "cadeaux réservés" : "cadeau réservé"}
@@ -545,6 +723,26 @@
             </div>
           )}
         </section>
+        {/* Danger zone: quitter l’événement */}
+        {!isAdmin && (
+        <section
+          aria-labelledby="leave-event-heading"
+          className="mt-12 border-t pt-8"
+        >
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <h2
+              id="leave-event-heading"
+              className="text-sm font-semibold text-foreground"
+            >
+              Ne plus participer à cet événement
+            </h2>
+            <p>
+              Vous pourrez toujours être réinvité plus tard par l’organisateur.
+            </p>
+            <LeaveEventDialog eventId={event.id} />
+          </div>
+        </section>
+      )}
       </main>
     );
   }

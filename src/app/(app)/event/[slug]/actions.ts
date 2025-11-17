@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { limit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/req";
+import { sendGiftRemovedEmail } from "@/features/notifications/sendGiftRemovedEmail";
 
 function bool(fd: FormData, key: string): boolean {
   const v = fd.get(key);
@@ -15,25 +16,10 @@ function bool(fd: FormData, key: string): boolean {
   return s === "true" || s === "on" || s === "1" || s === "yes";
 }
 
-function parseBudgetCents(v: string | null | undefined) {
-  const t = (v ?? "").toString().trim();
-  if (!t) return null;
-  const n = Number(t.replace(",", "."));
-  if (Number.isNaN(n) || n < 0) return null;
-  return Math.round(n * 100);
-}
-
 const schema = z.object({
   eventId: z.string().min(1),
   email: z.string().email().max(254).transform((v) => v.trim().toLowerCase()),
 });
-
-function normalizeUrl(raw?: string | null) {
-  if (!raw) return null;
-  const s = raw.trim();
-  if (!s) return null;
-  return /^https?:\/\//i.test(s) ? s : `https://${s}`;
-}
 
 export async function deleteGift(formData: FormData) {
   const session = await auth();
@@ -43,17 +29,52 @@ export async function deleteGift(formData: FormData) {
   const eventId = formData.get("eventId")?.toString();
   if (!itemId || !eventId) throw new Error("Paramètres manquants");
 
-  const me = await prisma.user.findUnique({ where: { email: session.user.email } });
+  const me = await prisma.user.findUnique({
+    where: { email: session.user.email },
+  });
   if (!me) throw new Error("Utilisateur introuvable");
 
-  // Vérifie la propriété de l’item
+  // On récupère l’item + contexte + réservations
   const item = await prisma.giftItem.findUnique({
     where: { id: itemId },
-    include: { list: true },
+    include: {
+      list: {
+        include: {
+          owner: true,
+          event: true,
+        },
+      },
+      reservations: {
+        include: {
+          byUser: true,
+        },
+      },
+    },
   });
+
   if (!item || item.list.ownerId !== me.id) throw new Error("Interdit");
 
-  // Nettoie les réservations liées
+  // Réservations encore “actives” (à adapter si tu as un enum)
+  const activeReservations = item.reservations.filter(
+    (r) => r.status !== "RELEASED"
+  );
+
+  // Mail aux réservants concernés
+  await Promise.all(
+    activeReservations
+      .filter((r) => r.byUser?.email)
+      .map((r) =>
+        sendGiftRemovedEmail({
+          to: r.byUser!.email!,
+          recipientName: r.byUser!.name ?? r.byUser!.email!,
+          giftTitle: item.title,
+          eventTitle: item.list.event.title,
+          ownerName: item.list.owner.name ?? item.list.owner.email ?? "Un proche",
+        })
+      )
+  );
+
+  // Nettoie les réservations liées puis l’item
   await prisma.reservation.deleteMany({ where: { itemId } });
   await prisma.giftItem.delete({ where: { id: itemId } });
 
@@ -235,4 +256,29 @@ export async function deleteEvent(fd: FormData) {
 
   revalidatePath("/event");
   redirect("/event");
+}
+
+
+export async function finalizeMyList(eventId: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  // On suppose une GiftList par user+event
+  const list = await prisma.giftList.updateMany({
+    where: {
+      eventId,
+      ownerId: session.user.id,
+    },
+    data: {
+      isFinalized: true,
+    },
+  });
+
+  if (list.count === 0) {
+    // optionnel: créer la liste ou juste ignorer
+  }
+
+  revalidatePath(`/event/${eventId}`);
 }

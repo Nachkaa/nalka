@@ -193,6 +193,8 @@ model GiftList {
   event Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
   items GiftItem[]
 
+  isFinalized Boolean     @default(false)
+
   @@unique([ownerId, eventId], name: "ownerId_eventId")
   @@index([eventId])
 }

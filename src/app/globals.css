@@ -259,67 +259,6 @@ a:hover { text-decoration-color: var(--accent); }
     0 0 0 6px color-mix(in oklch, var(--accent), transparent 60%);
 }
 
-/* === OPTIONAL ALT THEME: Navy + Gold (opt-in) ===
-   Activate by adding class "theme-nalka-navy" on :root or html
-*/
-:root.theme-nalka-navy {
-  color-scheme: dark;
-
-  --header: oklch(98% 0.010 110);
-  --header-foreground: oklch(22% 0.030 260);
-  --header-border: oklch(92% 0.010 100);
-
-  /* Base */
-  --background: oklch(16% 0.035 260);        /* deep navy */
-  --foreground: oklch(98% 0.010 250);        /* near-white */
-
-  /* Surfaces */
-  --card: oklch(18% 0.030 260);
-  --card-foreground: var(--foreground);
-  --popover: oklch(18% 0.030 260);
-  --popover-foreground: var(--foreground);
-
-  /* Brand */
-  --primary: oklch(78% 0.140 90);            /* gold CTA */
-  --primary-foreground: oklch(16% 0.035 260);
-  --primary-glow: oklch(80% 0.110 90 / 0.45);
-
-  --accent: oklch(86% 0.100 90);             /* light gold */
-  --accent-foreground: oklch(18% 0.030 260);
-
-  /* Neutrals */
-  --secondary: oklch(26% 0.025 260);
-  --secondary-foreground: oklch(96% 0.010 250);
-  --muted: oklch(24% 0.018 260);
-  --muted-foreground: oklch(82% 0.012 250);
-
-  /* Feedback */
-  --destructive: oklch(60% 0.200 25);
-  --destructive-foreground: oklch(98% 0.005 250);
-
-  /* Lines / inputs / focus */
-  --border: oklch(32% 0.018 260);
-  --input:  oklch(28% 0.020 260);
-  --ring:   oklch(80% 0.120 90);
-
-  /* Charts tuned for navy+gold */
-  --chart-1: oklch(78% 0.140 90);   /* gold */
-  --chart-2: oklch(62% 0.170 255);  /* bright blue */
-  --chart-3: oklch(70% 0.100 310);  /* violet */
-  --chart-4: oklch(68% 0.080 200);  /* teal */
-  --chart-5: oklch(56% 0.100 160);  /* green */
-
-  /* Sidebar */
-  --sidebar: oklch(16% 0.020 260);
-  --sidebar-foreground: oklch(96% 0.010 250);
-  --sidebar-primary: oklch(78% 0.140 90);
-  --sidebar-primary-foreground: oklch(16% 0.035 260);
-  --sidebar-accent: oklch(20% 0.020 260);
-  --sidebar-accent-foreground: oklch(92% 0.010 250);
-  --sidebar-border: oklch(28% 0.020 260);
-  --sidebar-ring: oklch(80% 0.120 90);
-}
-
 /* Alt theme tweaks */
 :root.theme-nalka-navy .shadow-glow { box-shadow: 0 0 28px var(--primary-glow); }
 :root.theme-nalka-navy :where(a,button,[role="button"],input,select,textarea):focus-visible {
