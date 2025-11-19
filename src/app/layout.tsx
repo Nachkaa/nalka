@@ -6,6 +6,7 @@ import { inter, lora } from "@/styles/fonts";
 import { Footer } from "@/components/layout/Footer";
 import { CookieConsent } from "@/components/privacy/CookieConsent";
 import { ClientLayout } from "./ClientLayout";
+import { AskNameDialog } from "@/components/user/AskNameDialog";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -17,12 +18,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-screen">
         <Providers>
           <SiteHeader />
-          
+
+          {/* Demande de prénom si l’utilisateur n’en a pas */}
+          <AskNameDialog />
+
           {/* IMPORTANT : le main ne doit PAS boxer la homepage */}
           <main className="min-h-dvh">
             <ClientLayout>{children}</ClientLayout>
           </main>
-
         </Providers>
 
         <Footer />

@@ -30,7 +30,7 @@ export default async function AddGiftPage({
         </Button>
       </div>
 
-      <h1 className="mb-8 text-3xl font-semibold">Ajouter un cadeau</h1>
+      <h1 className="mb-8 text-3xl font-semibold">Ajouter une idée à ta liste</h1>
 
       <GiftForm
         action={addGift.bind(null, event.id, slug)}

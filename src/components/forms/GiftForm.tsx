@@ -23,6 +23,8 @@ type GiftFormProps = {
   footerClassName?: string;
 };
 
+const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024; // 3 Mo
+
 export function GiftForm({
   action,
   defaultValues,
@@ -37,6 +39,8 @@ export function GiftForm({
   const [preview, setPreview] = useState<string | null>(
     defaultValues?.imagePath ?? null,
   );
+  const [fileError, setFileError] = useState<string | null>(null);
+
   const initialImage = defaultValues?.imagePath ?? null;
 
   useEffect(() => {
@@ -49,10 +53,28 @@ export function GiftForm({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+
     if (!file) {
+      setPreview(initialImage);
+      setFileError(null);
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      // trop lourd → on reset le champ + on garde l’éventuelle image initiale
+      setFileError("Image trop lourde (max 3 Mo).");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      if (preview && preview !== initialImage && preview.startsWith("blob:")) {
+        URL.revokeObjectURL(preview);
+      }
       setPreview(initialImage);
       return;
     }
+
+    // OK
+    setFileError(null);
     const objectUrl = URL.createObjectURL(file);
     if (preview && preview !== initialImage && preview.startsWith("blob:")) {
       URL.revokeObjectURL(preview);
@@ -62,28 +84,28 @@ export function GiftForm({
 
   const handleClearImage = () => {
     if (preview && preview !== initialImage && preview.startsWith("blob:")) {
-    URL.revokeObjectURL(preview);
-  }
+      URL.revokeObjectURL(preview);
+    }
     setPreview(null);
+    setFileError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
     // côté serveur : si preview=null ET pas de fichier, tu peux décider de conserver l’ancienne image
   };
 
-  
-
   return (
     <form action={action} className="space-y-6">
-        <input
-          id="imageUrl"
-          name="imageUrl"
-          type="hidden"
-          defaultValue={defaultValues?.imagePath ?? ""}
-        />
+      <input
+        id="imageUrl"
+        name="imageUrl"
+        type="hidden"
+        defaultValue={defaultValues?.imagePath ?? ""}
+      />
+
       <div className="space-y-2">
         <Label htmlFor="title">
-          Nom <span className="text-red-600">*</span>
+          Nom de l'idée <span className="text-red-600">*</span>
         </Label>
         <Input id="title" name="title" required maxLength={120} defaultValue={title} />
         <div className="flex justify-end">
@@ -99,10 +121,11 @@ export function GiftForm({
             titleInputId="title"
             noteInputId="note"
             imageInputId="imageUrl"
-            onImageUrlChange={(url) => {  
+            onImageUrlChange={(url) => {
               if (fileInputRef.current) {
                 fileInputRef.current.value = "";
               }
+              setFileError(null);
               setPreview(url);
             }}
           />
@@ -121,7 +144,7 @@ export function GiftForm({
 
       {/* Image + preview */}
       <div className="space-y-2">
-        <Label htmlFor="image">Image du cadeau</Label>
+        <Label htmlFor="image">Image</Label>
 
         {preview && (
           <div className="relative h-24 w-24 overflow-hidden rounded-lg border bg-muted">
@@ -149,6 +172,17 @@ export function GiftForm({
           ref={fileInputRef}
           onChange={handleFileChange}
         />
+
+        {fileError && (
+          <p
+            className="text-xs text-red-600"
+            role="alert"
+            aria-live="polite"
+          >
+            {fileError}
+          </p>
+        )}
+
         <p className="text-xs text-muted-foreground">
           Une seule image, max 3 Mo. Recadrée automatiquement en carré dans la liste.
         </p>

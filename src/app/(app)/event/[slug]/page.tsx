@@ -379,7 +379,7 @@
                               <AlertDialogCancel>Annuler</AlertDialogCancel>
                               <AlertDialogAction asChild>
                                 <Link href={`/event/${slug}/gift/${item.id}/edit`}>
-                                  <Button variant="outline">Continuer</Button>
+                                  <Button>Continuer</Button>
                                 </Link>
                               </AlertDialogAction>
                             </AlertDialogFooter>
@@ -434,7 +434,7 @@
                           </Button>
                         </Link>
                       )}
-                    
+
                       {/* SUPPRESSION */}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -468,7 +468,7 @@
                                     « {item.title} » sera retiré de ta liste.
                                   </p>
                                 )}
-                    
+
                                 {/* Après finalisation + no-spoil : on reste en mode "peut-être réservé" */}
                                 {isFinalized && isNoSpoil && (
                                   <>
@@ -481,7 +481,7 @@
                                     </p>
                                   </>
                                 )}
-                    
+
                                 {/* Après finalisation + spoil + déjà réservé */}
                                 {isFinalized && !isNoSpoil && hasActive && (
                                   <>
@@ -494,7 +494,7 @@
                                     </p>
                                   </>
                                 )}
-                    
+
                                 {/* Après finalisation + spoil + pas réservé */}
                                 {isFinalized && !isNoSpoil && !hasActive && (
                                   <p>
@@ -505,13 +505,20 @@
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                               
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <form action={deleteGift}>
+                          <AlertDialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                            <AlertDialogCancel className="w-full sm:w-auto">
+                              Annuler
+                            </AlertDialogCancel>
+                                                        
+                            <form action={deleteGift} className="w-full sm:w-auto">
                               <input type="hidden" name="itemId" value={item.id} />
                               <input type="hidden" name="eventId" value={event.id} />
                               <AlertDialogAction asChild>
-                                <Button type="submit" variant="destructive">
+                                <Button
+                                  type="submit"
+                                  variant="destructive"
+                                  className="w-full sm:w-auto"
+                                >
                                   {isFinalized ? "Retirer de ma liste" : "Supprimer"}
                                 </Button>
                               </AlertDialogAction>
@@ -529,7 +536,7 @@
                 href={`/event/${slug}/add`}
                 className="mt-4 block rounded-lg bg-[var(--primary)] py-3 text-center font-medium text-[var(--primary-foreground)] transition hover:bg-[color-mix(in_oklch,var(--primary),black_10%)]"
               >
-                Ajouter un cadeau
+                Ajouter une idée
               </Link>
             </ul>
           </CardContent>
