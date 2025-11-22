@@ -11,10 +11,9 @@ import { launchDraw } from "./draw";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { emitGlobalRefresh } from "@/lib/refresh";
-import LeaveEventDialog from "./LeaveEventDialog";
 import { removeMember } from "./actions";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { InviteShareDialog } from "./InviteShareDialog";
+import { EventHeaderActions } from "./EventHeaderActions";
 
 
 
@@ -136,24 +135,10 @@ export default function SecretSantaExperience({ event, meId, slug, isAdmin }: Pr
         </h1>
 
         {/* Actions: pills, same style as ailleurs */}
-        <div className="flex flex-wrap gap-2 md:items-center">
-          <InviteShareDialog eventRef={slug} />
-
-          {isAdmin && (
-            <Button
-              asChild
-              variant="secondary"
-              size="sm"
-              className="rounded-full px-3"
-              aria-label="Modifier l’événement"
-            >
-              <Link href={`/event/${slug}/edit`} prefetch={false}>
-                <Pencil className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                Modifier
-              </Link>
-            </Button>
-          )}
-        </div>
+          <EventHeaderActions
+          slug={slug}
+          isAdmin={isAdmin}
+        />
       </header>
 
       {/* Ligne ~60: méta + badge SS */}

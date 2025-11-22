@@ -31,9 +31,9 @@ enum ReservationStatus {
 }
 
 enum EventGiftMode {
-  HOST_LIST        // seulement ma liste
-  SECRET_SANTA     // Secret Santa
-  PERSONAL_LISTS   // une liste par personne
+  HOST_LIST // seulement ma liste
+  SECRET_SANTA // Secret Santa
+  PERSONAL_LISTS // une liste par personne
 }
 
 model User {
@@ -56,6 +56,8 @@ model User {
   reservations     Reservation[]
   ideas            Idea[]
   ownedEvents      Event[]       @relation("OwnedEvents")
+
+  giftSuggestions GiftItem[] @relation("GiftItemSuggestedBy")
 }
 
 model Account {
@@ -120,12 +122,12 @@ model Event {
   budgetCents Int?
 
   // RULES — flat, explicit
-  hasGifts            Boolean       @default(true)
-  giftMode            EventGiftMode @default(PERSONAL_LISTS)
-  isNoSpoil           Boolean @default(true)
-  isAnonReservations  Boolean @default(true)
-  isSecondHandOk      Boolean @default(false)
-  isHandmadeOk        Boolean @default(false)
+  hasGifts           Boolean       @default(true)
+  giftMode           EventGiftMode @default(PERSONAL_LISTS)
+  isNoSpoil          Boolean       @default(true)
+  isAnonReservations Boolean       @default(true)
+  isSecondHandOk     Boolean       @default(false)
+  isHandmadeOk       Boolean       @default(false)
 
   budgetCapCents Int?
 
@@ -141,7 +143,7 @@ model Event {
   inviteTokens InviteToken[] @relation("Event_InviteTokens")
 
   // image
-  imagePath        String?  @db.VarChar(512)
+  imagePath String? @db.VarChar(512)
 
   @@index([ownerId, eventOn])
 }
@@ -193,8 +195,6 @@ model GiftList {
   event Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
   items GiftItem[]
 
-  isFinalized Boolean     @default(false)
-
   @@unique([ownerId, eventId], name: "ownerId_eventId")
   @@index([eventId])
 }
@@ -209,13 +209,18 @@ model GiftItem {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  imagePath  String?  @db.VarChar(512)
+  imagePath String? @db.VarChar(512)
+
+  isSuggestion      Boolean @default(false)
+  suggestedByUserId String?
+  suggestedByUser   User?   @relation("GiftItemSuggestedBy", fields: [suggestedByUserId], references: [id])
 
   list         GiftList      @relation(fields: [listId], references: [id], onDelete: Cascade)
   reservations Reservation[]
   ideas        Idea[]
 
   @@index([listId])
+  @@index([suggestedByUserId])
 }
 
 model Reservation {

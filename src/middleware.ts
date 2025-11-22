@@ -14,6 +14,7 @@ const PUBLIC_PREFIXES = [
   "/terms",
   "/images",
   "/assets",
+  "/gift-images",
 ];
 
 const isPublicPath = (pathname: string) =>
@@ -63,5 +64,5 @@ export function middleware(req: NextRequest) {
 
 // Exclude auth + all api + next internals at matcher level
 export const config = {
-  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico|images|assets).*)"],
+  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico|images|assets|gift-images).*)"],
 };

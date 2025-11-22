@@ -162,8 +162,8 @@ export async function removeMember(fd: FormData): Promise<void> {
   if (!session?.user?.email) throw new Error("Non autorisé");
 
   const eventId = fd.get("eventId")?.toString();
-  const userId  = fd.get("userId")?.toString();
-  const slug    = fd.get("slug")?.toString();
+  const userId = fd.get("userId")?.toString();
+  const slug = fd.get("slug")?.toString();
   if (!eventId || !userId) throw new Error("Champs requis");
 
   const me = await prisma.user.findUnique({
@@ -256,29 +256,4 @@ export async function deleteEvent(fd: FormData) {
 
   revalidatePath("/event");
   redirect("/event");
-}
-
-
-export async function finalizeMyList(eventId: string) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  // On suppose une GiftList par user+event
-  const list = await prisma.giftList.updateMany({
-    where: {
-      eventId,
-      ownerId: session.user.id,
-    },
-    data: {
-      isFinalized: true,
-    },
-  });
-
-  if (list.count === 0) {
-    // optionnel: créer la liste ou juste ignorer
-  }
-
-  revalidatePath(`/event/${eventId}`);
 }

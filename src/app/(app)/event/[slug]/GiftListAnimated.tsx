@@ -50,10 +50,10 @@ export default function GiftListAnimated({
       prev.map((it) =>
         it.id === itemId
           ? {
-              ...it,
-              isMine: nextIsMine,
-              isTakenByOther: nextIsMine ? false : it.isTakenByOther,
-            }
+            ...it,
+            isMine: nextIsMine,
+            isTakenByOther: nextIsMine ? false : it.isTakenByOther,
+          }
           : it,
       ),
     );
@@ -77,9 +77,8 @@ export default function GiftListAnimated({
           transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.7 }}
           className={`
             flex flex-col gap-3 border-b py-3 text-sm
-            md:flex-row md:items-start md:justify-between md:gap-3
-            ${it.isMine ? "font-bold" : ""} ${
-              it.isTakenByOther && !it.isMine ? "opacity-60" : ""
+            md:flex-row md:items-center md:justify-between md:gap-3 
+            ${it.isMine ? "font-bold" : ""} ${it.isTakenByOther && !it.isMine ? "opacity-60" : ""
             }
           `}
         >
@@ -95,9 +94,8 @@ export default function GiftListAnimated({
 
             <div className="min-w-0 flex-1">
               {/* Titre */}
-              <div className="flex items-center gap-2">
-                <span className="truncate font-medium">{it.title}</span>
-              </div>
+              {/* mobile : le titre peut aller sur plusieurs lignes ; desktop : on garde le truncate */}
+              <span className="font-medium break-words">{it.title}</span>
 
               {/* Chip lien sur ligne dédiée (evite la bouillie mobile) */}
               {it.url && (
@@ -109,7 +107,7 @@ export default function GiftListAnimated({
                     className="inline-flex items-center gap-1 rounded-full bg-[var(--secondary)] px-2 py-0.5 text-xs text-[var(--sidebar-primary)] hover:underline"
                   >
                     <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>{getDomain(it.url)}</span>
+                    <span className="break-all">{getDomain(it.url)}</span>
                   </a>
                 </div>
               )}

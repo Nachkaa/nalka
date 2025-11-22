@@ -95,7 +95,7 @@ export default function ReserveButton({
     });
   }
 
-  const takenLabel = reservedByName ? `Pris par ${reservedByName}` : "Pris";
+  const takenLabel = reservedByName ? `Réservé par ${reservedByName}` : "Pris";
 
   return (
     <button
