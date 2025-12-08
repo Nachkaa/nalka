@@ -5,33 +5,18 @@ import {
   EventMemberRole as ER,
   EventGiftMode as EGM,
 } from "@prisma/client";
-import InviteMemberChip from "./InviteMemberChip";
-import { deleteGift, removeMember } from "./actions";
-import { InviteEmptyStateCTA } from "./AddEventMembers";
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import { Gift, Lock, Pencil, Trash2, ArrowLeft, Calendar, MapPin, EyeOff, Recycle, Hammer, UserMinus, Link2, CheckCircle2, Info } from "lucide-react";
-import GiftListAnimated, { GiftItemVM } from "./GiftListAnimated";
 import LeaveEventDialog from "./LeaveEventDialog";
-import SecretSantaExperience from "./SecretSantaExperience";
 import { requireEventForUser } from "@/features/events/permissions";
-import ExpandableText from "@/components/ui/expandable-text";
-import { GiftImagePreview } from "@/components/gifts/GiftImagePreview";
-import { EventHeaderActions } from "./EventHeaderActions";
-import { SuggestIdeaButton } from "@/components/gifts/SuggestIdeaButton";
+import { EventBringSection } from "./_components/EventBringSection";
+import { EventAvailableModules } from "./_components/EventAvailableModules";
+import { EventHeader } from "./_components/EventHeader";
+import { EventMyListSection } from "./_components/EventMyListSection";
+import { EventParticipantsSection } from "./_components/EventParticipantsSection";
+import { EventOtherListsSection } from "./_components/EventOtherListsSection";
+import { SecretSantaSection } from "./_components/SecretSantaSection";
+import { ReservationStatus } from "@prisma/client";
+import type { GiftListWithParticipantAndItems } from "./_components/EventOtherListsSection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,672 +52,205 @@ export default async function EventPage({ params }: PageProps) {
   );
 
   const roleByUser = new Map(event.memberships.map(m => [m.userId, m.role]));
-  const myRole = roleByUser.get(meId);
-  const canRemove = (targetUserId: string) => {
-    const targetRole = roleByUser.get(targetUserId);
-    if (!myRole || !targetRole) return false;
-    if (myRole === "OWNER") return targetUserId !== meId;
-    if (myRole === "ADMIN") return targetRole === "MEMBER";
-    return false;
-  };
 
-  if (event.giftMode === MODE.SECRET_SANTA) {
-    return (
-      <SecretSantaExperience
-        event={event}
-        meId={meId}
-        slug={slug}
-        isAdmin={isAdmin}
-      />
-    );
+  const myRole = roleByUser.get(meId);
+  const canRemoveByUserId = new Map<string, boolean>();
+
+  for (const m of event.memberships) {
+    const targetRole = m.role;
+    const targetId = m.userId;
+
+    let allowed = false;
+    if (myRole === "OWNER") allowed = targetId !== meId;
+    else if (myRole === "ADMIN") allowed = targetRole === "MEMBER";
+
+    canRemoveByUserId.set(targetId, allowed);
   }
 
-  const myList = event.lists.find((l) => l.ownerId === meId) ?? null;
-  const otherLists = event.lists.filter((l) => l.ownerId !== meId);
+  const canRemoveRecord: Record<string, boolean> =
+    Object.fromEntries(canRemoveByUserId);
+
+  const isOwnerRole = myRole === "OWNER";
+  const isAdminRole = myRole === "ADMIN";
+
+  const canRemoveRelativeById = new Map<string, boolean>();
+
+  for (const rel of event.relatives ?? []) {
+    let allowed = false;
+
+    if (isOwnerRole || isAdminRole) {
+      // OWNER / ADMIN peuvent retirer n'importe quel proche de l'événement
+      allowed = true;
+    } else {
+      // MEMBER : uniquement les proches qu'il a créés
+      allowed = rel.createdById === meId;
+    }
+
+    canRemoveRelativeById.set(rel.id, allowed);
+  }
+
+  const canRemoveRelativeRecord: Record<string, boolean> =
+    Object.fromEntries(canRemoveRelativeById);
+
+
+  const rawLists = event.lists as GiftListWithParticipantAndItems[];
+
+  const ownerMembership = event.memberships.find((m) => m.role === ROLE.OWNER);
+  const ownerUserId = ownerMembership?.userId ?? null;
+
+  let myList: GiftListWithParticipantAndItems | null = null;
+  let otherLists: GiftListWithParticipantAndItems[] = [];
+
+  if (event.hasGifts) {
+    if (event.giftMode === MODE.HOST_LIST && ownerUserId) {
+      // Mode "Host list" :
+      // - l'hôte voit uniquement SA liste
+      // - les invités voient uniquement la liste de l'hôte (pas leurs anciennes listes)
+      const hostList =
+        rawLists.find(
+          (l) => l.ownerId === ownerUserId && l.eventRelativeId === null,
+        ) ?? null;
+
+      if (meId === ownerUserId) {
+        // hôte : "Ma liste" = liste de l'hôte, aucune autre liste affichée
+        myList = hostList;
+        otherLists = [];
+      } else {
+        // invité : pas de "Ma liste" perso, on ne garde que la liste de l'hôte
+        myList = null;
+        otherLists = hostList ? [hostList] : [];
+      }
+    } else {
+      // PERSONAL_LISTS / SECRET_SANTA : comportement standard
+      myList =
+        rawLists.find(
+          (l) => l.ownerId === meId && l.eventRelativeId === null,
+        ) ?? null;
+
+      // Tout le reste (autres users + tous les proches)
+      otherLists = rawLists.filter(
+        (l) => !(l.ownerId === meId && l.eventRelativeId === null),
+      );
+    }
+  }
 
   const showBudget =
     event.hasGifts &&
     event.giftMode !== MODE.HOST_LIST &&
     typeof event.budgetCapCents === "number";
 
-  const displayName = (u?: { name: string | null; email: string | null } | null) => {
-    if (!u) return "Inconnu";
-    if (u.name && u.name.trim()) return u.name.trim().split(/\s+/)[0]; // prénom
-    return u.email ?? "Inconnu";
-  };
+  const bringItems = await prisma.eventBringItem.findMany({
+    where: { eventId: event.id },
+    include: {
+      bringers: {
+        include: {
+          user: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
 
-  const fmtDate = (d?: Date | null) =>
-    d ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(d) : null;
+  const members = event.memberships.map((m) => ({
+    id: m.userId,
+    name: m.user?.name ?? null,
+    email: m.user?.email ?? null,
+  }));
 
-  const fmtEUR = (cents?: number | null) =>
-    typeof cents === "number" ? (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" }) : null;
+  const canContributeToBring = event.memberships.some((m) => m.userId === meId);
+
+  const reservedCountByUserId: Record<string, number> = {};
+
+  for (const list of otherLists) {
+    const count = list.items.filter((i) =>
+      i.reservations.some(
+        (r) =>
+          r.byUserId === meId &&
+          r.status === ReservationStatus.RESERVED,
+      ),
+    ).length;
+
+    // On ne compte que pour des listes de users,
+    // les proches (ownerId null) ne sont pas dans canRemoveByUserId de toute façon
+    if (count > 0 && list.ownerId) {
+      reservedCountByUserId[list.ownerId] = count;
+    }
+  }
 
   return (
     <main className="space-y-8 p-0">
       {/* Barre de retour uniquement */}
-      <nav aria-label="Breadcrumb" className="mb-2 flex items-center justify-between">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/event" className="inline-flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Revenir à mes événements
-          </Link>
-        </Button>
-      </nav>
-      <header className="mb-4">
-        {/* Mobile = grid rows; Desktop = flex row */}
-        <div className="grid gap-3 md:flex md:items-start md:justify-between">
-          {/* Title row */}
-          <div className="grid grid-cols-[auto_1fr] items-start gap-2">
-            {/* keep/remove this emoji span as you like */}
-            <h1 className="min-w-0 break-words text-pretty text-2xl font-bold leading-tight md:text-3xl">
-              {event.title}
-            </h1>
-          </div>
-          <EventHeaderActions
-            slug={slug}
-            isAdmin={isAdmin}
-          />
-        </div>
-      </header>
-      <section aria-labelledby="event-meta" className="space-y-3">
-        {event.description && (
-          <p className="max-w-prose text-[var(--muted-foreground)]">{event.description}</p>
-        )}
+      <EventHeader
+        event={event}
+        slug={slug}
+        isAdmin={isAdmin}
+        showBudget={showBudget}
+      />
 
-        <div id="event-meta" className="flex flex-wrap items-center gap-2 text-sm">
-          {event.eventOn && (
-            <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1">
-              <Calendar className="h-4 w-4" aria-hidden="true" />
-              {fmtDate(event.eventOn)}
-            </span>
-          )}
-          {event.location && (
-            <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1">
-              <MapPin className="h-4 w-4" aria-hidden="true" />
-              {event.location}
-            </span>
-          )}
-          {showBudget && (
-            <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1">
-              Budget max par cadeau : {fmtEUR(event.budgetCapCents)}
-            </span>
-          )}
-        </div>
+      {event.giftMode === MODE.SECRET_SANTA && (
+        <SecretSantaSection
+          eventId={event.id}
+          slug={slug}
+          isAdmin={isAdmin}
+          membersCount={event.memberships.length}
+          budgetCapCents={event.budgetCapCents}
+          isSecondHandOk={event.isSecondHandOk}
+          isHandmadeOk={event.isHandmadeOk}
+        />
+      )}
 
-        <div className="flex flex-wrap gap-2 text-xs">
-          {event.isNoSpoil && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--secondary)] px-2.5 py-1 text-[var(--sidebar-primary)]">
-              <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
-              Pas de spoil
-            </span>
-          )}
-          {event.isAnonReservations && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--secondary)] px-2.5 py-1 text-[var(--sidebar-primary)]">
-              <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-              Réservations anonymes
-            </span>
-          )}
-          {event.isSecondHandOk && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--secondary)] px-2.5 py-1 text-[var(--sidebar-primary)]">
-              <Recycle className="h-3.5 w-3.5" aria-hidden="true" />
-              Seconde main acceptée
-            </span>
-          )}
-          {event.isHandmadeOk && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--secondary)] px-2.5 py-1 text-[var(--sidebar-primary)]">
-              <Hammer className="h-3.5 w-3.5" aria-hidden="true" />
-              Cadeaux faits main acceptés
-            </span>
-          )}
-        </div>
-      </section>
+      <EventAvailableModules
+        eventId={event.id}
+        slug={event.slug}
+        hasBringSection={event.hasBringSection}
+        isAdmin={isAdmin}
+      />
+
+      {event.hasBringSection && (
+        <EventBringSection
+          eventId={event.id}
+          slug={event.slug}
+          items={bringItems}
+          currentUserId={meId}
+          canContribute={canContributeToBring}
+          totalMembers={event.memberships.length}
+          isAdmin={isAdmin}
+          members={members}
+        />
+      )}
 
       {/* Ma liste */}
       {event.hasGifts && myList && (
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardTitle>Ma liste</CardTitle>
-
-            <p className="flex gap-2 text-xs text-muted-foreground">
-              {/* Icône uniquement à partir du sm pour éviter le rendu tassé en mobile */}
-              <Info
-                className="mt-[2px] hidden h-3.5 w-3.5 shrink-0 sm:block"
-                aria-hidden="true"
-              />
-              <span>
-                Ajoute, modifie ou supprime tes idées quand tu veux.
-                <span className="block">
-                  Si quelqu’un a déjà réservé un cadeau, il sera prévenu en cas de
-                  changement.
-                </span>
-              </span>
-            </p>
-          </CardHeader>
-
-          <CardContent>
-            {(() => {
-              const items = myList.items ?? [];
-              const ownItems = items.filter((item) => !item.isSuggestion);
-              const suggestedItems = items.filter((item) => item.isSuggestion);
-
-              const renderItem = (item: (typeof items)[number], showSuggestionBadge: boolean) => {
-                const activeRes = (item.reservations ?? []).filter(
-                  (r) => r.status !== STATUS.RELEASED,
-                );
-                const isNoSpoil = event.isNoSpoil;
-                const hasActive = activeRes.length > 0;
-                const showSpoil = !isNoSpoil && hasActive;
-                const dim = !event.isNoSpoil && hasActive;
-
-                return (
-                  <li
-                    key={item.id}
-                    className="flex flex-col gap-3 border-b py-3 text-sm md:flex-row md:items-center md:justify-between"
-                  >
-                    {/* Image + texte */}
-                    <div className="flex min-w-0 flex-1 gap-3">
-                      {item.imagePath && (
-                        <GiftImagePreview
-                          src={item.imagePath}
-                          alt={item.title}
-                          sizeClassName="h-24 w-24"
-                        />
-                      )}
-
-                      <div className="min-w-0 flex-1">
-                        {/* titre + lock + chip lien + badge suggestion */}
-                        <div className="flex flex-wrap items-center gap-2">
-                          {dim && (
-                            <span title="Déjà réservé" className="inline-flex">
-                              <Lock
-                                className="h-4 w-4 text-[var(--muted-foreground)]"
-                                aria-hidden="true"
-                              />
-                            </span>
-                          )}
-
-                          <span className={`truncate ${dim ? "opacity-70" : ""}`}>
-                            {item.title}
-                          </span>
-
-                          {showSuggestionBadge && (
-                            <span className="inline-flex items-center rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] font-medium text-[var(--muted-foreground)]">
-                              Proposé par un participant
-                            </span>
-                          )}
-                        </div>
-
-                        {/* chip lien si présent */}
-                        {(() => {
-                          if (!item.url) return null;
-                          let domain: string | null = null;
-                          try {
-                            domain = new URL(item.url).hostname.replace(/^www\./, "");
-                          } catch {
-                            domain = null;
-                          }
-                          return (
-                            domain && (
-                              <div className="mt-1">
-                                <a
-                                  href={item.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
-                                  title={item.url}
-                                >
-                                  <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-                                  {domain}
-                                </a>
-                              </div>
-                            )
-                          );
-                        })()}
-
-                        {/* description sous le titre */}
-                        {item.note && (
-                          <ExpandableText
-                            text={item.note}
-                            maxLines={4}
-                            className="mt-1 text-xs"
-                          />
-                        )}
-
-                        {/* info réservation si spoil autorisé */}
-                        {showSpoil &&
-                          (() => {
-                            const names = activeRes.map((r) => displayName(r.byUser));
-                            return (
-                              <p className="mt-1 text-xs leading-snug text-[var(--muted-foreground)]">
-                                Réservé par {names.slice(0, 3).join(", ")}
-                                {names.length > 3 ? ` (+${names.length - 3})` : ""}
-                              </p>
-                            );
-                          })()}
-                      </div>
-                    </div>
-
-                    {/* Actions à droite */}
-                    <div className="mt-1 flex items-center justify-end gap-2 md:mt-0 md:flex-shrink-0">
-                      {/* ÉDITION */}
-                      {!hasActive ? (
-                        // Pas de réservation → édition directe
-                        <Link href={`/event/${slug}/gift/${item.id}/edit`}>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Modifier"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      ) : isNoSpoil ? (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              title="Modifier"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Modifier ce cadeau&nbsp;?</AlertDialogTitle>
-                              <AlertDialogDescription asChild>
-                                <div className="space-y-2 text-sm text-muted-foreground">
-                                  <p>
-                                    Modifier ce cadeau peut impacter quelqu’un qui avait prévu de te
-                                    l’offrir.
-                                  </p>
-                                  <p>
-                                    Si quelqu’un l’a déjà réservé, il sera prévenu de ton
-                                    changement.
-                                  </p>
-                                  <p>Tu veux quand même continuer&nbsp;?</p>
-                                </div>
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction asChild>
-                                <Link href={`/event/${slug}/gift/${item.id}/edit`}>
-                                  <Button>Continuer</Button>
-                                </Link>
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      ) : (
-                        // Réservé + spoil autorisé → on peut le dire clairement
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              title="Modifier"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Ce cadeau est déjà réservé</AlertDialogTitle>
-                              <AlertDialogDescription asChild>
-                                <div className="space-y-2 text-sm text-muted-foreground">
-                                  <p>
-                                    Modifier ces informations peut impacter la personne qui te
-                                    l’offrira.
-                                  </p>
-                                  <p>Tu veux quand même continuer&nbsp;?</p>
-                                </div>
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction asChild>
-                                <Link href={`/event/${slug}/gift/${item.id}/edit`}>
-                                  <Button variant="outline">Continuer</Button>
-                                </Link>
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-
-                      {/* SUPPRESSION */}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              {!hasActive
-                                ? "Supprimer ce cadeau ?"
-                                : isNoSpoil
-                                  ? "Retirer ce cadeau ?"
-                                  : "Ce cadeau est réservé"}
-                            </AlertDialogTitle>
-
-                            <AlertDialogDescription asChild>
-                              <div className="space-y-2 text-sm text-muted-foreground">
-                                {!hasActive && (
-                                  <p>« {item.title} » sera retiré de ta liste.</p>
-                                )}
-
-                                {hasActive && isNoSpoil && (
-                                  <>
-                                    <p>Tu veux vraiment retirer « {item.title} » de ta liste&nbsp;?</p>
-                                    <p>
-                                      Si quelqu’un l’a déjà réservé, il sera prévenu et pourra
-                                      choisir autre chose.
-                                    </p>
-                                  </>
-                                )}
-
-                                {hasActive && !isNoSpoil && (
-                                  <>
-                                    <p>Tu veux retirer « {item.title} » de ta liste&nbsp;?</p>
-                                    <p>
-                                      La personne qui l’avait réservé sera prévenue et pourra
-                                      choisir autre chose.
-                                    </p>
-                                  </>
-                                )}
-                              </div>
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-
-                          <AlertDialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                            <AlertDialogCancel className="w-full sm:w-auto">
-                              Annuler
-                            </AlertDialogCancel>
-
-                            <form action={deleteGift} className="w-full sm:w-auto">
-                              <input type="hidden" name="itemId" value={item.id} />
-                              <input type="hidden" name="eventId" value={event.id} />
-                              <AlertDialogAction asChild>
-                                <Button
-                                  type="submit"
-                                  variant="destructive"
-                                  className="w-full sm:w-auto"
-                                >
-                                  {hasActive ? "Retirer de ma liste" : "Supprimer"}
-                                </Button>
-                              </AlertDialogAction>
-                            </form>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </li>
-                );
-              };
-
-              return (
-                <>
-                  {ownItems.length > 0 && (
-                    <ul className="space-y-1">
-                      {ownItems.map((item) => renderItem(item, false))}
-                    </ul>
-                  )}
-
-                  {suggestedItems.length > 0 && (
-                    <div
-                      className={
-                        ownItems.length > 0
-                          ? "mt-4 pt-4"
-                          : ""
-                      }
-                    >
-                      <p className="mb-2 text-xs font-medium tracking-wide text-[var(--muted-foreground)]">
-                        Ces idées ont été suggérées par d’autres participants :
-                      </p>
-                      <ul className="space-y-1">
-                        {suggestedItems.map((item) => renderItem(item, true))}
-                      </ul>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-
-            <Link
-              href={`/event/${slug}/add`}
-              className="mt-4 block rounded-lg bg-[var(--primary)] py-3 text-center font-medium text-[var(--primary-foreground)] transition hover:bg-[color-mix(in_oklch,var(--primary),black_10%)]"
-            >
-              Ajouter une idée
-            </Link>
-          </CardContent>
-
-        </Card>
+        <EventMyListSection
+          eventId={event.id}
+          slug={slug}
+          isNoSpoil={event.isNoSpoil}
+          myList={myList}
+        />
       )}
 
-
-      {/* Participants et listes */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">Listes des autres participants</h2>
-        </div>
-
-        {/* chips */}
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          {isAdmin && <InviteMemberChip eventId={event.id} />}
-
-          {otherLists.map((list) => {
-            const reservedCount = list.items.filter((i) =>
-              i.reservations.some((r) => r.byUserId === meId && r.status === STATUS.RESERVED),
-            ).length;
-
-            const hasMine = reservedCount > 0;
-            const name = list.owner.name ?? list.owner.email?.split("@")[0] ?? "Inconnu";
-            const label = hasMine
-              ? `${reservedCount} ${reservedCount > 1 ? "cadeaux" : "cadeau"} réservé(s) chez ${name}`
-              : `Aucun cadeau réservé chez ${name}`;
-
-            const initials = (list.owner.name ?? list.owner.email ?? "?")
-              .split(/[^\p{L}\p{N}]+/u)
-              .filter(Boolean)
-              .slice(0, 2)
-              .map((s) => s[0])
-              .join("")
-              .toUpperCase();
-
-            return (
-              <div key={`chip-${list.id}`} className="flex w-16 flex-col items-center">
-                <a
-                  href={`#list-${list.id}`}
-                  className={`relative inline-flex h-12 w-12 select-none items-center justify-center rounded-full ring-1 ring-[var(--border)]
-                      ${hasMine
-                      ? "ring-2 ring-[var(--primary)] bg-[color-mix(in_oklch,var(--primary),white_88%)]"
-                      : "bg-[var(--secondary)]"
-                    }
-                      transition-transform hover:scale-[1.03]`}
-                  title={label}
-                  aria-label={label}
-                >
-                  <span
-                    className={`text-sm font-semibold ${hasMine ? "text-[var(--foreground)]" : "text-[var(--sidebar-primary)]"
-                      }`}
-                  >
-                    {initials}
-                  </span>
-
-                  {hasMine && (
-                    <span className="absolute -bottom-1 -right-1 inline-flex items-center gap-0.5 rounded-full bg-[var(--primary)] px-1.5 py-0.5 text-xs font-medium text-[var(--primary-foreground)] shadow">
-                      <Gift className="h-3 w-3" />
-                      {reservedCount}
-                    </span>
-                  )}
-                </a>
-                <span className="mt-1 w-full truncate text-center text-xs text-[var(--muted-foreground)]">
-                  {name}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* lists */}
-        {otherLists.map((list) => {
-          const rank = (it: (typeof list.items)[number]) => {
-            const taken = it.reservations.some((r) => r.status !== STATUS.RELEASED);
-            const mine = it.reservations.some((r) => r.byUserId === meId && r.status === STATUS.RESERVED);
-            return mine ? 0 : taken ? 2 : 1;
-          };
-
-          const hasMine = list.items.some((i) =>
-            i.reservations.some((r) => r.byUserId === meId && r.status === STATUS.RESERVED),
-          );
-          const reservedCount = list.items.filter((i) =>
-            i.reservations.some((r) => r.byUserId === meId && r.status === STATUS.RESERVED),
-          ).length;
-
-          const sortedItems = [...list.items].sort((a, b) => {
-            const diff = rank(a) - rank(b);
-            return diff !== 0 ? diff : a.title.localeCompare(b.title, "fr");
-          });
-
-          const itemsVM: GiftItemVM[] = sortedItems.map((item) => {
-            const my = item.reservations.find((r) => r.byUserId === meId && r.status === STATUS.RESERVED);
-            const other = item.reservations.find((r) => r.byUserId !== meId && r.status === STATUS.RESERVED);
-
-            return {
-              id: item.id,
-              title: item.title,
-              url: item.url ?? null,
-              note: item.note ?? null,
-              isMine: !!my,
-              isTakenByOther: !!other,
-              imagePath: item.imagePath ?? null,
-              reservedByName: !event.isAnonReservations && other?.byUser
-                ? displayName(other.byUser)
-                : null,
-            };
-          });
-
-          return (
-            <Card
-              key={list.id}
-              id={`list-${list.id}`}
-              className={hasMine ? "ring-1 ring-[var(--primary)] border-[var(--primary)]" : ""}
-            >
-              <CardHeader className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <CardTitle>{list.owner.name ?? list.owner.email}</CardTitle>
-                  </div>
-
-                  {reservedCount > 0 && (
-                    <p className="text-sm font-medium text-[var(--primary)]">
-                      🎁 {reservedCount} {reservedCount > 1 ? "cadeaux réservés" : "cadeau réservé"}
-                    </p>
-                  )}
-                </div>
-
-                {isAdmin && canRemove(list.ownerId) && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title="Retirer ce participant"
-                        aria-label="Retirer ce participant">
-                        <UserMinus className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Retirer ce participant ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {list.owner.name ?? list.owner.email} sera retiré de l’événement. Sa liste sera supprimée et ses
-                          réservations seront libérées.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <form action={removeMember}>
-                          <input type="hidden" name="eventId" value={event.id} />
-                          <input type="hidden" name="userId" value={list.ownerId} />
-                          <input type="hidden" name="slug" value={slug} />
-                          <AlertDialogAction asChild>
-                            <Button type="submit" variant="destructive">
-                              Retirer
-                            </Button>
-                          </AlertDialogAction>
-                        </form>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </CardHeader>
-
-              {(() => {
-                const hasItems = itemsVM.length > 0;
-                const ownerName = list.owner.name ?? list.owner.email;
-
-                if (hasItems) {
-                  // ✅ Cas liste avec des cadeaux : layout actuel (liste + bouton en bas)
-                  return (
-                    <>
-                      <CardContent>
-                        <GiftListAnimated
-                          items={itemsVM}
-                          eventId={event.id}
-                          showNames={!event.isAnonReservations}
-                        />
-                      </CardContent>
-
-                      <CardFooter className="border-[var(--border)]">
-                        <SuggestIdeaButton
-                          href={`/event/${slug}/suggest/${list.id}`}
-                          ownerName={list.owner.name ?? list.owner.email}
-                        />
-                      </CardFooter>
-                    </>
-                  );
-                }
-                // ✅ Cas liste VIDE : pas de grand trou, CTA collé au texte
-                return (
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Cette liste est encore vide. Tu peux proposer une première idée.
-                    </p>
-                    <SuggestIdeaButton
-                      href={`/event/${slug}/suggest/${list.id}`}
-                      ownerName={list.owner.name ?? list.owner.email}
-                    />
-                  </CardContent>
-                );
-              })()}
-            </Card>
-          );
-        })}
-
-        {otherLists.length === 0 && (
-          <div className="rounded-lg border p-6 text-center">
-            <p className="mb-4 text-sm text-[var(--muted-foreground)]">
-              Invitez vos proches pour qu’ils ajoutent leurs listes.
-            </p>
-            {isAdmin && <InviteEmptyStateCTA eventId={event.id} />}
-          </div>
-        )}
-      </section>
+      {/* Participants (toujours) */}
+      <EventParticipantsSection
+        eventId={event.id}
+        slug={event.slug}
+        meId={meId}
+        memberships={event.memberships}
+        canRemoveByUserId={canRemoveRecord}
+        reservedCountByUserId={reservedCountByUserId}
+        relatives={event.relatives}                    // NEW
+        canRemoveRelativeById={canRemoveRelativeRecord} // NEW
+      />
+      {/* Listes des autres participants (uniquement en mode listes perso) */}
+      {event.hasGifts && otherLists.length > 0 && (
+        <EventOtherListsSection
+          eventId={event.id}
+          slug={slug}
+          meId={meId}
+          otherLists={otherLists}
+          isAdmin={isAdmin}
+          isAnonReservations={event.isAnonReservations}
+        />
+      )}
       {/* Danger zone: quitter l’événement */}
       {!isAdmin && (
         <section

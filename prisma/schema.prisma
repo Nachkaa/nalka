@@ -36,6 +36,18 @@ enum EventGiftMode {
   PERSONAL_LISTS // une liste par personne
 }
 
+enum BringCategory {
+  DRINKS
+  FOOD
+  GEAR
+  OTHER
+}
+
+enum ParticipantKind {
+  USER
+  MANAGED // managed relative: child, parent, etc.
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -57,7 +69,15 @@ model User {
   ideas            Idea[]
   ownedEvents      Event[]       @relation("OwnedEvents")
 
+  managedProfiles ManagedProfile[]
+  eventRelatives  EventRelative[]
+
   giftSuggestions GiftItem[] @relation("GiftItemSuggestedBy")
+
+  //items créés par ce user
+  bringItems          EventBringItem[]
+  //participations “je ramène ça”
+  bringParticipations EventBringParticipation[]
 }
 
 model Account {
@@ -145,6 +165,11 @@ model Event {
   // image
   imagePath String? @db.VarChar(512)
 
+  hasBringSection Boolean          @default(false)
+  bringItems      EventBringItem[]
+
+  relatives EventRelative[]
+
   @@index([ownerId, eventOn])
 }
 
@@ -184,19 +209,25 @@ model EventInvite {
 }
 
 model GiftList {
-  id        String   @id @default(cuid())
-  title     String   @default("Ma liste")
-  ownerId   String
+  id              String  @id @default(cuid())
+  title           String  @default("Ma liste")
+  ownerId         String?
+  eventRelativeId String? @unique
+
   eventId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  owner User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  event Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  owner         User?          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventRelative EventRelative? @relation(fields: [eventRelativeId], references: [id], onDelete: Cascade)
+
   items GiftItem[]
 
-  @@unique([ownerId, eventId], name: "ownerId_eventId")
+  @@unique([ownerId, eventId], name: "owner_event_unique")
   @@index([eventId])
+  @@index([ownerId])
+  @@index([eventRelativeId])
 }
 
 model GiftItem {
@@ -282,4 +313,79 @@ model RateLimitHit {
   ts  DateTime @default(now())
 
   @@index([key, ts])
+}
+
+model EventBringItem {
+  id       String         @id @default(cuid())
+  label    String
+  category BringCategory?
+  note     String? // "Sans gluten", "Prendre des verres", etc.
+
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId String
+
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+  createdById String?
+
+  bringers EventBringParticipation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EventBringParticipation {
+  id String @id @default(cuid())
+
+  item   EventBringItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  // Optionnel si tu autorises des “guests” nominatifs non logués
+  displayName String?
+
+  createdAt DateTime @default(now())
+}
+
+model ManagedProfile {
+  id      String @id @default(cuid())
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  firstName String
+  birthYear Int? // optionnel
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // soft delete: “retiré de mes proches”
+
+  eventRelatives EventRelative[]
+}
+
+model EventRelative {
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // Qui gère ce proche dans cet event (le propriétaire côté Nalka)
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  // Optionnel: lien vers un profil réutilisable
+  managedProfileId String?
+  managedProfile   ManagedProfile? @relation(fields: [managedProfileId], references: [id])
+
+  // Snapshot pour cet event
+  firstName String
+  birthYear Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  giftList GiftList?
+
+  @@index([eventId])
+  @@index([managedProfileId])
 }

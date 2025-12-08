@@ -8,6 +8,8 @@ import { requireCan } from "@/features/events/acl";
 import { limit } from "@/lib/rate-limit";
 import { validateGiftUrlOrThrow } from "@/lib/url";
 import { processGiftImage } from "@/lib/gift-image";
+import { syncGiftListsForEvent } from "@/domain/gift-lists";
+import { EventGiftMode } from "@prisma/client";
 
 export async function addGift(eventId: string, slug: string, formData: FormData) {
   const session = await auth();
@@ -18,19 +20,68 @@ export async function addGift(eventId: string, slug: string, formData: FormData)
   const noteRaw = String(formData.get("note") || "").trim();
   if (!title) throw new Error("Champs requis");
 
-  const me = await prisma.user.findUnique({ where: { email: session.user.email } });
+  const me = await prisma.user.findUnique({
+    where: { email: session.user.email },
+  });
   if (!me) throw new Error("Utilisateur introuvable");
 
   // ACL + rate limit
   await requireCan(me.id, eventId, "gift:create");
-  await limit({ key: `act:gifts:create:user:${me.id}`, max: 30, windowMs: 60 * 60_000 }); // 30/hour
+  await limit({
+    key: `act:gifts:create:user:${me.id}`,
+    max: 30,
+    windowMs: 60 * 60_000,
+  }); // 30/hour
 
-  // ensure my list exists
-  const list = await prisma.giftList.upsert({
-    where: { ownerId_eventId: { ownerId: me.id, eventId } },
-    create: { ownerId: me.id, eventId, title: "Ma liste" },
-    update: {},
-    select: { id: true },
+  // assure qu'une liste cible existe et récupère-la
+  const list = await prisma.$transaction(async (tx) => {
+    const event = await tx.event.findUnique({
+      where: { id: eventId },
+      select: {
+        id: true,
+        ownerId: true,
+        hasGifts: true,
+        giftMode: true,
+      },
+    });
+    if (!event) throw new Error("Event not found");
+    if (!event.hasGifts) {
+      throw new Error("Les cadeaux sont désactivés pour cet événement.");
+    }
+
+    // on laisse le domaine s'assurer que toutes les listes nécessaires existent
+    await syncGiftListsForEvent(tx, event.id);
+
+    // choix de la liste cible selon le mode
+    let targetList:
+      | { id: string }
+      | null = null;
+
+    if (event.giftMode === EventGiftMode.HOST_LIST) {
+      // une seule liste : celle du propriétaire de l'événement
+      targetList = await tx.giftList.findFirst({
+        where: {
+          eventId: event.id,
+          ownerId: event.ownerId,
+        },
+        select: { id: true },
+      });
+    } else {
+      // modes PERSONAL_LISTS / SECRET_SANTA : liste perso de l'utilisateur courant
+      targetList = await tx.giftList.findFirst({
+        where: {
+          eventId: event.id,
+          ownerId: me.id,
+        },
+        select: { id: true },
+      });
+    }
+
+    if (!targetList) {
+      throw new Error("Aucune liste de cadeaux disponible pour cet utilisateur.");
+    }
+
+    return targetList;
   });
 
   const note = noteRaw || null;
@@ -46,19 +97,19 @@ export async function addGift(eventId: string, slug: string, formData: FormData)
   let imagePath: string | null = null;
 
   if (imageFile && imageFile.size > 0) {
-    // upload manuel
     imagePath = await processGiftImage(imageFile);
   } else if (imageUrl) {
-    // image récupérée depuis le lien
-    // version simple : on stocke directement l’URL distante
     imagePath = imageUrl;
-
-    // si tu préfères tout passer par ton storage, tu fais ici
-    // imagePath = await processGiftImageFromUrl(imageUrl);
   }
 
   await prisma.giftItem.create({
-    data: { listId: list.id, title, note, url, imagePath },
+    data: {
+      listId: list.id,
+      title,
+      note,
+      url,
+      imagePath,
+    },
   });
 
   revalidatePath(`/event/${slug}`);

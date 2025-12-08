@@ -50,34 +50,41 @@ export async function getUserEventSummaries(userId: string): Promise<EventSummar
   for (const r of reservations) {
     const evId = r.item.list.eventId;
     const ownerId = r.item.list.ownerId;
-    if (!coveredByEvent.has(evId)) coveredByEvent.set(evId, new Set());
+
+    // on ignore les listes sans owner (proches)
+    if (!ownerId) continue;
+
+    if (!coveredByEvent.has(evId)) {
+      coveredByEvent.set(evId, new Set<string>());
+    }
+
     coveredByEvent.get(evId)!.add(ownerId);
   }
 
   return rows.map((e) => {
     const memberIds = e.memberships.map((m) => m.userId);
-  const others = memberIds.filter((uid) => uid !== userId);
-  const denom = others.length;
+    const others = memberIds.filter((uid) => uid !== userId);
+    const denom = others.length;
 
-  const coveredSet = coveredByEvent.get(e.id) ?? new Set<string>();
-  const covered = others.reduce((n, uid) => n + (coveredSet.has(uid) ? 1 : 0), 0);
-  const progress = denom === 0 ? 0 : Math.round((covered / denom) * 100);
+    const coveredSet = coveredByEvent.get(e.id) ?? new Set<string>();
+    const covered = others.reduce((n, uid) => n + (coveredSet.has(uid) ? 1 : 0), 0);
+    const progress = denom === 0 ? 0 : Math.round((covered / denom) * 100);
 
-  const dateISO = e.eventOn ? e.eventOn.toISOString().slice(0, 10) : null;
-  const dateLabel = e.eventOn
-    ? new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long", year: "numeric" }).format(e.eventOn)
-    : null;
+    const dateISO = e.eventOn ? e.eventOn.toISOString().slice(0, 10) : null;
+    const dateLabel = e.eventOn
+      ? new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long", year: "numeric" }).format(e.eventOn)
+      : null;
 
-  const isSecretSanta = e.giftMode === "SECRET_SANTA";
+    const isSecretSanta = e.giftMode === "SECRET_SANTA";
 
-  return {
-    id: e.id,
-    slug: e.slug,
-    title: e.title,
-    date: dateISO,
-    dateLabel,                   // ← REQUIRED BY EventSummary
-    location: e.location ?? null,
-    invitedCount: memberIds.length,
+    return {
+      id: e.id,
+      slug: e.slug,
+      title: e.title,
+      date: dateISO,
+      dateLabel,                   // ← REQUIRED BY EventSummary
+      location: e.location ?? null,
+      invitedCount: memberIds.length,
       progress,
       isSecretSanta,
       hasDraw: (ssCountMap.get(e.id) ?? 0) > 0,

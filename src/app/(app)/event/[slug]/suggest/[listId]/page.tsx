@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { SuggestGiftAction } from "./actions"
+import { SuggestGiftAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { GiftForm } from "@/components/forms/GiftForm";
 
@@ -15,7 +15,7 @@ export default async function SuggestGiftPage({
 
   const list = await prisma.giftList.findUnique({
     where: { id: listId },
-    include: { owner: true },
+    include: { owner: true, eventRelative: true },
   });
   if (!list) notFound();
 
@@ -31,7 +31,7 @@ export default async function SuggestGiftPage({
       </div>
 
       <h1 className="mb-8 text-3xl font-semibold">
-        Suggérer une idée à {list.owner.name ?? list.owner.email}
+        Suggérer une idée
       </h1>
 
       <GiftForm

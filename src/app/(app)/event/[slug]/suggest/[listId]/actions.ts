@@ -79,12 +79,7 @@ export async function SuggestGiftAction(
         },
     });
 
-    const owner = await prisma.user.findUnique({
-        where: { id: list.ownerId },
-        select: { email: true },
-    });
-
-    if (owner?.email) {
+    if (list.owner?.email) {
         const html = await render(
             SuggestedIdeaEmail({
                 eventTitle: dbEvent.title,
@@ -94,9 +89,9 @@ export async function SuggestGiftAction(
         );
 
         await sendMail({
-            to: owner.email,
+            to: list.owner.email,
             subject: `Nouvelle suggestion dans ta liste ${dbEvent.title}`,
-            html, // ✔️ maintenant c’est un string
+            html,
         });
     }
     revalidatePath(`/event/${slug}`);

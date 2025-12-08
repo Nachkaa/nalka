@@ -5,14 +5,19 @@
 @custom-variant dark (&:is(.dark *));
 
 /* Base fonts */
-body { font-family: var(--font-sans), system-ui, sans-serif; }
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
 
 /* Apply display font to headings */
-:where(h1,h2,h3,h4,.heading) {
+:where(h1, h2, h3, h4, .heading) {
   font-family: var(--font-display), ui-serif, serif;
   font-weight: 400;
 }
-h1 { letter-spacing: -0.01em; }
+
+h1 {
+  letter-spacing: -0.01em;
+}
 
 /* Useful defaults */
 ::selection {
@@ -75,11 +80,14 @@ h1 { letter-spacing: -0.01em; }
   --header-border: var(--border);
 
   /* Spacing */
-  --radius: 1rem; /* ≈ rounded-2xl */
+  --radius: 1rem;
+  /* ≈ rounded-2xl */
 
   /* Base */
-  --background: oklch(98.8% 0.010 110);   /* warm cream */
-  --foreground: oklch(22% 0.012 120);     /* deep neutral */
+  --background: oklch(98.8% 0.010 110);
+  /* warm cream */
+  --foreground: oklch(22% 0.012 120);
+  /* deep neutral */
 
   /* Surfaces */
   --card: oklch(99.2% 0.015 100);
@@ -112,11 +120,16 @@ h1 { letter-spacing: -0.01em; }
   --ring: oklch(56% 0.050 156);
 
   /* Charts */
-  --chart-1: oklch(46% 0.070 156); /* green */
-  --chart-2: oklch(72% 0.160 40);  /* orange */
-  --chart-3: oklch(58% 0.150 260); /* violet */
-  --chart-4: oklch(70% 0.140 90);  /* gold */
-  --chart-5: oklch(60% 0.140 210); /* blue */
+  --chart-1: oklch(46% 0.070 156);
+  /* green */
+  --chart-2: oklch(72% 0.160 40);
+  /* orange */
+  --chart-3: oklch(58% 0.150 260);
+  /* violet */
+  --chart-4: oklch(70% 0.140 90);
+  /* gold */
+  --chart-5: oklch(60% 0.140 210);
+  /* blue */
 
   /* Sidebar */
   --sidebar: oklch(99% 0.005 250);
@@ -169,12 +182,19 @@ h1 { letter-spacing: -0.01em; }
 }
 
 /* Ensure light color-scheme by default */
-html { color-scheme: light; }
+html {
+  color-scheme: light;
+}
 
 /* Tailwind base hooks */
 @layer base {
-  * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground; }
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
 /* Rendering + resets */
@@ -187,18 +207,31 @@ body {
 }
 
 /* Neutral links: no default browser blue */
-a { text-decoration-color: color-mix(in oklch, currentColor 60%, var(--accent) 40%); text-underline-offset: 2px; }
-a:hover { text-decoration-color: var(--accent); }
+a {
+  text-decoration-color: color-mix(in oklch, currentColor 60%, var(--accent) 40%);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  text-decoration-color: var(--accent);
+}
 
 /* Generic border fallback */
-* { border-color: var(--border); }
+* {
+  border-color: var(--border);
+}
 
 /* Shadows */
-.shadow-soft { box-shadow: 0 6px 24px oklch(40% 0.040 90 / 0.08); }
-.shadow-glow { box-shadow: 0 0 28px oklch(88% 0.070 95 / 0.45); }
+.shadow-soft {
+  box-shadow: 0 6px 24px oklch(40% 0.040 90 / 0.08);
+}
+
+.shadow-glow {
+  box-shadow: 0 0 28px oklch(88% 0.070 95 / 0.45);
+}
 
 /* Accessible focus ring */
-:where(a,button,[role="button"],input,select,textarea):focus-visible {
+:where(a, button, [role="button"], input, select, textarea):focus-visible {
   outline: none;
   box-shadow:
     0 0 0 2px oklch(100% 0 0),
@@ -208,11 +241,24 @@ a:hover { text-decoration-color: var(--accent); }
 
 /* Gold line animation */
 @keyframes dash {
-  0% { stroke-dasharray: 4 10; stroke-dashoffset: 0; }
-  100% { stroke-dasharray: 4 10; stroke-dashoffset: -140; }
+  0% {
+    stroke-dasharray: 4 10;
+    stroke-dashoffset: 0;
+  }
+
+  100% {
+    stroke-dasharray: 4 10;
+    stroke-dashoffset: -140;
+  }
 }
-.animate-dash { animation: dash 6s linear infinite; }
-.animate-dash-slow { animation: dash 10s linear infinite; }
+
+.animate-dash {
+  animation: dash 6s linear infinite;
+}
+
+.animate-dash-slow {
+  animation: dash 10s linear infinite;
+}
 
 /* Background helper */
 .bg-warm-gradient {
@@ -227,7 +273,7 @@ a:hover { text-decoration-color: var(--accent); }
   color: var(--card-foreground);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 1px 0 rgba(255,255,255,.6), 0 6px 24px oklch(40% 0.040 90 / 0.06);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .6), 0 6px 24px oklch(40% 0.040 90 / 0.06);
 }
 
 /* === Primary button === */
@@ -245,6 +291,7 @@ a:hover { text-decoration-color: var(--accent); }
     0 4px 12px oklch(40% 0.040 90 / 0.15);
   transition: box-shadow 0.2s ease, transform 0.15s ease;
 }
+
 .btn-primary:hover {
   box-shadow:
     inset 0 1px 0 oklch(99% 0 0 / 0.30),
@@ -252,6 +299,7 @@ a:hover { text-decoration-color: var(--accent); }
     0 4px 12px oklch(40% 0.040 90 / 0.10);
   transform: translateY(-1px);
 }
+
 .btn-primary:focus-visible {
   outline: none;
   box-shadow:
@@ -260,8 +308,11 @@ a:hover { text-decoration-color: var(--accent); }
 }
 
 /* Alt theme tweaks */
-:root.theme-nalka-navy .shadow-glow { box-shadow: 0 0 28px var(--primary-glow); }
-:root.theme-nalka-navy :where(a,button,[role="button"],input,select,textarea):focus-visible {
+:root.theme-nalka-navy .shadow-glow {
+  box-shadow: 0 0 28px var(--primary-glow);
+}
+
+:root.theme-nalka-navy :where(a, button, [role="button"], input, select, textarea):focus-visible {
   outline: none;
   box-shadow:
     0 0 0 2px oklch(100% 0 0),
@@ -270,5 +321,11 @@ a:hover { text-decoration-color: var(--accent); }
 
 /* Motion-safe guards */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

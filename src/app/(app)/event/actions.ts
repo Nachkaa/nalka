@@ -9,6 +9,8 @@ import { limit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/req";
 import { nanoid } from "nanoid";
 import { EventGiftMode } from "@prisma/client";
+import { syncGiftListsForEvent } from "@/domain/gift-lists";
+
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
@@ -63,8 +65,12 @@ export async function createEvent(formData: FormData) {
 
   // Abuse controls
   const ip = await getClientIp();
-  await limit({ key: `event:create:ip:${ip}`, max: 20, windowMs: 60 * 60_000 });   // 20/hour/IP
-  await limit({ key: `event:create:user:${ownerId}`, max: 10, windowMs: 24 * 60 * 60_000 }); // 10/day/user
+  await limit({ key: `event:create:ip:${ip}`, max: 20, windowMs: 60 * 60_000 }); // 20/hour/IP
+  await limit({
+    key: `event:create:user:${ownerId}`,
+    max: 10,
+    windowMs: 24 * 60 * 60_000,
+  }); // 10/day/user
 
   const parsed = EventCreateSchema.safeParse({
     title: formData.get("title"),
@@ -80,7 +86,6 @@ export async function createEvent(formData: FormData) {
     isSecondHandOk: formData.get("rules.isSecondHandOk"),
     isHandmadeOk: formData.get("rules.isHandmadeOk"),
     budgetCap: formData.get("rules.budgetCap"),
-
   });
   if (!parsed.success) {
     console.error(parsed.error.format());
@@ -122,11 +127,11 @@ export async function createEvent(formData: FormData) {
       create: { eventId: event.id, userId: ownerId, role: "OWNER" },
     });
 
-    await tx.giftList.upsert({
-      where: { ownerId_eventId: { ownerId, eventId: event.id } },
-      update: {},
-      create: { ownerId, eventId: event.id, title: "Ma liste" },
-    });
+    // IMPORTANT: no direct GiftList creation here.
+    // If gifts are enabled at creation, delegate to domain sync.
+    if (data.hasGifts) {
+      await syncGiftListsForEvent(tx, event.id);
+    }
 
     return event;
   });

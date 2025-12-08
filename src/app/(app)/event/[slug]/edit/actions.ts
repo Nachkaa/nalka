@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { EventGiftMode } from "@prisma/client";
+import { syncGiftListsForEvent } from "@/domain/gift-lists";
+
 
 function toPrismaGiftMode(
   mode: "host-list" | "secret-santa" | "personal-lists",
@@ -37,8 +39,8 @@ export async function updateEvent(eventId: string, slug: string, formData: FormD
   const giftModeRaw = formData.get("rules.mode");
   const giftMode =
     giftModeRaw === "host-list" ||
-    giftModeRaw === "secret-santa" ||
-    giftModeRaw === "personal-lists"
+      giftModeRaw === "secret-santa" ||
+      giftModeRaw === "personal-lists"
       ? giftModeRaw
       : "personal-lists";
 
@@ -64,22 +66,29 @@ export async function updateEvent(eventId: string, slug: string, formData: FormD
     budgetCapCents = Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null;
   }
 
-  await prisma.event.update({
-    where: { id: eventId },
-    data: {
-      title,
-      description,
-      eventOn: new Date(date),
-      location,
+  await prisma.$transaction(async (tx) => {
+    const event = await tx.event.update({
+      where: { id: eventId },
+      data: {
+        title,
+        description,
+        eventOn: new Date(date),
+        location,
 
-      hasGifts,
-      giftMode: toPrismaGiftMode(giftMode),
-      isNoSpoil,
-      isAnonReservations,
-      isSecondHandOk,
-      isHandmadeOk,
-      budgetCapCents,
-    },
+        hasGifts,
+        giftMode: toPrismaGiftMode(giftMode),
+        isNoSpoil,
+        isAnonReservations,
+        isSecondHandOk,
+        isHandmadeOk,
+        budgetCapCents,
+      },
+      select: { id: true, hasGifts: true },
+    });
+
+    if (event.hasGifts) {
+      await syncGiftListsForEvent(tx, event.id);
+    }
   });
 
   revalidatePath(`/event/${slug}`);

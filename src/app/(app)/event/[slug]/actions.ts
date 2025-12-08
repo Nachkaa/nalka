@@ -8,13 +8,11 @@ import { z } from "zod";
 import { limit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/req";
 import { sendGiftRemovedEmail } from "@/features/notifications/sendGiftRemovedEmail";
+import type { BringCategory } from "@prisma/client";
+import { assertUserInEvent, assertCanManageBringItem } from "@/features/events/permissions";
+import { EventMemberRole as ROLE } from "@prisma/client";
+import { syncGiftListsForEvent } from "@/domain/gift-lists";
 
-function bool(fd: FormData, key: string): boolean {
-  const v = fd.get(key);
-  if (v == null) return false;
-  const s = String(v).trim().toLowerCase();
-  return s === "true" || s === "on" || s === "1" || s === "yes";
-}
 
 const schema = z.object({
   eventId: z.string().min(1),
@@ -42,6 +40,7 @@ export async function deleteGift(formData: FormData) {
         include: {
           owner: true,
           event: true,
+          eventRelative: true,   // <- ajout utile pour fallback
         },
       },
       reservations: {
@@ -54,12 +53,17 @@ export async function deleteGift(formData: FormData) {
 
   if (!item || item.list.ownerId !== me.id) throw new Error("Interdit");
 
-  // Réservations encore “actives” (à adapter si tu as un enum)
   const activeReservations = item.reservations.filter(
     (r) => r.status !== "RELEASED"
   );
 
-  // Mail aux réservants concernés
+  // Résolution du nom "owner"
+  const ownerName =
+    item.list.owner?.name ??
+    item.list.owner?.email ??
+    item.list.eventRelative?.firstName ??
+    "Un proche";
+
   await Promise.all(
     activeReservations
       .filter((r) => r.byUser?.email)
@@ -69,17 +73,17 @@ export async function deleteGift(formData: FormData) {
           recipientName: r.byUser!.name ?? r.byUser!.email!,
           giftTitle: item.title,
           eventTitle: item.list.event.title,
-          ownerName: item.list.owner.name ?? item.list.owner.email ?? "Un proche",
+          ownerName,
         })
       )
   );
 
-  // Nettoie les réservations liées puis l’item
   await prisma.reservation.deleteMany({ where: { itemId } });
   await prisma.giftItem.delete({ where: { id: itemId } });
 
   revalidatePath(`/app/event/${eventId}`);
 }
+
 
 export async function inviteMember(formData: FormData) {
   const session = await auth();
@@ -90,12 +94,14 @@ export async function inviteMember(formData: FormData) {
     email: String(formData.get("email") || ""),
   });
 
-  const me = await prisma.user.findUnique({ where: { email: session.user.email } });
+  const me = await prisma.user.findUnique({
+    where: { email: session.user.email },
+  });
   if (!me) throw new Error("User not found");
 
   // RATE LIMITS — abuse control
   const ip = await getClientIp();
-  await limit({ key: `invite:ip:${ip}`, max: 60, windowMs: 60 * 60_000 });            // 60 / hour / IP
+  await limit({ key: `invite:ip:${ip}`, max: 60, windowMs: 60 * 60_000 }); // 60 / hour / IP
   await limit({ key: `invite:user:${me.id}`, max: 200, windowMs: 24 * 60 * 60_000 }); // 200 / day / inviter
   await limit({ key: `invite:event:${eventId}`, max: 500, windowMs: 24 * 60 * 60_000 }); // 500 / day / event
   await limit({ key: `invite:target:${email}`, max: 3, windowMs: 24 * 60 * 60_000 }); // 3 / day / target email
@@ -111,7 +117,13 @@ export async function inviteMember(formData: FormData) {
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, title: true, slug: true },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      hasGifts: true,
+      giftMode: true,
+    },
   });
   if (!event) throw new Error("Event not found");
 
@@ -130,12 +142,27 @@ export async function inviteMember(formData: FormData) {
     create: { userId: user.id, eventId, role: "MEMBER" },
   });
 
-  // ensure gift list
-  await prisma.giftList.upsert({
-    where: { ownerId_eventId: { ownerId: user.id, eventId } },
-    update: {},
-    create: { title: `Liste de ${user.name ?? user.email}`, ownerId: user.id, eventId },
-  });
+  // ensure personal list for events à listes perso (PERSONAL_LISTS / SECRET_SANTA)
+  if (event.hasGifts && event.giftMode !== "HOST_LIST") {
+    const existingList = await prisma.giftList.findFirst({
+      where: {
+        eventId: event.id,
+        ownerId: user.id,
+        eventRelativeId: null,
+      },
+      select: { id: true },
+    });
+
+    if (!existingList) {
+      await prisma.giftList.create({
+        data: {
+          eventId: event.id,
+          ownerId: user.id,
+          title: "Ma liste",
+        },
+      });
+    }
+  }
 
   // invite email
   const qp = new URLSearchParams({
@@ -151,11 +178,11 @@ export async function inviteMember(formData: FormData) {
   });
   if (res?.error) throw new Error(res.error);
 
-  // cache
   revalidatePath(`/event/${event.slug}`);
 
   return { ok: true };
 }
+
 
 export async function removeMember(fd: FormData): Promise<void> {
   const session = await auth();
@@ -232,6 +259,76 @@ export async function removeMember(fd: FormData): Promise<void> {
   revalidatePath(slug ? `/event/${slug}` : "/event");
 }
 
+export async function removeRelative(fd: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Non autorisé");
+
+  const eventId = fd.get("eventId")?.toString();
+  const relativeId = fd.get("relativeId")?.toString();
+  const slug = fd.get("slug")?.toString();
+
+  if (!eventId || !relativeId) throw new Error("Champs requis");
+
+  const me = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true },
+  });
+  if (!me) throw new Error("Utilisateur introuvable");
+
+  // Récupère mon rôle sur l’événement
+  const meMembership = await prisma.eventMember.findUnique({
+    where: { userId_eventId: { userId: me.id, eventId } },
+    select: { role: true },
+  });
+  if (!meMembership) throw new Error("Interdit");
+
+  // Récupère le proche + éventuel profil global
+  const relative = await prisma.eventRelative.findUnique({
+    where: { id: relativeId },
+    include: { managedProfile: true },
+  });
+  if (!relative || relative.eventId !== eventId) {
+    // déjà supprimé ou pas sur cet événement
+    return;
+  }
+
+  const isOwnerOrAdmin =
+    meMembership.role === ROLE.OWNER || meMembership.role === ROLE.ADMIN;
+
+  const isCreator = relative.createdById === me.id;
+  const isProfileOwner =
+    relative.managedProfile && relative.managedProfile.ownerId === me.id;
+
+  const canRemove = isOwnerOrAdmin || isCreator || isProfileOwner;
+  if (!canRemove) throw new Error("Interdit");
+
+  await prisma.$transaction(async (tx) => {
+    // Libère les réservations liées à la liste du proche (si tu veux gérer le statut)
+    await tx.reservation.updateMany({
+      where: {
+        status: { not: "RELEASED" },
+        item: {
+          list: { eventId, eventRelativeId: relativeId },
+        },
+      },
+      data: { status: "RELEASED" },
+    });
+
+    // Supprime la/les listes du proche
+    await tx.giftList.deleteMany({
+      where: { eventId, eventRelativeId: relativeId },
+    });
+
+    // Supprime le proche de l’événement
+    await tx.eventRelative.delete({
+      where: { id: relativeId },
+    });
+  });
+
+  // On rafraîchit la page de l’événement (et donc la liste + la page participants)
+  revalidatePath(slug ? `/event/${slug}` : "/event");
+}
+
 export async function deleteEvent(fd: FormData) {
   const session = await auth();
   if (!session?.user?.email) throw new Error("Unauthorized");
@@ -256,4 +353,169 @@ export async function deleteEvent(fd: FormData) {
 
   revalidatePath("/event");
   redirect("/event");
+}
+
+export async function createBringItem(data: {
+  eventId: string;
+  label: string;
+  category: BringCategory; // <- obligatoire maintenant
+  note?: string;
+}) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) throw new Error("Unauthorized");
+
+  const label = data.label.trim();
+  if (!label) {
+    throw new Error("Label is required");
+  }
+
+  // Vérifie que l'user appartient bien à l’événement
+  await assertUserInEvent(data.eventId, userId);
+
+  return prisma.eventBringItem.create({
+    data: {
+      eventId: data.eventId,
+      label,
+      category: data.category,          // enum BringCategory garanti
+      note: data.note?.trim() || null,
+      createdById: userId,
+    },
+  });
+}
+
+// ----------------------------
+// TOGGLE PARTICIPATION
+// ----------------------------
+export async function toggleBringParticipation(params: { itemId: string }) {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
+  const item = await prisma.eventBringItem.findUnique({
+    where: { id: params.itemId },
+  });
+
+  if (!item) {
+    throw new Error("Item not found");
+  }
+
+  await assertUserInEvent(item.eventId, userId);
+
+  const existing = await prisma.eventBringParticipation.findFirst({
+    where: {
+      itemId: item.id,
+      userId,
+    },
+  });
+
+  if (existing) {
+    await prisma.eventBringParticipation.delete({
+      where: { id: existing.id },
+    });
+    return { joined: false };
+  }
+
+  await prisma.eventBringParticipation.create({
+    data: {
+      itemId: item.id,
+      userId,
+    },
+  });
+
+  return { joined: true };
+}
+
+export async function deleteBringItem(params: { itemId: string }) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) throw new Error("Unauthorized");
+
+  const item = await prisma.eventBringItem.findUnique({
+    where: { id: params.itemId },
+    include: {
+      event: {
+        include: {
+          memberships: true,
+        },
+      },
+    },
+  });
+
+  if (!item) return;
+
+  await assertCanManageBringItem(params.itemId);
+
+  await prisma.eventBringItem.delete({
+    where: { id: params.itemId },
+  });
+}
+
+export async function updateBringItem(data: {
+  itemId: string;
+  label: string;
+  category: BringCategory;
+  note?: string;
+  bringerIds?: string[];
+}) {
+  await assertCanManageBringItem(data.itemId);
+
+  const label = data.label.trim();
+  if (!label) throw new Error("Label is required");
+
+  const note = data.note?.trim() || null;
+  const bringerIds = data.bringerIds ?? [];
+
+  await prisma.$transaction([
+    prisma.eventBringItem.update({
+      where: { id: data.itemId },
+      data: {
+        label,
+        category: data.category,
+        note,
+      },
+    }),
+    prisma.eventBringParticipation.deleteMany({
+      where: { itemId: data.itemId },
+    }),
+    ...(bringerIds.length
+      ? [
+        prisma.eventBringParticipation.createMany({
+          data: bringerIds.map((userId) => ({ itemId: data.itemId, userId })),
+        }),
+      ]
+      : []),
+  ]);
+}
+
+export async function setBringSectionEnabled(params: {
+  eventId: string;
+  enabled: boolean;
+  slug: string;
+}) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) throw new Error("Unauthorized");
+
+  const { eventId, enabled, slug } = params;
+
+  const membership = await prisma.eventMember.findUnique({
+    where: { userId_eventId: { userId, eventId } },
+    select: { role: true },
+  });
+
+  if (!membership || !["ADMIN", "OWNER"].includes(membership.role)) {
+    throw new Error("Forbidden");
+  }
+
+  await prisma.event.update({
+    where: { id: eventId },
+    data: { hasBringSection: enabled },
+  });
+
+  // important : on revalide par slug, pas par id
+  revalidatePath(`/event/${slug}`, "page");
 }

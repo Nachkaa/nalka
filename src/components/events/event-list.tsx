@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ChevronRight, Calendar, MapPin, Users, Sparkles  } from "lucide-react";
+import { ChevronRight, Calendar, MapPin, Users, Sparkles } from "lucide-react";
 import type { EventSummary } from "@/features/events/types";
 
 type Props = { initialEvents: EventSummary[] };
@@ -62,7 +62,7 @@ function EventListBlock({ items, empty }: { items: EventSummary[]; empty: string
             >
               <div className="grid grid-cols-[1fr_auto] items-center gap-6">
                 <div className="min-w-0">
-                  <h3 className="truncate text-xl font-semibold text-[var(--foreground)]">
+                  <h3 className="text-xl font-semibold text-[var(--foreground)]">
                     {e.title}
                   </h3>
 

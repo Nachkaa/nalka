@@ -107,55 +107,107 @@ export async function createInviteToken(eventRef: string, opts?: { uses?: number
 
 export async function acceptInvite(code: string) {
   const session = await auth();
-  if (!session?.user?.email) throw Object.assign(new Error("Unauthorized"), { status: 401 });
+  if (!session?.user?.email) {
+    throw Object.assign(new Error("Unauthorized"), { status: 401 });
+  }
 
   const token = await prisma.inviteToken.findUnique({
     where: { code },
-    include: { event: { select: { id: true, slug: true, memberLimit: true } } },
+    include: {
+      event: {
+        select: {
+          id: true,
+          slug: true,
+          memberLimit: true,
+          hasGifts: true,
+          giftMode: true,
+        },
+      },
+    },
   });
-  if (!token) throw Object.assign(new Error("Invalid link"), { status: 404 });
-  if (token.expiresAt && token.expiresAt < new Date()) throw Object.assign(new Error("Link expired"), { status: 410 });
-  if (token.remainingUses <= 0) throw Object.assign(new Error("Link already used"), { status: 409 });
 
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-  if (!user) throw Object.assign(new Error("Unauthorized"), { status: 401 });
+  if (!token) {
+    throw Object.assign(new Error("Invalid link"), { status: 404 });
+  }
+  if (token.expiresAt && token.expiresAt < new Date()) {
+    throw Object.assign(new Error("Link expired"), { status: 410 });
+  }
+  if (token.remainingUses <= 0) {
+    throw Object.assign(new Error("Link already used"), { status: 409 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+  });
+  if (!user) {
+    throw Object.assign(new Error("Unauthorized"), { status: 401 });
+  }
 
   const result = await prisma.$transaction(async (tx) => {
-    // 1) Already a member?
+    // 1) Déjà membre ?
     const existing = await tx.eventMember.findUnique({
-      where: { userId_eventId: { userId: user.id, eventId: token.eventId } },
+      where: {
+        userId_eventId: {
+          userId: user.id,
+          eventId: token.eventId,
+        },
+      },
       select: { id: true, eventId: true },
     });
 
     let joinedNow = false;
 
     if (!existing) {
-      // 2) Capacity check only if joining now
+      // 2) Vérif capacité uniquement si on rejoint maintenant
       const limit = token.event.memberLimit ?? 50;
-      const count = await tx.eventMember.count({ where: { eventId: token.eventId } });
-      if (count >= limit) throw Object.assign(new Error("Event is full"), { status: 409 });
+      const count = await tx.eventMember.count({
+        where: { eventId: token.eventId },
+      });
+      if (count >= limit) {
+        throw Object.assign(new Error("Event is full"), { status: 409 });
+      }
 
       await tx.eventMember.create({
-        data: { userId: user.id, eventId: token.eventId, role: "MEMBER" },
+        data: {
+          userId: user.id,
+          eventId: token.eventId,
+          role: "MEMBER",
+        },
       });
 
-      // 3) Consume one use only on first join
+      // 3) Consommer une utilisation du token uniquement au premier join
       await tx.inviteToken.update({
         where: { code: token.code },
-        data: { remainingUses: { decrement: 1 } },
+        data: {
+          remainingUses: { decrement: 1 },
+        },
       });
 
       joinedNow = true;
     }
 
-    const eventId = existing?.eventId ?? token.eventId;
+    // 4) Si l’event a des cadeaux en mode listes perso,
+    //    on garantit la GiftList perso du user (ownerId = user.id)
+    if (token.event.hasGifts && token.event.giftMode === "PERSONAL_LISTS") {
+      const existingList = await tx.giftList.findFirst({
+        where: {
+          eventId: token.eventId,
+          ownerId: user.id,
+          eventRelativeId: null,
+        },
+        select: { id: true },
+      });
 
-    // 4) Ensure personal gift list exists
-    await tx.giftList.upsert({
-      where: { ownerId_eventId: { ownerId: user.id, eventId } },
-      update: {},
-      create: { ownerId: user.id, eventId, title: "Ma liste" },
-    });
+      if (!existingList) {
+        await tx.giftList.create({
+          data: {
+            eventId: token.eventId,
+            ownerId: user.id,
+            title: "Ma liste",
+          },
+        });
+      }
+    }
 
     return { joinedNow };
   });
