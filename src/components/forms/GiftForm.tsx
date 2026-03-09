@@ -1,5 +1,7 @@
+// FILE: src/components/forms/GiftForm.tsx
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -25,20 +27,13 @@ type GiftFormProps = {
 
 const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024; // 3 Mo
 
-export function GiftForm({
-  action,
-  defaultValues,
-  submitLabel,
-  footerClassName,
-}: GiftFormProps) {
+export function GiftForm({ action, defaultValues, submitLabel, footerClassName }: GiftFormProps) {
   const title = defaultValues?.title ?? "";
   const url = defaultValues?.url ?? "";
   const note = defaultValues?.note ?? "";
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [preview, setPreview] = useState<string | null>(
-    defaultValues?.imagePath ?? null,
-  );
+  const [preview, setPreview] = useState<string | null>(defaultValues?.imagePath ?? null);
   const [fileError, setFileError] = useState<string | null>(null);
 
   const initialImage = defaultValues?.imagePath ?? null;
@@ -61,11 +56,8 @@ export function GiftForm({
     }
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      // trop lourd → on reset le champ + on garde l’éventuelle image initiale
       setFileError("Image trop lourde (max 3 Mo).");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
       if (preview && preview !== initialImage && preview.startsWith("blob:")) {
         URL.revokeObjectURL(preview);
       }
@@ -73,7 +65,6 @@ export function GiftForm({
       return;
     }
 
-    // OK
     setFileError(null);
     const objectUrl = URL.createObjectURL(file);
     if (preview && preview !== initialImage && preview.startsWith("blob:")) {
@@ -88,10 +79,7 @@ export function GiftForm({
     }
     setPreview(null);
     setFileError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    // côté serveur : si preview=null ET pas de fichier, tu peux décider de conserver l’ancienne image
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
@@ -105,7 +93,7 @@ export function GiftForm({
 
       <div className="space-y-2">
         <Label htmlFor="title">
-          Nom de l'idée <span className="text-red-600">*</span>
+          Nom de l’idée <span className="text-red-600">*</span>
         </Label>
         <Input id="title" name="title" required maxLength={120} defaultValue={title} />
         <div className="flex justify-end">
@@ -122,9 +110,7 @@ export function GiftForm({
             noteInputId="note"
             imageInputId="imageUrl"
             onImageUrlChange={(url) => {
-              if (fileInputRef.current) {
-                fileInputRef.current.value = "";
-              }
+              if (fileInputRef.current) fileInputRef.current.value = "";
               setFileError(null);
               setPreview(url);
             }}
@@ -137,7 +123,7 @@ export function GiftForm({
           placeholder="https://exemple.com/produit"
           defaultValue={url ?? ""}
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           Collez un lien. On complètera le nom et le commentaire si possible.
         </p>
       </div>
@@ -147,16 +133,29 @@ export function GiftForm({
         <Label htmlFor="image">Image</Label>
 
         {preview && (
-          <div className="relative h-24 w-24 overflow-hidden rounded-lg border bg-muted">
-            <img
-              src={preview}
-              alt={title ? `Image du cadeau ${title}` : "Image du cadeau"}
-              className="h-full w-full object-cover"
-            />
+          <div className="bg-muted relative h-24 w-24 overflow-hidden rounded-lg border">
+            {/^https?:\/\//i.test(preview) ? (
+              <img
+                src={preview}
+                alt={title ? `Image du cadeau ${title}` : "Image du cadeau"}
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <Image
+                src={preview}
+                alt={title ? `Image du cadeau ${title}` : "Image du cadeau"}
+                fill
+                sizes="96px"
+                className="object-cover"
+                unoptimized={preview.startsWith("blob:")}
+              />
+            )}
+
             <button
               type="button"
               onClick={handleClearImage}
-              className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-[var(--primary-foreground)] shadow focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+              className="absolute top-1 right-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-[var(--primary-foreground)] shadow focus:ring-2 focus:ring-[var(--primary)] focus:outline-none"
               aria-label="Retirer l’image"
             >
               <X className="h-3 w-3" aria-hidden="true" />
@@ -174,16 +173,12 @@ export function GiftForm({
         />
 
         {fileError && (
-          <p
-            className="text-xs text-red-600"
-            role="alert"
-            aria-live="polite"
-          >
+          <p className="text-xs text-red-600" role="alert" aria-live="polite">
             {fileError}
           </p>
         )}
 
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           Une seule image, max 3 Mo. Recadrée automatiquement en carré dans la liste.
         </p>
       </div>

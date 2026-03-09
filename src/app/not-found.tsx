@@ -9,16 +9,16 @@ export default function NotFound() {
   const router = useRouter();
   return (
     <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-6 px-4 text-center">
-      <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-muted-foreground">
+      <span className="text-muted-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
         <Search className="h-3.5 w-3.5" aria-hidden="true" />
         404 — Page introuvable
       </span>
 
-      <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+      <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
         Oups. Cette page n’existe pas.
       </h1>
 
-      <p className="text-pretty text-muted-foreground">
+      <p className="text-muted-foreground text-pretty">
         Le lien est peut-être erroné ou la page a été déplacée.
       </p>
 
@@ -27,7 +27,7 @@ export default function NotFound() {
           <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
           Revenir
         </Button>
-        <Button asChild aria-label="Aller à l’accueil"> 
+        <Button asChild aria-label="Aller à l’accueil">
           <Link href="/">
             <Home className="mr-2 h-4 w-4" aria-hidden="true" />
             Accueil
@@ -35,8 +35,11 @@ export default function NotFound() {
         </Button>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Si le problème persiste, écris-nous : <a className="underline" href="mailto:contact@nalka.app">contact@nalka.fr</a>
+      <p className="text-muted-foreground text-xs">
+        Si le problème persiste, écris-nous :{" "}
+        <a className="underline" href="mailto:contact@nalka.app">
+          contact@nalka.fr
+        </a>
       </p>
 
       {/* noindex pour la 404 */}

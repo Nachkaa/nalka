@@ -1,6 +1,7 @@
+// src/components/ui/expandable-text.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -11,13 +12,14 @@ type Props = {
   lessLabel?: string;
 };
 
-export default function ExpandableText({
+function ExpandableTextInner({
   text,
-  maxLines = 2,
+  maxLines,
   className,
-  moreLabel = "Voir plus",
-  lessLabel = "Voir moins",
-}: Props) {
+  moreLabel,
+  lessLabel,
+}: Required<Pick<Props, "text" | "maxLines" | "moreLabel" | "lessLabel">> &
+  Pick<Props, "className">) {
   const [expanded, setExpanded] = useState(false);
   const [showToggle, setShowToggle] = useState(false);
   const textRef = useRef<HTMLParagraphElement | null>(null);
@@ -27,36 +29,34 @@ export default function ExpandableText({
     if (!el) return;
 
     const checkOverflow = () => {
-      // si le texte non expand a plus de hauteur que ce qu'on voit → overflow
+      // mesure en "non expand" uniquement, car ce composant est remount à chaque changement text/maxLines
       const hasOverflow = el.scrollHeight > el.clientHeight + 1;
       setShowToggle(hasOverflow);
     };
 
-    // on force l’état "non expand" pour mesurer la version clampée
-    setExpanded(false);
-    // wait next paint
+    // after paint
     requestAnimationFrame(checkOverflow);
 
-    const observer = new ResizeObserver(checkOverflow);
-    observer.observe(el);
+    const ro = new ResizeObserver(() => checkOverflow());
+    ro.observe(el);
 
-    return () => observer.disconnect();
+    return () => ro.disconnect();
   }, [text, maxLines]);
+
+  const clampClass =
+    maxLines === 1
+      ? "line-clamp-1"
+      : maxLines === 2
+        ? "line-clamp-2"
+        : maxLines === 3
+          ? "line-clamp-3"
+          : "line-clamp-4";
 
   return (
     <div>
       <p
         ref={textRef}
-        className={cn(
-          "leading-snug text-muted-foreground",
-          !expanded &&
-            (maxLines === 1
-              ? "line-clamp-1"
-              : maxLines === 2
-              ? "line-clamp-2"
-              : "line-clamp-3"),
-          className
-        )}
+        className={cn("text-muted-foreground leading-snug", !expanded && clampClass, className)}
       >
         {text}
       </p>
@@ -72,5 +72,27 @@ export default function ExpandableText({
         </button>
       )}
     </div>
+  );
+}
+
+export default function ExpandableText({
+  text,
+  maxLines = 2,
+  className,
+  moreLabel = "Voir plus",
+  lessLabel = "Voir moins",
+}: Props) {
+  // force remount quand le contenu ou le clamp change => expanded revient à false sans useEffect
+  const resetKey = useMemo(() => `${maxLines}:${text}`, [maxLines, text]);
+
+  return (
+    <ExpandableTextInner
+      key={resetKey}
+      text={text}
+      maxLines={maxLines}
+      className={className}
+      moreLabel={moreLabel}
+      lessLabel={lessLabel}
+    />
   );
 }

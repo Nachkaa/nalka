@@ -1,3 +1,5 @@
+// FILE: src/features/auth/inline-magic-link.tsx
+
 "use client";
 
 import { useState, useTransition } from "react";
@@ -10,13 +12,22 @@ import { Loader2 } from "lucide-react";
 
 const Email = z.string().email().max(254);
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "object" && err !== null && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  return "Envoi impossible";
+}
+
 export function InlineMagicLink({ redirectTo }: { redirectTo: string }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const parsed = Email.safeParse(email.trim());
     if (!parsed.success) {
@@ -24,12 +35,13 @@ export function InlineMagicLink({ redirectTo }: { redirectTo: string }) {
       return;
     }
     setError(null);
+
     start(async () => {
       try {
         await sendMagicLink({ email: parsed.data, redirectTo });
         setSent(true);
-      } catch (err: any) {
-        setError(err?.message || "Envoi impossible");
+      } catch (err: unknown) {
+        setError(getErrorMessage(err));
       }
     });
   };
@@ -37,8 +49,7 @@ export function InlineMagicLink({ redirectTo }: { redirectTo: string }) {
   if (sent) {
     return (
       <p className="text-sm">
-        Lien envoyé. Vérifiez votre boîte mail puis revenez ici pour accepter
-        l’invitation.
+        Lien envoyé. Vérifiez votre boîte mail puis revenez ici pour accepter l’invitation.
       </p>
     );
   }
@@ -58,11 +69,12 @@ export function InlineMagicLink({ redirectTo }: { redirectTo: string }) {
           aria-describedby={error ? "email-error" : undefined}
         />
         {error ? (
-          <p id="email-error" className="text-xs text-destructive">
+          <p id="email-error" className="text-destructive text-xs">
             {error}
           </p>
         ) : null}
       </div>
+
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
         Recevoir le lien

@@ -10,7 +10,10 @@ export async function GET() {
 
   let userId = session.user.id as string | undefined;
   if (!userId && session.user.email) {
-    const u = await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } });
+    const u = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
     userId = u?.id;
   }
   if (!userId) return new NextResponse("no-user", { status: 400 });
@@ -25,4 +28,3 @@ export async function GET() {
 
   return NextResponse.json({ userId, count: data.length, data });
 }
-    

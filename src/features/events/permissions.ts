@@ -1,5 +1,6 @@
+// src/features/events/permissions.ts
+
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
 import { EventMemberRole } from "@prisma/client";
 
 /**
@@ -16,34 +17,67 @@ export async function requireEventForUser(slug: string, userId: string) {
   const event = await prisma.event.findFirst({
     where: {
       slug,
-      memberships: {
-        some: { userId },
-      },
+      memberships: { some: { userId } },
     },
-    include: {
-      memberships: {
-        include: { user: true },
-      },
-      lists: {
-        include: {
-          owner: true,
-          eventRelative: true,
-          items: {
-            include: {
-              reservations: {
-                include: { byUser: true },
-              },
+    select: {
+      // scalars used by the event page
+      id: true,
+      slug: true,
+      title: true,
+      description: true,
+      eventOn: true,
+      eventTime: true,
+      location: true,
+      ownerId: true,
+      colorHex: true,
+      scheduleMode: true,
+      locationMode: true,
+
+      giftMode: true,
+
+      modules: {
+        orderBy: { position: "asc" },
+        select: {
+          id: true,
+          key: true,
+          enabled: true,
+          position: true,
+          giftsSettings: {
+            select: {
+              isNoSpoil: true,
+              isAnonReservations: true,
+              isSecondHandOk: true,
+              isHandmadeOk: true,
+              budgetCapCents: true,
+            },
+          },
+          secretSantaSettings: {
+            select: {
+              budgetCapCents: true,
+            },
+          },
+          overviewSettings: {
+            select: {
+              rsvpRequired: true,
             },
           },
         },
       },
+
+      // relations
+      memberships: {
+        select: {
+          id: true,
+          userId: true,
+          role: true,
+          rsvpStatus: true,
+          rsvpRespondedAt: true,
+          user: true,
+        },
+      },
       relatives: {
         include: {
-          managedProfile: {
-            include: {
-              owner: true,
-            },
-          },
+          managedProfile: { include: { owner: true } },
           createdBy: true,
         },
       },
@@ -52,9 +86,6 @@ export async function requireEventForUser(slug: string, userId: string) {
 
   return event;
 }
-
-
-
 
 /**
  * Vérifie qu'un user est bien membre d'un event donné.
@@ -73,14 +104,10 @@ export async function assertUserInEvent(eventId: string, userId: string) {
 }
 
 /**
- * Vérifie qu'un user (depuis la session) a le droit de gérer un item "bring".
+ * Vérifie qu'un user a le droit de gérer un item "bring".
  * Droit = créateur de l'item OU admin/owner de l'événement.
  */
-export async function assertCanManageBringItem(itemId: string) {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) throw new Error("Unauthorized");
-
+export async function assertCanManageBringItem(itemId: string, userId: string) {
   const item = await prisma.eventBringItem.findUnique({
     where: { id: itemId },
     include: {
@@ -94,14 +121,14 @@ export async function assertCanManageBringItem(itemId: string) {
 
   if (!item) throw new Error("Not found");
 
-  const membership = item.event.memberships.find(
-    (m) => m.userId === userId,
-  );
+  const membership = item.event.memberships.find((m) => m.userId === userId);
   if (!membership) throw new Error("Forbidden");
 
-  const adminLike = isAdminRole(membership.role);
+  // Vérifier si l'user est admin/owner OU créateur de l'item
+  const isCreator = item.createdById === userId;
+  const isAdmin = isAdminRole(membership.role);
 
-  if (!adminLike) {
+  if (!isCreator && !isAdmin) {
     throw new Error("Forbidden");
   }
 

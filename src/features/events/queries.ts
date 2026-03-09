@@ -1,6 +1,7 @@
 // server-only
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { EventRsvpStatus } from "@prisma/client";
 import type { EventSummary } from "./types";
 
 /**
@@ -20,10 +21,26 @@ export async function getUserEventSummaries(userId: string): Promise<EventSummar
       slug: true,
       title: true,
       eventOn: true,
+      eventTime: true,
       location: true,
-      hasGifts: true,
-      giftMode: true, // "HOST_LIST" | "SECRET_SANTA" | "PERSONAL_LISTS"
-      memberships: { select: { userId: true } },
+      giftMode: true,
+      imagePath: true,
+      modules: {
+        where: { key: { in: ["OVERVIEW", "GIFTS", "SECRET_SANTA"] } },
+        select: {
+          key: true,
+          enabled: true,
+          overviewSettings: { select: { rsvpRequired: true } },
+        },
+      },
+      memberships: {
+        select: {
+          userId: true,
+          role: true,
+          rsvpStatus: true,
+          rsvpRespondedAt: true,
+        },
+      },
     },
   });
   if (rows.length === 0) return [];
@@ -70,24 +87,47 @@ export async function getUserEventSummaries(userId: string): Promise<EventSummar
     const covered = others.reduce((n, uid) => n + (coveredSet.has(uid) ? 1 : 0), 0);
     const progress = denom === 0 ? 0 : Math.round((covered / denom) * 100);
 
+    const time = e.eventTime ? e.eventTime.trim() : null;
     const dateISO = e.eventOn ? e.eventOn.toISOString().slice(0, 10) : null;
-    const dateLabel = e.eventOn
-      ? new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long", year: "numeric" }).format(e.eventOn)
+    const baseDateLabel = e.eventOn
+      ? new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long", year: "numeric" }).format(
+          e.eventOn,
+        )
       : null;
+    const dateLabel = baseDateLabel
+      ? time
+        ? `${baseDateLabel} · ${time}`
+        : baseDateLabel
+      : (time ?? null);
 
-    const isSecretSanta = e.giftMode === "SECRET_SANTA";
+    const myMembership = e.memberships.find((m) => m.userId === userId);
+    const rsvpStatus = myMembership?.rsvpStatus ?? EventRsvpStatus.PENDING;
+    const moduleMap = new Map(e.modules.map((m) => [m.key, m]));
+    const rsvpRequired = moduleMap.get("OVERVIEW")?.overviewSettings?.rsvpRequired ?? true;
+    const giftsEnabled = moduleMap.get("GIFTS")?.enabled ?? false;
+    const isSecretSanta = moduleMap.get("SECRET_SANTA")?.enabled ?? false;
 
     return {
       id: e.id,
       slug: e.slug,
       title: e.title,
       date: dateISO,
-      dateLabel,                   // ← REQUIRED BY EventSummary
+      dateLabel,
+      time,
       location: e.location ?? null,
       invitedCount: memberIds.length,
       progress,
+
+      giftMode: e.giftMode,
+      hasGifts: giftsEnabled,
       isSecretSanta,
       hasDraw: (ssCountMap.get(e.id) ?? 0) > 0,
+
+      imagePath: e.imagePath ?? null,
+      userRole: myMembership?.role ?? "MEMBER",
+      rsvpStatus,
+      rsvpRespondedAt: myMembership?.rsvpRespondedAt?.toISOString() ?? null,
+      rsvpRequired,
     };
   });
 }

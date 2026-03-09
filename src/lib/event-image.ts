@@ -20,7 +20,7 @@ export async function processEventImage(file: File | null | undefined): Promise<
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  let img = sharp(buffer).rotate(); // auto-rotate selon EXIF
+  const img = sharp(buffer).rotate(); // auto-rotate selon EXIF
   const meta = await img.metadata();
 
   if (!meta.width || !meta.height) {

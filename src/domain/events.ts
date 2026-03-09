@@ -1,76 +1,94 @@
 import { z } from "zod";
-
-const startOfToday = () => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-};
+import { parseDateOrThrow, startOfTodayLocal } from "@/lib/dates/parseDateOrThrow";
+import { EventScheduleMode, EventLocationMode } from "@prisma/client";
 
 const checkboxFromForm = z
-  .any()
-  .transform((v) => {
-    // Accepte "true", "false", "on", true, false, null, undefined…
-    if (v === "true" || v === true || v === "on") return true;
-    return false;
-  });
+  .union([z.string(), z.boolean(), z.null(), z.undefined()])
+  .transform((v) => v === true || v === "on" || v === "true" || v === "1");
 
-const giftModeFromForm = z
-  .union([
-    z.literal("host-list"),
-    z.literal("secret-santa"),
-    z.literal("personal-lists"),
-    z.null(),
-    z.undefined(),
-  ])
-  .transform((v) => {
-    if (v === "host-list" || v === "secret-santa" || v === "personal-lists") {
-      return v;
-    }
-    // Cas "sans cadeaux" où le formulaire ne poste pas rules.mode :
-    // on met un mode par défaut, non utilisé si hasGifts = false.
-    return "personal-lists";
-  });
+const giftModeSchema = z
+  .union([z.literal("HOST_LIST"), z.literal("PERSONAL_LISTS")])
+  .optional()
+  .nullable()
+  .transform((v) => (v === "PERSONAL_LISTS" ? "PERSONAL_LISTS" : "HOST_LIST"));
 
-export const EventCreateSchema = z.object({
-  title: z.string().min(1).max(120),
-  description: z.string().max(500).optional().nullable().transform((v) => v || null),
-  date: z.union([z.string(), z.date()])
-    .transform((v) => new Date(v as string))
-    .refine((d) => d >= startOfToday(), {
-      message: "La date doit être aujourd’hui ou plus tard.",
+const TimeHHmm = z.preprocess(
+  (v) => {
+    if (v === null || v === undefined) return null;
+    const s = String(v).trim();
+    return s === "" ? null : s;
+  },
+  z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: "Horaire invalide (HH:mm)." })
+    .nullable(),
+);
+
+const scheduleSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal(EventScheduleMode.EXACT),
+    date: z
+      .string()
+      .min(1, "Choisis une date.")
+      .transform((v) => parseDateOrThrow(v))
+      .refine((d) => d >= startOfTodayLocal(), {
+        message: "La date doit être aujourd’hui ou plus tard.",
+      }),
+  }),
+  z.object({
+    mode: z.literal(EventScheduleMode.POLL),
+    options: z.array(z.string()).default([]),
+  }),
+  z.object({
+    mode: z.literal(EventScheduleMode.TBD),
+  }),
+]);
+
+const locationSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal(EventLocationMode.EXACT),
+    value: z
+      .string()
+      .min(1, "Choisis un lieu.")
+      .max(120)
+      .transform((v) => v.trim()),
+  }),
+  z.object({
+    mode: z.literal(EventLocationMode.POLL),
+    options: z.array(z.string()).default([]),
+  }),
+  z.object({
+    mode: z.literal(EventLocationMode.TBD),
+  }),
+]);
+
+export const EventCreateSchema = z
+  .object({
+    title: z.string().min(1).max(120),
+    description: z
+      .string()
+      .max(500)
+      .optional()
+      .nullable()
+      .transform((v) => v || null),
+
+    location: locationSchema,
+    schedule: scheduleSchema.and(z.object({ time: TimeHHmm })),
+
+    giftMode: giftModeSchema,
+
+    bringEnabled: checkboxFromForm.optional(),
+
+    isNoSpoil: checkboxFromForm,
+    isAnonReservations: checkboxFromForm,
+    isSecondHandOk: checkboxFromForm,
+    isHandmadeOk: checkboxFromForm,
+
+    budgetCap: z.union([z.string(), z.number(), z.null(), z.undefined()]).transform((v) => {
+      if (v === null || v === undefined || v === "") return null;
+      const s = String(v).replace(/\s/g, "").replace(",", ".");
+      const n = Number.parseFloat(s);
+      return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null;
     }),
-  location: z.string().max(120).optional().nullable().transform((v) => v || null),
-
-  // booleans envoyés via hidden input "true" | ""
-   // nouveaux champs
-  hasGifts: checkboxFromForm,
-  giftMode: giftModeFromForm,
-  isNoSpoil: checkboxFromForm,
-  isAnonReservations: checkboxFromForm,
-  isSecondHandOk: checkboxFromForm,
-  isHandmadeOk: checkboxFromForm,
-
-  // budget en euros -> cents ou null
-  budgetCap: z
-    .union([z.string(), z.number(), z.null(), z.undefined()])
-   .transform((v) => {
-     if (v === null || v === undefined || v === "") return null;
-     const s = String(v).replace(/\s/g, "").replace(",", ".");
-     const n = Number.parseFloat(s);
-     return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null;
-   }),
-}).transform((d) => {
-  // Secret Santa force les règles de visibilité
-  // Secret Santa force les règles de visibilité
-   if (d.giftMode === "secret-santa") {
-     d.isNoSpoil = true;
-     d.isAnonReservations = true;
-   }
-
-   // Si pas de cadeaux, on neutralise le budget
-   if (!d.hasGifts) {
-     d.budgetCap = null;
-   }
-
-   return d;
-});
+  })
+  .transform((d) => d);

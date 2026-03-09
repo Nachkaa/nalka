@@ -13,7 +13,10 @@ export type Rule =
   | { key: "priceRange"; value: [number, number] };
 
 export const RULES_CATALOG = {
-  noSpoil: { label: "Cadeaux cachés dans ma liste", hint: "Je ne vois pas quels cadeaux de ma liste ont été réservés" },
+  noSpoil: {
+    label: "Cadeaux cachés dans ma liste",
+    hint: "Je ne vois pas quels cadeaux de ma liste ont été réservés",
+  },
   anonReservations: { label: "Réservations anonymes", hint: "On voit « réservé » sans le nom" },
   budgetCap: { label: "Budget maximum", hasValue: true },
   priceRange: { label: "Fourchette de prix", hasValue: true },

@@ -28,7 +28,7 @@ export function normalizeUrl(input: string): string {
     u = new URL(candidate);
   } catch {
     throw new Error("URL invalide");
-  } 
+  }
 
   if (u.protocol !== "http:" && u.protocol !== "https:") {
     throw new Error("Protocole non autorisé");
@@ -43,7 +43,10 @@ export function normalizeUrl(input: string): string {
   u.hash = "";
 
   // Drop default ports
-  if ((u.protocol === "https:" && u.port === "443") || (u.protocol === "http:" && u.port === "80")) {
+  if (
+    (u.protocol === "https:" && u.port === "443") ||
+    (u.protocol === "http:" && u.port === "80")
+  ) {
     u.port = "";
   }
 

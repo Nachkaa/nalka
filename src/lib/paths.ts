@@ -7,7 +7,7 @@ export const paths = {
   eventNew: () => "/event/new",
   event: (id: string) => `/event/${id}`,
 
-  lists: () => "/lists",          // (si besoin)
+  lists: () => "/lists", // (si besoin)
   list: (id: string) => `/list/${id}`,
 
   profile: () => "/profile",

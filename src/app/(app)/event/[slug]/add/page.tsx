@@ -6,11 +6,7 @@ import { addGift } from "./actions";
 import { Button } from "@/components/ui/button";
 import { GiftForm } from "@/components/forms/GiftForm";
 
-export default async function AddGiftPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function AddGiftPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
   const event = await prisma.event.findUnique({
@@ -35,7 +31,6 @@ export default async function AddGiftPage({
       <GiftForm
         action={addGift.bind(null, event.id, slug)}
         submitLabel="Ajouter"
-        // on garde la même sticky bar qu'avant
         footerClassName="sticky bottom-0 -mx-6 mt-4 bg-[var(--background)]/80 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/60"
       />
     </main>

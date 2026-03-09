@@ -1,5 +1,7 @@
+// FILE: src/components/gifts/GiftImagePreview.tsx
 "use client";
 
+import Image from "next/image";
 import {
   Dialog,
   DialogTrigger,
@@ -15,34 +17,32 @@ type GiftImagePreviewProps = {
   sizeClassName?: string;
 };
 
-export function GiftImagePreview({
-  src,
-  alt,
-  sizeClassName = "h-24 w-24",
-}: GiftImagePreviewProps) {
+export function GiftImagePreview({ src, alt, sizeClassName = "h-24 w-24" }: GiftImagePreviewProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
         <button
           type="button"
-          className={`${sizeClassName} flex-shrink-0 overflow-hidden rounded-md border bg-muted focus:outline-none focus:ring-2 focus:ring-[var(--primary)]`}
+          className={`${sizeClassName} bg-muted relative flex-shrink-0 overflow-hidden rounded-md border focus:ring-2 focus:ring-[var(--primary)] focus:outline-none`}
           aria-label="Afficher l’image en grand"
         >
-          <img src={src} alt={alt} className="h-full w-full object-cover" />
+          <Image src={src} alt={alt} fill sizes="96px" className="object-cover" />
         </button>
       </DialogTrigger>
 
       <DialogContent className="max-w-2xl border-none bg-transparent p-0 shadow-none">
-        {/* Titre requis pour l'accessibilité, mais visuellement caché */}
         <DialogHeader className="sr-only">
           <DialogTitle>{alt || "Aperçu du cadeau"}</DialogTitle>
         </DialogHeader>
 
-        <div className="overflow-hidden rounded-2xl bg-background">
-          <img
+        <div className="bg-background overflow-hidden rounded-2xl">
+          <Image
             src={src}
             alt={alt}
-            className="max-h-[80vh] max-w-full object-contain"
+            width={1600}
+            height={1200}
+            sizes="(max-width: 768px) 92vw, 768px"
+            className="max-h-[80vh] w-full object-contain"
           />
         </div>
       </DialogContent>

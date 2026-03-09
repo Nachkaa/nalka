@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { EventModuleKey } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -12,10 +13,20 @@ export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
   const session = await auth();
   if (!session?.user?.email) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const me = await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } });
+  const me = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true },
+  });
   if (!me) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
 
   const { eventId } = await ctx.params;
+  const secretSantaModule = await prisma.eventModule.findUnique({
+    where: { eventId_key: { eventId, key: EventModuleKey.SECRET_SANTA } },
+    select: { enabled: true },
+  });
+  if (!secretSantaModule?.enabled) {
+    return NextResponse.json({ error: "Module Secret Santa inactif" }, { status: 403 });
+  }
 
   const assign = await prisma.secretSantaAssignment.findUnique({
     where: { eventId_giverId: { eventId, giverId: me.id } },

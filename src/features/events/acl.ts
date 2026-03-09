@@ -1,12 +1,13 @@
-import { prisma } from "@/lib/prisma";
 import type { Role } from "@/features/auth/roles";
+import { prisma } from "@/lib/prisma";
 
 export type Permission =
   | "event:close"
   | "member:kick"
   | "gift:create"
   | "gift:update"
-  | "gift:delete";
+  | "gift:delete"
+  | "gift:reserve";
 
 const PERM_MIN_ROLE: Record<Permission, Role> = {
   "event:close": "ADMIN",
@@ -14,6 +15,7 @@ const PERM_MIN_ROLE: Record<Permission, Role> = {
   "gift:create": "MEMBER",
   "gift:update": "MEMBER",
   "gift:delete": "ADMIN",
+  "gift:reserve": "MEMBER",
 };
 
 // kept for future /admin page, not used in access decisions yet
@@ -35,7 +37,11 @@ export async function can(userId: string, eventId: string, perm: Permission) {
   const role = await getMyRole(eventId, userId);
   if (!role) return false;
   const need = PERM_MIN_ROLE[perm];
-  return role === "OWNER" || (role === "ADMIN" && need !== "OWNER") || (role === "MEMBER" && need === "MEMBER");
+  return (
+    role === "OWNER" ||
+    (role === "ADMIN" && need !== "OWNER") ||
+    (role === "MEMBER" && need === "MEMBER")
+  );
 }
 
 /** Read access requires membership only. No platform bypass yet. */

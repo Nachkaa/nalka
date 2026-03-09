@@ -30,14 +30,9 @@ export default async function SuggestGiftPage({
         </Button>
       </div>
 
-      <h1 className="mb-8 text-3xl font-semibold">
-        Suggérer une idée
-      </h1>
+      <h1 className="mb-8 text-3xl font-semibold">Suggérer une idée</h1>
 
-      <GiftForm
-        action={SuggestGiftAction.bind(null, slug, list.id)}
-        submitLabel="Suggérer"
-      />
+      <GiftForm action={SuggestGiftAction.bind(null, slug, list.id)} submitLabel="Suggérer" />
     </main>
   );
 }

@@ -94,7 +94,7 @@ export async function sendGiftRemovedEmail({
       giftTitle={giftTitle}
       eventTitle={eventTitle}
       ownerName={ownerName}
-    />
+    />,
   );
 
   const transport = await getTransport();
@@ -104,7 +104,7 @@ export async function sendGiftRemovedEmail({
     console.log(
       "[MAIL:GiftRemovedEmail][console]",
       { to, recipientName, giftTitle, eventTitle, ownerName },
-      html
+      html,
     );
     return;
   }

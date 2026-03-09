@@ -1,3 +1,4 @@
+// FILE: src/lib/mail.ts
 import nodemailer from "nodemailer";
 
 type MailMode = "smtp" | "ethereal" | "console";
@@ -44,23 +45,39 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
   return cached;
 }
 
-export async function sendMail(opts: {
-  to: string;
-  subject: string;
-  html: string;
-  text?: string;
-}) {
+// type guard (avoid `any`)
+function hasGetTestMessageUrl(lib: typeof nodemailer): lib is typeof nodemailer & {
+  getTestMessageUrl: (info: nodemailer.SentMessageInfo) => string | false;
+} {
+  return (
+    typeof (lib as unknown as { getTestMessageUrl?: unknown }).getTestMessageUrl === "function"
+  );
+}
+
+// type guard (avoid `any`)
+function isJsonTransporter(
+  t: nodemailer.Transporter,
+): t is nodemailer.Transporter & { transporter: { name?: string } } {
+  const maybe = t as unknown as { transporter?: { name?: unknown } };
+  return typeof maybe.transporter?.name === "string";
+}
+
+export async function sendMail(opts: { to: string; subject: string; html: string; text?: string }) {
   const transporter = await getTransporter();
+
   const info = await transporter.sendMail({
     from: process.env.MAIL_FROM!,
     ...opts,
   });
 
-  const url = (nodemailer as any).getTestMessageUrl?.(info);
-  if (url) console.log("[mail] Preview:", url);
+  if (hasGetTestMessageUrl(nodemailer)) {
+    const url = nodemailer.getTestMessageUrl(info);
+    if (url) console.log("[mail] Preview:", url);
+  }
 
-  if ((transporter as any).transporter?.name === "JSON") {
-    console.log("[mail] JSON:", info.message?.toString?.() ?? info);
+  if (isJsonTransporter(transporter) && transporter.transporter.name === "JSON") {
+    const msg = (info as unknown as { message?: unknown }).message;
+    console.log("[mail] JSON:", typeof msg === "string" ? msg : info);
   }
 
   return info;

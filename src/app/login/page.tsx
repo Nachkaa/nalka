@@ -1,78 +1,121 @@
-// app/login/page.tsx
+// FILE: src/app/login/page.tsx
 "use client";
 
-import { Suspense, useEffect, useMemo, useState, useRef, useTransition } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { sendMagicLink } from "./actions";
+import { resolveInboxUrl } from "@/lib/auth/inboxProviders";
+import { maskEmail } from "@/lib/auth/maskEmail";
 import { Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { sendMagicLink } from "./actions";
 
 export default function Page() {
   return (
     <Suspense
       fallback={
         <main className="grid min-h-screen place-items-center">
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-muted-foreground text-sm">Chargement...</p>
         </main>
       }
     >
-      <LoginForm />
+      <LoginFormShell />
     </Suspense>
   );
+}
+
+function LoginFormShell() {
+  const searchParams = useSearchParams();
+  const reset = searchParams.get("reset") === "1";
+  // Remount quand reset=1 => état remis à zéro sans setState dans un effect
+  return <LoginForm key={reset ? "reset" : "normal"} />;
 }
 
 function LoginForm() {
   const { status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState("");
-  const [isSending, startSend] = useTransition();
-  const emailInputRef = useRef<HTMLInputElement>(null);
-
   const from = useMemo(() => searchParams.get("from") || "/event", [searchParams]);
 
-  // 👇 nouveau : on récupère le code d’erreur renvoyé par NextAuth
+  const [email, setEmail] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return sessionStorage.getItem("auth:lastEmail") ?? "";
+  });
+  const [redirectTo, setRedirectTo] = useState(() => {
+    if (typeof window === "undefined") return from;
+    return sessionStorage.getItem("auth:lastRedirect") ?? from;
+  });
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [helpNote, setHelpNote] = useState(false);
+  const [isSending, startSend] = useTransition();
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const tipsRef = useRef<HTMLDetailsElement | null>(null);
+
   const errorCode = useMemo(() => searchParams.get("error") ?? "", [searchParams]);
   const verificationFailed = errorCode === "Verification";
+
+  const shouldFocus = searchParams.get("reset") === "1";
+  useEffect(() => {
+    if (!shouldFocus) return;
+    requestAnimationFrame(() => emailInputRef.current?.focus());
+  }, [shouldFocus]);
 
   useEffect(() => {
     if (status === "authenticated") router.replace("/event");
   }, [status, router]);
 
   useEffect(() => {
-    if (searchParams.get("reset") === "1") {
-      setSent(false);
-      setError("");
-      requestAnimationFrame(() => emailInputRef.current?.focus());
-    }
-  }, [searchParams]);
+    if (!sent || cooldown === 0) return;
+    const timer = window.setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [sent, cooldown]);
 
-  const mailboxUrl = useMemo(() => {
-    const domain = email.split("@")[1]?.toLowerCase() ?? "";
-    if (domain.includes("gmail")) return "https://mail.google.com/";
-    if (domain.includes("outlook") || domain.includes("live") || domain.includes("hotmail")) return "https://outlook.live.com/";
-    if (domain.includes("office") || domain.includes("microsoft")) return "https://outlook.office.com/";
-    if (domain.includes("yahoo")) return "https://mail.yahoo.com/";
-    if (domain.includes("proton")) return "https://mail.proton.me/";
-    if (domain.includes("icloud") || domain.includes("me.com")) return "https://www.icloud.com/mail/";
-    return "";
-  }, [email]);
+  const mailboxUrl = useMemo(() => resolveInboxUrl(email), [email]);
+  const masked = useMemo(() => (email ? maskEmail(email) : ""), [email]);
 
-  async function action(formData: FormData) {
+  function submit(form: HTMLFormElement) {
     setError("");
-    const provided = String(formData.get("email") || "");
+    const fd = new FormData(form);
+    const provided = String(fd.get("email") || "").trim();
+    const redirectValue = String(fd.get("redirectTo") || redirectTo || "");
+
+    try {
+      sessionStorage.setItem("auth:lastEmail", provided);
+      if (redirectValue) sessionStorage.setItem("auth:lastRedirect", redirectValue);
+    } catch {
+      // sessionStorage peut être indisponible (mode privé, etc.)
+    }
+
     startSend(async () => {
       try {
-        await sendMagicLink(formData);
+        await sendMagicLink(fd);
         setEmail(provided);
         setSent(true);
+        setCooldown(60);
+        setResendSuccess(false);
+        setHelpNote(false);
+        setRedirectTo(redirectValue || "/event");
       } catch {
         setError("Envoi impossible. Vérifiez l’adresse.");
         setSent(false);
@@ -80,25 +123,71 @@ function LoginForm() {
     });
   }
 
+  const handleOpenMailbox = () => {
+    if (mailboxUrl) {
+      window.open(mailboxUrl, "_blank", "noreferrer");
+      return;
+    }
+    setHelpNote(true);
+    tipsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleChangeEmail = () => {
+    try {
+      sessionStorage.removeItem("auth:lastEmail");
+      sessionStorage.removeItem("auth:lastRedirect");
+    } catch {
+      /* ignore */
+    }
+    setSent(false);
+    setCooldown(0);
+    setResendSuccess(false);
+    setError("");
+    setHelpNote(false);
+    setEmail("");
+    router.replace("/login?reset=1");
+    requestAnimationFrame(() => emailInputRef.current?.focus());
+  };
+
+  const handleResend = () => {
+    setError("");
+    setResendSuccess(false);
+    if (!email) {
+      setError('Adresse manquante. Cliquez sur "Changer d’e-mail".');
+      return;
+    }
+    startSend(async () => {
+      try {
+        const fd = new FormData();
+        fd.append("email", email);
+        fd.append("redirectTo", redirectTo || from || "/event");
+        await sendMagicLink(fd);
+        setCooldown(60);
+        setResendSuccess(true);
+      } catch {
+        setError("Impossible de renvoyer le lien pour le moment.");
+      }
+    });
+  };
+
   if (status === "loading") {
     return (
       <main className="grid min-h-screen place-items-center">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
+        <p className="text-muted-foreground text-sm">Chargement...</p>
       </main>
     );
   }
   if (status === "authenticated") return null;
 
   return (
-    <main className="grid min-h-screen place-items-center px-4">
-      <Card className="w-full max-w-md rounded-2xl shadow-lg">
+    <main className="relative grid min-h-screen place-items-center overflow-hidden px-4">
+      <Card className="w-full max-w-md rounded-2xl bg-white! shadow-lg">
         {!sent ? (
           <>
-            {/* 👇 nouveau : message spécifique si le lien NextAuth est expiré / déjà utilisé */}
             {verificationFailed && (
-              <div className="mx-6 mt-6 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-                Le lien de connexion n’est plus valide (déjà utilisé ou expiré).
-                Demandez simplement un nouveau lien ci-dessous.
+              <div className="border-destructive/40 bg-destructive/10 text-destructive mx-6 mt-6 rounded-md border p-3 text-sm">
+                Le lien de connexion n’est plus valide (déjà utilisé ou expiré). Demandez simplement
+                un nouveau lien ci-dessous.
               </div>
             )}
 
@@ -113,21 +202,8 @@ function LoginForm() {
               noValidate
               onSubmit={(e) => {
                 e.preventDefault();
-                setError("");
-                const fd = new FormData(e.currentTarget);
-                const provided = String(fd.get("email") || "");
-                startSend(async () => {
-                  try {
-                    await sendMagicLink(fd);
-                    setEmail(provided);
-                    setSent(true);
-                  } catch {
-                    setError("Envoi impossible. Vérifiez l’adresse.");
-                    setSent(false);
-                  }
-                });
+                submit(e.currentTarget);
               }}
-              action={action}
             >
               <CardContent className="space-y-8">
                 <div className="grid gap-4">
@@ -146,13 +222,15 @@ function LoginForm() {
                     className="h-11 text-base"
                     disabled={isSending}
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Aucun mot de passe. Vous recevrez un lien de connexion.
                   </p>
                 </div>
-                <input type="hidden" name="redirectTo" value={from} />
+
+                <input type="hidden" name="redirectTo" value={redirectTo} />
+
                 {error && (
-                  <p className="text-sm text-destructive" role="alert">
+                  <p className="text-destructive text-sm" role="alert">
                     {error}
                   </p>
                 )}
@@ -168,13 +246,14 @@ function LoginForm() {
                   {isSending ? (
                     <span className="inline-flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                      Envoi…
+                      Envoi...
                     </span>
                   ) : (
                     "Recevoir le lien"
                   )}
                 </Button>
-                <p className="text-center text-xs text-muted-foreground">
+
+                <p className="text-muted-foreground text-center text-xs">
                   Nalka © {new Date().getFullYear()}
                 </p>
               </CardFooter>
@@ -182,49 +261,82 @@ function LoginForm() {
           </>
         ) : (
           <>
-            <CardHeader className="space-y-1">
+            <CardHeader className="space-y-2 pb-4">
+              {resendSuccess && (
+                <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                  E-mail renvoyé.
+                </div>
+              )}
               <CardTitle className="text-2xl">Lien envoyé</CardTitle>
               <CardDescription>
-                Un e-mail a été envoyé à{" "}
-                <span className="font-medium text-foreground">{email}</span>. Ouvrez-le pour vous connecter.
+                Si un compte existe pour cette adresse, un e-mail a été envoyé à
+                <span className="text-foreground font-semibold">{masked || "cette adresse"}</span>.
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-6">
-              {mailboxUrl ? (
-                <a href={mailboxUrl} target="_blank" rel="noopener noreferrer">
-                  <Button type="button" className="w-full h-11 text-base">
-                    Ouvrir ma boîte mail
-                  </Button>
-                </a>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center">
-                  Vérifiez votre boîte mail et vos spams.
-                </p>
-              )}
-
-              <div className="grid gap-2 mt-2">
-                <p className="text-sm text-muted-foreground text-center">
-                  Pas de mail reçu ?
-                </p>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setSent(false);
-                    setError("");
-                    requestAnimationFrame(() => emailInputRef.current?.focus());
-                  }}
-                  className="w-full h-11 text-base"
-                >
-                  Renvoyer le lien
+              <div className="space-y-2">
+                <Button type="button" className="h-11 w-full text-base" onClick={handleOpenMailbox}>
+                  Ouvrir ma boîte mail
                 </Button>
+                {!mailboxUrl && helpNote && (
+                  <p className="text-muted-foreground text-center text-sm">
+                    Ouvrez votre messagerie et cherchez &quot;Connexion&quot;.
+                  </p>
+                )}
               </div>
 
-              {error && (
-                <p className="text-sm text-destructive text-center" role="alert">
-                  {error}
-                </p>
-              )}
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleChangeEmail}
+                  className="text-primary text-sm font-medium underline-offset-4 hover:underline"
+                >
+                  Changer d’e-mail
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={cooldown > 0 || isSending}
+                  className="h-11 w-full text-base"
+                  onClick={handleResend}
+                >
+                  {isSending ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      Envoi...
+                    </span>
+                  ) : cooldown > 0 ? (
+                    `Renvoyer dans ${cooldown}s`
+                  ) : (
+                    "Renvoyer le lien"
+                  )}
+                </Button>
+                {error && (
+                  <p className="text-destructive text-center text-sm" role="alert">
+                    {error}
+                  </p>
+                )}
+              </div>
+
+              <details
+                ref={tipsRef}
+                className="group border-border/60 bg-muted/40 rounded-lg border px-4 py-3"
+              >
+                <summary className="text-foreground cursor-pointer text-sm font-medium">
+                  Pas de mail reçu ?
+                </summary>
+                <ul className="text-muted-foreground mt-3 space-y-2 text-sm">
+                  <li>- Spam / Indésirables</li>
+                  <li>- Onglet Promotions (Gmail)</li>
+                  <li>- Attendre 1-2 minutes</li>
+                  <li>- Seul le dernier lien reçu fonctionne</li>
+                  <li>- Rechercher &quot;connexion&quot; + nom de l&apos;app</li>
+                </ul>
+              </details>
             </CardContent>
           </>
         )}

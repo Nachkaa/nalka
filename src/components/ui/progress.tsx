@@ -11,7 +11,10 @@ export function Progress({
 }: React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> & { value?: number }) {
   return (
     <ProgressPrimitive.Root
-      className={cn("relative h-2 w-full overflow-hidden rounded-full bg-[var(--secondary)]", className)}
+      className={cn(
+        "relative h-2 w-full overflow-hidden rounded-full bg-[var(--secondary)]",
+        className,
+      )}
       {...props}
     >
       <ProgressPrimitive.Indicator

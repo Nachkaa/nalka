@@ -1,15 +1,15 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import { useId, useRef, useState } from "react";
+import { useId, useRef, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { EyeOff, Eye, Recycle, Hammer, Gift, Shuffle, Users } from "lucide-react";
+import { EyeOff, Eye, Recycle, Hammer, Gift, Shuffle, Users, Ban } from "lucide-react";
 
-type GiftMode = "secret-santa" | "personal-lists" | "host-list";
+export type GiftMode = "none" | "host-list" | "secret-santa" | "personal-lists";
 
 type Initial = {
   title?: string | null;
@@ -18,7 +18,6 @@ type Initial = {
   location?: string | null;
   kind?: string | null; // ex: "christmas", "birthday", ...
   rules?: {
-    hasGifts?: boolean;
     mode?: GiftMode;
     isSecretSanta?: boolean;
     isNoSpoil?: boolean;
@@ -57,28 +56,28 @@ function CheckboxCard({
   const cbRef = useRef<HTMLButtonElement | null>(null);
 
   return (
-    <div className="relative group cursor-pointer">
+    <div className="group relative cursor-pointer">
       <button
         type="button"
         aria-hidden="true"
         tabIndex={-1}
-        className="absolute inset-0 rounded-xl cursor-pointer"
+        className="absolute inset-0 cursor-pointer rounded-xl"
         onClick={() => cbRef.current?.click()}
       />
       <div
         className={`flex items-center gap-3 rounded-xl border p-4 transition-colors ${
           checked
-            ? "bg-[var(--primary)]/10 border-[var(--primary)] shadow-sm"
-            : "bg-card border-[var(--border)] hover:bg-muted/60"
+            ? "border-[var(--primary)] bg-[var(--primary)]/10 shadow-sm"
+            : "bg-card hover:bg-muted/60 border-[var(--border)]"
         }`}
       >
-        {icon && <span className="text-[var(--primary)] flex-shrink-0">{icon}</span>}
+        {icon && <span className="flex-shrink-0 text-[var(--primary)]">{icon}</span>}
         <div className="flex-1">
           <Label htmlFor={id} className="font-medium">
             {title}
           </Label>
           {help && (
-            <p id={hintId} className="text-sm text-muted-foreground">
+            <p id={hintId} className="text-muted-foreground text-sm">
               {help}
             </p>
           )}
@@ -89,7 +88,7 @@ function CheckboxCard({
           checked={checked}
           onCheckedChange={(v) => setChecked(Boolean(v))}
           aria-describedby={help ? hintId : undefined}
-          className="pointer-events-none data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]"
+          className="pointer-events-none data-[state=checked]:border-[var(--primary)] data-[state=checked]:bg-[var(--primary)]"
         />
         <input type="hidden" name={name} value={checked ? "true" : "false"} />
       </div>
@@ -115,19 +114,19 @@ export default function EventForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [kind, setKind] = useState<string | null>(initial?.kind ?? null);
 
-  const tzOffsetMs = new Date().getTimezoneOffset() * 60_000;
-  const todayISO = new Date(Date.now() - tzOffsetMs).toISOString().slice(0, 10);
+  const todayISO = useMemo(() => {
+    const d = new Date();
+    // On veut "YYYY-MM-DD" en local, sans Date.now()
+    const tzOffsetMs = d.getTimezoneOffset() * 60_000;
+    return new Date(d.getTime() - tzOffsetMs).toISOString().slice(0, 10);
+  }, []);
 
   const rulesRef = useRef<HTMLFieldSetElement>(null);
 
   const defaultMode: GiftMode =
-    initial?.rules?.mode ??
-    (initial?.rules?.isSecretSanta ? "secret-santa" : "personal-lists");
+    initial?.rules?.mode ?? (initial?.rules?.isSecretSanta ? "secret-santa" : "personal-lists");
 
   const [giftMode, setGiftMode] = useState<GiftMode>(defaultMode);
-  const [hasGifts, setHasGifts] = useState<boolean>(
-    initial?.rules?.hasGifts ?? true
-  );
 
   const suggestions = [
     { label: "🎄 Noël en famille", kind: "christmas", mode: "personal-lists" as GiftMode },
@@ -139,11 +138,10 @@ export default function EventForm({
   ];
 
   const isSecretSanta = giftMode === "secret-santa";
-  const disableGiftSection = !hasGifts;
+  const disableGiftSection = giftMode === "none";
 
   const showBudget =
-   !disableGiftSection &&
-   (giftMode === "secret-santa" || giftMode === "personal-lists");
+    !disableGiftSection && (giftMode === "secret-santa" || giftMode === "personal-lists");
 
   return (
     <form action={action} className="max-w-2xl space-y-8">
@@ -154,7 +152,7 @@ export default function EventForm({
         <div className="space-y-2">
           <Label htmlFor={titleId} className="text-base font-medium">
             Titre de l’événement
-            <span className="text-[var(--destructive)] ml-0.5">*</span>
+            <span className="ml-0.5 text-[var(--destructive)]">*</span>
           </Label>
           <Input
             id={titleId}
@@ -168,26 +166,18 @@ export default function EventForm({
         </div>
 
         {!hideSuggestions && (
-          <div
-            role="list"
-            aria-label="Suggestions de titre"
-            className="mt-3 flex flex-wrap gap-2"
-          >
+          <div aria-label="Suggestions de titre" className="mt-3 flex flex-wrap gap-2">
             {suggestions.map((s) => (
               <button
                 key={s.label}
                 type="button"
-                role="listitem"
                 aria-pressed={title === s.label}
                 onClick={() => {
                   setTitle(s.label);
                   setKind(s.kind);
                   setGiftMode(s.mode);
-                  if (s.mode === "secret-santa") {
-                    setHasGifts(true);
-                  }
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs hover:bg-[var(--muted)] transition-colors text-[var(--foreground)]/90 hover:text-[var(--foreground)]"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs text-[var(--foreground)]/90 transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
                 aria-label={`Utiliser "${s.label}" comme titre`}
               >
                 {s.label}
@@ -214,7 +204,7 @@ export default function EventForm({
         <div className="space-y-2 sm:max-w-sm">
           <Label htmlFor={dateId} className="text-base font-medium">
             Date de l’événement
-            <span className="text-[var(--destructive)] ml-0.5">*</span>
+            <span className="ml-0.5 text-[var(--destructive)]">*</span>
           </Label>
           <Input
             id={dateId}
@@ -222,11 +212,9 @@ export default function EventForm({
             type="date"
             required
             min={todayISO}
-            defaultValue={
-              (initial?.dateISO ? new Date(initial.dateISO) : undefined)
-                ?.toISOString()
-                .slice(0, 10)
-            }
+            defaultValue={(initial?.dateISO ? new Date(initial.dateISO) : undefined)
+              ?.toISOString()
+              .slice(0, 10)}
             ref={(el) => {
               if (!el) return;
               el.onclick = () => el.showPicker?.();
@@ -249,60 +237,10 @@ export default function EventForm({
         </div>
       </section>
 
-      {/* 2. Format de l’événement / cadeaux */}
-      <fieldset className="space-y-4">
-        <legend className="text-lg font-semibold">Format de l’événement</legend>
-
-        <div className="space-y-2">
-          <Label className="text-base font-medium">
-            Voulez-vous gérer des cadeaux avec Nalka ?
-          </Label>
-          <div className="inline-flex rounded-full border border-[var(--border)] bg-card p-1 text-sm">
-            <button
-              type="button"
-              onClick={() => setHasGifts(true)}
-              className={`px-3 py-1.5 rounded-full ${
-                hasGifts
-                  ? "bg-[var(--primary)] text-white shadow-sm"
-                  : "text-[var(--foreground)]/80"
-              }`}
-            >
-              Oui
-            </button>
-            <button
-              type="button"
-              onClick={() => setHasGifts(false)}
-              className={`px-3 py-1.5 rounded-full ${
-                !hasGifts
-                  ? "bg-[var(--primary)] text-white shadow-sm"
-                  : "text-[var(--foreground)]/80"
-              }`}
-            >
-              Non
-            </button>
-          </div>
-          <input
-            type="hidden"
-            name="rules.hasGifts"
-            value={hasGifts ? "true" : "false"}
-          />
-          {!hasGifts && (
-            <p className="text-sm text-muted-foreground">
-              Vous pourrez ajouter des listes de cadeaux plus tard si besoin.
-            </p>
-          )}
-        </div>
-      </fieldset>
-
-      {/* 3. Cadeaux (affiché seulement si hasGifts) */}
-      <fieldset
-        ref={rulesRef}
-        className={`space-y-4 ${
-          disableGiftSection ? "opacity-50 pointer-events-none" : ""
-        }`}
-      >
+      {/* 3. Cadeaux */}
+      <fieldset ref={rulesRef} className={`space-y-4`}>
         <legend className="text-lg font-semibold">Organisation des cadeaux</legend>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Choisissez comment vous souhaitez gérer les cadeaux pour cet événement.
         </p>
 
@@ -310,6 +248,24 @@ export default function EventForm({
         <div className="space-y-3">
           <Label className="text-base font-medium">Mode</Label>
           <div className="grid gap-2 sm:grid-cols-3">
+            {/* 0. Pas de cadeaux */}
+            <button
+              type="button"
+              onClick={() => setGiftMode("none")}
+              className={`flex flex-col items-start rounded-xl border p-4 text-left text-sm transition-colors ${
+                giftMode === "none"
+                  ? "border-[var(--primary)] bg-[var(--primary)]/10 shadow-sm"
+                  : "bg-card hover:bg-muted/60 border-[var(--border)]"
+              }`}
+            >
+              <div className="mb-2 inline-flex items-center gap-1.5">
+                <Ban className="h-4 w-4" />
+                <span className="text-base">Pas de cadeaux</span>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Aucun cadeau prévu pour cet événement.
+              </p>
+            </button>
             {/* 1. Seulement ma liste */}
             <button
               type="button"
@@ -317,14 +273,14 @@ export default function EventForm({
               className={`flex flex-col items-start rounded-xl border p-4 text-left text-sm transition-colors ${
                 giftMode === "host-list"
                   ? "border-[var(--primary)] bg-[var(--primary)]/10 shadow-sm"
-                  : "border-[var(--border)] bg-card hover:bg-muted/60"
+                  : "bg-card hover:bg-muted/60 border-[var(--border)]"
               }`}
             >
               <div className="mb-2 inline-flex items-center gap-1.5">
                 <Gift className="h-4 w-4" />
                 <span className="text-base">Seulement ma liste</span>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Une seule liste pour l’organisateur (anniversaire, crémaillère…).
               </p>
             </button>
@@ -336,14 +292,14 @@ export default function EventForm({
               className={`flex flex-col items-start rounded-xl border p-4 text-left text-sm transition-colors ${
                 giftMode === "secret-santa"
                   ? "border-[var(--primary)] bg-[var(--primary)]/10 shadow-sm"
-                  : "border-[var(--border)] bg-card hover:bg-muted/60"
+                  : "bg-card hover:bg-muted/60 border-[var(--border)]"
               }`}
             >
               <div className="mb-2 inline-flex items-center gap-1.5">
                 <Shuffle className="h-4 w-4" />
                 <span className="text-base">Secret Santa</span>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Tirage au sort des duos, listes privées.
               </p>
             </button>
@@ -355,14 +311,14 @@ export default function EventForm({
               className={`flex flex-col items-start rounded-xl border p-4 text-left text-sm transition-colors ${
                 giftMode === "personal-lists"
                   ? "border-[var(--primary)] bg-[var(--primary)]/10 shadow-sm"
-                  : "border-[var(--border)] bg-card hover:bg-muted/60"
+                  : "bg-card hover:bg-muted/60 border-[var(--border)]"
               }`}
             >
               <div className="mb-2 inline-flex items-center gap-1.5">
                 <Users className="h-4 w-4" />
                 <span className="text-base">Une liste par personne</span>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Chaque invité a sa propre liste (Noël en famille, couple…).
               </p>
             </button>
@@ -378,67 +334,69 @@ export default function EventForm({
         </div>
 
         {/* Visibilité */}
-        <div className="space-y-3">
-          <Label className="text-base font-medium">Visibilité</Label>
+        {giftMode !== "none" && (
+          <div className="space-y-3">
+            <Label className="text-base font-medium">Visibilité</Label>
 
-          {isSecretSanta ? (
-            <>
-              <input type="hidden" name="rules.isNoSpoil" value="true" />
-              <input type="hidden" name="rules.isAnonReservations" value="true" />
-              <div className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
-                En Secret Santa, les noms restent cachés et vous ne voyez pas les
-                réservations sur votre propre liste.
+            {isSecretSanta ? (
+              <>
+                <input type="hidden" name="rules.isNoSpoil" value="true" />
+                <input type="hidden" name="rules.isAnonReservations" value="true" />
+                <div className="bg-muted/40 text-muted-foreground rounded-lg border p-4 text-sm">
+                  En Secret Santa, les noms restent cachés et vous ne voyez pas les réservations sur
+                  votre propre liste.
+                </div>
+              </>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                <CheckboxCard
+                  name="rules.isNoSpoil"
+                  title={
+                    <>
+                      Cadeaux cachés <span className="whitespace-nowrap">dans ma liste</span>
+                    </>
+                  }
+                  help="Je ne vois pas quels cadeaux de ma propre liste ont été réservés."
+                  icon={<EyeOff className="h-5 w-5" />}
+                  defaultChecked={Boolean(initial?.rules?.isNoSpoil)}
+                />
+                <CheckboxCard
+                  name="rules.isAnonReservations"
+                  title="Réservations anonymes"
+                  help="Les invités voient qu’un cadeau est réservé sans savoir par qui."
+                  icon={<Eye className="h-5 w-5" />}
+                  defaultChecked={Boolean(initial?.rules?.isAnonReservations)}
+                />
               </div>
-            </>
-          ) : (
+            )}
+          </div>
+        )}
+        {/* Préférences globales pour les cadeaux */}
+        {giftMode !== "none" && (
+          <div className="space-y-3">
+            <Label className="text-base font-medium">Types de cadeaux acceptés</Label>
+            <p className="text-muted-foreground text-sm">
+              Ces préférences s’appliquent par défaut. Vous pourrez les ajuster cadeau par cadeau
+              plus tard.
+            </p>
             <div className="grid gap-2 sm:grid-cols-2">
               <CheckboxCard
-                name="rules.isNoSpoil"
-                title={
-                  <>
-                    Cadeaux cachés <span className="whitespace-nowrap">dans ma liste</span>
-                  </>
-                }
-                help="Je ne vois pas quels cadeaux de ma propre liste ont été réservés."
-                icon={<EyeOff className="h-5 w-5" />}
-                defaultChecked={Boolean(initial?.rules?.isNoSpoil)}
+                name="rules.isSecondHandOk"
+                title="Seconde main acceptée"
+                help="Autoriser les objets d’occasion."
+                icon={<Recycle className="h-5 w-5" />}
+                defaultChecked={Boolean(initial?.rules?.isSecondHandOk)}
               />
               <CheckboxCard
-                name="rules.isAnonReservations"
-                title="Réservations anonymes"
-                help="Les invités voient qu’un cadeau est réservé sans savoir par qui."
-                icon={<Eye className="h-5 w-5" />}
-                defaultChecked={Boolean(initial?.rules?.isAnonReservations)}
+                name="rules.isHandmadeOk"
+                title="Fait main accepté"
+                help="Autoriser les cadeaux faits main."
+                icon={<Hammer className="h-5 w-5" />}
+                defaultChecked={Boolean(initial?.rules?.isHandmadeOk)}
               />
             </div>
-          )}
-        </div>
-
-        {/* Préférences globales pour les cadeaux */}
-        <div className="space-y-3">
-          <Label className="text-base font-medium">Types de cadeaux acceptés</Label>
-          <p className="text-sm text-muted-foreground">
-            Ces préférences s’appliquent par défaut. Vous pourrez les ajuster cadeau
-            par cadeau plus tard.
-          </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <CheckboxCard
-              name="rules.isSecondHandOk"
-              title="Seconde main acceptée"
-              help="Autoriser les objets d’occasion."
-              icon={<Recycle className="h-5 w-5" />}
-              defaultChecked={Boolean(initial?.rules?.isSecondHandOk)}
-            />
-            <CheckboxCard
-              name="rules.isHandmadeOk"
-              title="Fait main accepté"
-              help="Autoriser les cadeaux faits main."
-              icon={<Hammer className="h-5 w-5" />}
-              defaultChecked={Boolean(initial?.rules?.isHandmadeOk)}
-            />
           </div>
-        </div>
-
+        )}
         {/* Budget */}
         {showBudget && (
           <div className="space-y-2">
@@ -455,12 +413,10 @@ export default function EventForm({
               autoComplete="off"
               className="w-40"
               defaultValue={
-                typeof initial?.rules?.budgetCap === "number"
-                  ? String(initial.rules.budgetCap)
-                  : ""
+                typeof initial?.rules?.budgetCap === "number" ? String(initial.rules.budgetCap) : ""
               }
             />
-            <p id="budget-hint" className="text-sm text-muted-foreground">
+            <p id="budget-hint" className="text-muted-foreground text-sm">
               Laissez vide pour aucun plafond. Affiché comme indication.
             </p>
           </div>
@@ -480,7 +436,7 @@ function Submit({ label }: { label: string }) {
         type="submit"
         disabled={pending}
         aria-busy={pending}
-        className="h-14 w-full text-lg font-medium rounded-xl shadow-sm sm:h-16 sm:text-xl transition-all duration-150 hover:shadow-md"
+        className="h-14 w-full rounded-xl text-lg font-medium shadow-sm transition-all duration-150 hover:shadow-md sm:h-16 sm:text-xl"
       >
         {pending ? "Enregistrement…" : label}
       </Button>

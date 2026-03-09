@@ -50,10 +50,10 @@ export default function GiftListAnimated({
       prev.map((it) =>
         it.id === itemId
           ? {
-            ...it,
-            isMine: nextIsMine,
-            isTakenByOther: nextIsMine ? false : it.isTakenByOther,
-          }
+              ...it,
+              isMine: nextIsMine,
+              isTakenByOther: nextIsMine ? false : it.isTakenByOther,
+            }
           : it,
       ),
     );
@@ -75,12 +75,9 @@ export default function GiftListAnimated({
           key={it.id}
           layout
           transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.7 }}
-          className={`
-            flex flex-col gap-3 border-b py-3 text-sm
-            md:flex-row md:items-center md:justify-between md:gap-3 
-            ${it.isMine ? "font-bold" : ""} ${it.isTakenByOther && !it.isMine ? "opacity-60" : ""
-            }
-          `}
+          className={`flex flex-col gap-3 border-b py-3 text-sm md:flex-row md:items-center md:justify-between md:gap-3 ${it.isMine ? "font-bold" : ""} ${
+            it.isTakenByOther && !it.isMine ? "opacity-60" : ""
+          } `}
         >
           {/* Colonne gauche : image + texte */}
           <div className="flex min-w-0 flex-1 gap-3">

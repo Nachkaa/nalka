@@ -16,7 +16,10 @@ function parse(formData: FormData) {
 export async function reserveItem(formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) throw new Error("Unauthorized");
-  const me = await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } });
+  const me = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true },
+  });
   if (!me) throw new Error("Unauthorized");
   const { itemId, eventId } = parse(formData);
 
@@ -48,7 +51,10 @@ export async function reserveItem(formData: FormData) {
 export async function cancelReservation(formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) throw new Error("Unauthorized");
-  const me = await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } });
+  const me = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true },
+  });
   if (!me) throw new Error("Unauthorized");
   const { itemId, eventId } = parse(formData);
 

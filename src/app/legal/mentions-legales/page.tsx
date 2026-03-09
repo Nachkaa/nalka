@@ -16,7 +16,7 @@ export default function Page() {
       <main
         className={[
           "prose prose-neutral mx-auto",
-          "px-6 py-12 max-w-2xl md:max-w-3xl",
+          "max-w-2xl px-6 py-12 md:max-w-3xl",
           "prose-lg md:prose-xl",
           "prose-headings:mt-10 prose-headings:mb-3",
           "prose-p:my-5 prose-p:leading-7 md:prose-p:leading-8",
@@ -24,7 +24,7 @@ export default function Page() {
           "prose-li:my-2 prose-li:leading-7",
         ].join(" ")}
       >
-        <p className="text-sm text-muted-foreground not-prose">
+        <p className="text-muted-foreground not-prose text-sm">
           Dernière mise à jour&nbsp;: {UPDATED_AT}
         </p>
 
@@ -34,11 +34,9 @@ export default function Page() {
           <br />
           <strong>Adresse&nbsp;:</strong> 1 rue Galléan 06000 Nice
           <br />
-          <strong>Contact&nbsp;:</strong>{" "}
-          <a href="mailto:contact@nalka.fr">contact@nalka.fr</a>
+          <strong>Contact&nbsp;:</strong> <a href="mailto:contact@nalka.fr">contact@nalka.fr</a>
           <br />
-          <strong>Statut&nbsp;:</strong> Éditeur personne physique (activité non
-          immatriculée)
+          <strong>Statut&nbsp;:</strong> Éditeur personne physique (activité non immatriculée)
           <br />
           <strong>TVA&nbsp;:</strong> non applicable (article&nbsp;293&nbsp;B du&nbsp;CGI)
         </p>
@@ -63,23 +61,20 @@ export default function Page() {
 
         <h2>4. Propriété intellectuelle</h2>
         <p>
-          L’ensemble du contenu du site (textes, images, code, graphismes,
-          logos) est protégé par le droit de la propriété intellectuelle. Toute
-          reproduction totale ou partielle sans autorisation préalable est
-          interdite.
+          L’ensemble du contenu du site (textes, images, code, graphismes, logos) est protégé par le
+          droit de la propriété intellectuelle. Toute reproduction totale ou partielle sans
+          autorisation préalable est interdite.
         </p>
 
         <h2>5. Responsabilité</h2>
         <p>
-          Nalka ne peut être tenue responsable des erreurs, omissions ou
-          dysfonctionnements temporaires du service. Les liens externes ne
-          relèvent pas de sa responsabilité.
+          Nalka ne peut être tenue responsable des erreurs, omissions ou dysfonctionnements
+          temporaires du service. Les liens externes ne relèvent pas de sa responsabilité.
         </p>
 
         <h2>6. Signalement de contenu illicite</h2>
         <p>
-          Pour toute demande de retrait ou signalement d’un contenu illicite,
-          contactez&nbsp;:{" "}
+          Pour toute demande de retrait ou signalement d’un contenu illicite, contactez&nbsp;:{" "}
           <a href="mailto:contact@nalka.fr">contact@nalka.fr</a>.
         </p>
       </main>

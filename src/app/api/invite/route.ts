@@ -1,16 +1,42 @@
+// FILE: src/app/api/invite/route.ts
 import { NextResponse } from "next/server";
 import { createInviteToken } from "@/features/events/actions/invite";
 
+type PostBody = {
+  eventRef?: string;
+  eventId?: string;
+  uses?: number;
+  ttlMinutes?: number;
+};
+
+function getErrorMessage(e: unknown) {
+  return e instanceof Error ? e.message : "error";
+}
+
+function getErrorStatus(e: unknown) {
+  if (typeof e === "object" && e !== null && "status" in e) {
+    const s = (e as { status?: unknown }).status;
+    if (typeof s === "number") return s;
+  }
+  return 400;
+}
+
 export async function POST(req: Request) {
   try {
-    const { eventRef, eventId, uses, ttlMinutes } = await req.json();
-    const ref = eventRef ?? eventId; // support both for now
-    if (!ref) return NextResponse.json({ error: "eventRef required" }, { status: 400 });
+    const body = (await req.json()) as PostBody;
 
-    const token = await createInviteToken(ref, { uses, ttlMinutes });
+    const ref = body.eventRef ?? body.eventId; // support both for now
+    if (!ref) {
+      return NextResponse.json({ error: "eventRef required" }, { status: 400 });
+    }
+
+    const token = await createInviteToken(ref, {
+      uses: body.uses,
+      ttlMinutes: body.ttlMinutes,
+    });
+
     return NextResponse.json(token);
-  } catch (e: any) {
-    const status = Number(e?.status) || 400;
-    return NextResponse.json({ error: e?.message || "error" }, { status });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: getErrorStatus(e) });
   }
 }

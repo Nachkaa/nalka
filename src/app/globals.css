@@ -4,181 +4,122 @@
 /* Tailwind v4 dark variant */
 @custom-variant dark (&:is(.dark *));
 
-/* Base fonts */
-body {
-  font-family: var(--font-sans), system-ui, sans-serif;
-}
-
-/* Apply display font to headings */
-:where(h1, h2, h3, h4, .heading) {
-  font-family: var(--font-display), ui-serif, serif;
-  font-weight: 400;
-}
-
-h1 {
-  letter-spacing: -0.01em;
-}
-
-/* Useful defaults */
-::selection {
-  background: color-mix(in oklch, var(--accent) 60%, transparent);
-  color: var(--foreground);
-}
-
-/* Tailwind <-> CSS variables bridge */
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-destructive: var(--destructive);
-
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
-
-/* === LIGHT THEME: Evergreen + Cream (default) === */
+/* =========================================================
+   TOKENS (Figma): neutral + primary scale
+   ========================================================= */
 :root {
-  /* Header shells */
-  --header: var(--background);
-  --header-foreground: var(--foreground);
-  --header-border: var(--border);
+  /* Neutral scale */
+  --neutral-50: #fafaf9;
+  --neutral-100: #f5f5f4;
+  --neutral-200: #e7e5e4;
+  --neutral-300: #d6d3d1;
+  --neutral-400: #a8a29e;
+  --neutral-500: #78716c;
+  --neutral-600: #57534e;
+  --neutral-700: #44403c;
+  --neutral-800: #292524;
+  --neutral-900: #1c1917;
 
-  /* Spacing */
-  --radius: 1rem;
-  /* ≈ rounded-2xl */
+  /* Primary scale (navy/indigo) */
+  --primary-100: #f1eeff;
+  --primary-200: #e2dbff;
+  --primary-300: #c7baff;
+  --primary-400: #a98cff;
+  --primary-500: #7f22fe;
+  --primary-600: #4f39f6;
+  --primary-700: #3520d6;
 
-  /* Base */
-  --background: oklch(98.8% 0.010 110);
-  /* warm cream */
-  --foreground: oklch(22% 0.012 120);
-  /* deep neutral */
+  --success-light: #d1f5ea;
+  --success-base: #10b981;
+  --success-dark: #047857;
 
-  /* Surfaces */
-  --card: oklch(99.2% 0.015 100);
-  --card-foreground: var(--foreground);
-  --popover: oklch(98% 0.010 250);
-  --popover-foreground: var(--foreground);
+  --warning-light: #fef3c7;
+  --warning-base: #f59e0b;
+  --warning-dark: #d97706;
 
-  /* Brand */
-  --primary: oklch(32% 0.060 156);
-  --primary-foreground: oklch(100% 0 0);
-  --primary-glow: oklch(82% 0.050 95 / 0.45);
+  --danger-light: #ffe4e6;
+  --danger-base: #e11d48;
+  --danger-dark: #be123c;
 
-  /* Accent = soft gold for highlights */
-  --accent: oklch(88% 0.070 95);
-  --accent-foreground: var(--foreground);
+  --info-light: #e0f2fe;
+  --info-base: #0ea5e9;
+  --info-dark: #0369a1;
 
-  /* Secondary neutrals */
-  --secondary: oklch(96.5% 0.012 100);
-  --secondary-foreground: var(--foreground);
-  --muted: oklch(97.5% 0.015 100);
-  --muted-foreground: oklch(45% 0.015 120);
+  /* Radius */
+  --radius: 0.75rem;
 
-  /* Feedback */
-  --destructive: oklch(55% 0.160 25);
-  --destructive-foreground: oklch(100% 0 0);
+  /* Fonts (set by next/font/local variable on <html>) */
+  --font-sans: var(--font-inter), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 
-  /* Lines / inputs / focus */
-  --border: oklch(92% 0.010 100);
-  --input: oklch(88% 0.020 250);
-  --ring: oklch(56% 0.050 156);
+  /* =========================================================
+     SEMANTIC (Figma mapping)
+     Light mode
+     ========================================================= */
+  --background: var(--neutral-50);
+  --foreground: var(--neutral-900);
 
-  /* Charts */
-  --chart-1: oklch(46% 0.070 156);
-  /* green */
-  --chart-2: oklch(72% 0.160 40);
-  /* orange */
-  --chart-3: oklch(58% 0.150 260);
-  /* violet */
-  --chart-4: oklch(70% 0.140 90);
-  /* gold */
-  --chart-5: oklch(60% 0.140 210);
-  /* blue */
+  --card: white;
+  --card-foreground: var(--neutral-900);
 
-  /* Sidebar */
-  --sidebar: oklch(99% 0.005 250);
-  --sidebar-foreground: oklch(22% 0.030 260);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: oklch(100% 0 0);
-  --sidebar-accent: oklch(95% 0.010 250);
-  --sidebar-accent-foreground: oklch(35% 0.025 250);
-  --sidebar-border: oklch(90% 0.020 250);
-  --sidebar-ring: var(--ring);
+  --popover: var(--neutral-50);
+  --popover-foreground: var(--neutral-900);
+
+  --primary: var(--primary-600);
+  --primary-foreground: var(--neutral-50);
+
+  --secondary: var(--neutral-100);
+  --secondary-foreground: var(--neutral-900);
+
+  --muted: var(--neutral-100);
+  --muted-foreground: var(--neutral-600);
+
+  --accent: var(--neutral-100);
+  --accent-foreground: var(--neutral-900);
+
+  --border: var(--neutral-200);
+  --input: var(--neutral-200);
+  --ring: var(--neutral-600);
+
+  /* Extra (useful) */
+  --shadow-ambient: rgba(0, 0, 0, 0.06);
+  --shadow-strong: rgba(0, 0, 0, 0.1);
+
+  --destructive: var(--danger-base);
+  --destructive-foreground: #ffffff;
+  --ring-destructive: color-mix(in oklch, var(--danger-base), white 70%);
 }
 
-/* === DARK THEME: auto via .dark === */
+/* Dark mode mapping */
 .dark {
   color-scheme: dark;
 
-  --background: oklch(18% 0.030 260);
-  --foreground: oklch(98% 0.010 250);
+  --background: var(--neutral-900);
+  --foreground: var(--neutral-50);
 
-  --card: oklch(20% 0.030 260);
-  --card-foreground: var(--foreground);
-  --popover: oklch(20% 0.030 260);
-  --popover-foreground: var(--foreground);
+  --card: var(--neutral-800);
+  --card-foreground: var(--neutral-50);
 
-  --primary: oklch(65% 0.120 156);
-  --primary-foreground: oklch(12% 0.030 260);
-  --accent: oklch(80% 0.110 90);
-  --accent-foreground: oklch(18% 0.030 260);
+  --popover: var(--neutral-800);
+  --popover-foreground: var(--neutral-50);
 
-  --secondary: oklch(28% 0.025 260);
-  --secondary-foreground: var(--foreground);
-  --muted: oklch(26% 0.025 260);
-  --muted-foreground: oklch(80% 0.020 250);
+  --primary: var(--primary-400);
+  --primary-foreground: var(--neutral-900);
 
-  --destructive: oklch(60% 0.200 25);
-  --destructive-foreground: oklch(98% 0.005 250);
+  --secondary: var(--neutral-800);
+  --secondary-foreground: var(--neutral-50);
 
-  --border: oklch(30% 0.020 260);
-  --input: oklch(30% 0.020 260);
-  --ring: oklch(72% 0.120 156);
+  --muted: var(--neutral-800);
+  --muted-foreground: var(--neutral-300);
 
-  --sidebar: oklch(18% 0.020 260);
-  --sidebar-foreground: oklch(96% 0.010 250);
-  --sidebar-primary: oklch(72% 0.120 156);
-  --sidebar-primary-foreground: oklch(16% 0.030 260);
-  --sidebar-accent: oklch(26% 0.020 260);
-  --sidebar-accent-foreground: oklch(90% 0.010 250);
-  --sidebar-border: oklch(30% 0.020 260);
-  --sidebar-ring: var(--sidebar-primary);
+  --accent: var(--neutral-800);
+  --accent-foreground: var(--neutral-50);
+
+  --border: var(--neutral-700);
+  --input: var(--neutral-700);
+  --ring: var(--neutral-400);
+
+  --shadow-ambient: rgba(0, 0, 0, 0.22);
+  --shadow-strong: rgba(0, 0, 0, 0.35);
 }
 
 /* Ensure light color-scheme by default */
@@ -186,142 +127,147 @@ html {
   color-scheme: light;
 }
 
-/* Tailwind base hooks */
+/* =========================================================
+   Tailwind v4 @theme bridge (so `bg-background` etc work)
+   ========================================================= */
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius: var(--radius);
+  --font-sans: var(--font-sans);
+}
+
+/* =========================================================
+   Base layer (clean, single source of truth)
+   ========================================================= */
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Neutral links: no browser blue */
+  a {
+    text-decoration-color: color-mix(in oklch, currentColor 60%, var(--accent) 40%);
+    text-underline-offset: 2px;
+  }
+
+  a:hover {
+    text-decoration-color: var(--accent);
   }
 }
 
-/* Rendering + resets */
-body {
-  background: var(--background);
-  color: var(--foreground);
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Neutral links: no default browser blue */
-a {
-  text-decoration-color: color-mix(in oklch, currentColor 60%, var(--accent) 40%);
-  text-underline-offset: 2px;
-}
-
-a:hover {
-  text-decoration-color: var(--accent);
-}
-
-/* Generic border fallback */
-* {
-  border-color: var(--border);
-}
-
-/* Shadows */
-.shadow-soft {
-  box-shadow: 0 6px 24px oklch(40% 0.040 90 / 0.08);
-}
-
-.shadow-glow {
-  box-shadow: 0 0 28px oklch(88% 0.070 95 / 0.45);
-}
-
-/* Accessible focus ring */
+/* =========================================================
+   Focus ring (accessible)
+   ========================================================= */
 :where(a, button, [role="button"], input, select, textarea):focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px oklch(100% 0 0),
+    0 0 0 2px color-mix(in oklch, var(--background), white 0%),
     0 0 0 4px var(--ring);
   border-radius: calc(var(--radius) - 2px);
 }
 
-/* Gold line animation */
-@keyframes dash {
-  0% {
-    stroke-dasharray: 4 10;
-    stroke-dashoffset: 0;
-  }
-
-  100% {
-    stroke-dasharray: 4 10;
-    stroke-dashoffset: -140;
-  }
+/* =========================================================
+   Selection
+   ========================================================= */
+::selection {
+  background: color-mix(in oklch, var(--primary) 25%, transparent);
+  color: var(--foreground);
 }
 
-.animate-dash {
-  animation: dash 6s linear infinite;
-}
+/* =========================================================
+   Helpers used in your marketing sections
+   ========================================================= */
 
-.animate-dash-slow {
-  animation: dash 10s linear infinite;
-}
-
-/* Background helper */
-.bg-warm-gradient {
+/* Hero background “texture” (what you call textures/fonds) */
+.bg-nalka-hero {
   background:
-    radial-gradient(60% 40% at 80% 0%, color-mix(in oklch, var(--accent), white 90%) 0%, transparent 70%),
+    radial-gradient(
+      110% 70% at 15% 20%,
+      color-mix(in oklch, var(--primary-200), white 70%) 0%,
+      transparent 45%
+    ),
+    radial-gradient(
+      85% 60% at 85% 0%,
+      color-mix(in oklch, var(--primary-100), white 85%) 0%,
+      transparent 40%
+    ),
     var(--background);
 }
 
-/* Card helper */
+/* Shadows */
+.shadow-soft {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55),
+    0 10px 30px var(--shadow-ambient);
+}
+
+.shadow-soft-lg {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55),
+    0 18px 55px var(--shadow-strong);
+}
+
+/* Card */
 .card {
   background: var(--card);
   color: var(--card-foreground);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, .6), 0 6px 24px oklch(40% 0.040 90 / 0.06);
 }
 
-/* === Primary button === */
-.btn-primary {
+/* Badge (for “Privé”, “3 actifs”, etc.) */
+.badge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius);
-  font-weight: 500;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  box-shadow:
-    inset 0 1px 0 oklch(99% 0 0 / 0.30),
-    0 4px 12px oklch(40% 0.040 90 / 0.15);
-  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: color-mix(in oklch, var(--card), white 35%);
+  color: var(--muted-foreground);
 }
 
-.btn-primary:hover {
-  box-shadow:
-    inset 0 1px 0 oklch(99% 0 0 / 0.30),
-    0 0 20px var(--primary-glow),
-    0 4px 12px oklch(40% 0.040 90 / 0.10);
-  transform: translateY(-1px);
-}
-
-.btn-primary:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 3px color-mix(in oklch, var(--accent), white 50%),
-    0 0 0 6px color-mix(in oklch, var(--accent), transparent 60%);
-}
-
-/* Alt theme tweaks */
-:root.theme-nalka-navy .shadow-glow {
-  box-shadow: 0 0 28px var(--primary-glow);
-}
-
-:root.theme-nalka-navy :where(a, button, [role="button"], input, select, textarea):focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 2px oklch(100% 0 0),
-    0 0 0 4px var(--ring);
+.badge--primary {
+  border-color: color-mix(in oklch, var(--primary-200), var(--border) 55%);
+  background: color-mix(in oklch, var(--primary-100), white 70%);
+  color: color-mix(in oklch, var(--primary), black 10%);
 }
 
 /* Motion-safe guards */
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {

@@ -40,12 +40,7 @@ export function DeleteEventSection({ eventId, title }: Props) {
     <section className="mt-4 flex border-t pt-3">
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm" 
-            className="gap-2 w-full sm"
-            disabled={pending}
-          >
+          <Button variant="outline" size="sm" className="sm w-full gap-2" disabled={pending}>
             <Trash2 className="h-4 w-4" aria-hidden="true" />
             Supprimer l’événement
           </Button>
@@ -62,12 +57,7 @@ export function DeleteEventSection({ eventId, title }: Props) {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={pending}>Annuler</AlertDialogCancel>
             <AlertDialogAction asChild>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={onDelete}
-                disabled={pending}
-              >
+              <Button type="button" variant="destructive" onClick={onDelete} disabled={pending}>
                 Supprimer
               </Button>
             </AlertDialogAction>

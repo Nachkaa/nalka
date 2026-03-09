@@ -2,9 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 
 export class HttpError extends Error {
-  status: number; code: string;
+  status: number;
+  code: string;
   constructor(status: number, code: string, message?: string) {
-    super(message ?? code); this.status = status; this.code = code;
+    super(message ?? code);
+    this.status = status;
+    this.code = code;
   }
 }
 
@@ -34,7 +37,10 @@ export async function requireAdminOnEvent(eventId: string) {
 }
 
 export async function requireAdminOnList(listId: string) {
-  const list = await prisma.giftList.findUnique({ where: { id: listId }, select: { eventId: true } });
+  const list = await prisma.giftList.findUnique({
+    where: { id: listId },
+    select: { eventId: true },
+  });
   if (!list) throw new HttpError(404, "LIST_NOT_FOUND", "Liste introuvable");
   return requireAdminOnEvent(list.eventId);
 }

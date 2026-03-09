@@ -1,35 +1,49 @@
+﻿// app/(app)/event/[slug]/page.tsx
+
 import { auth } from "@/auth";
+import { Container } from "@/components/layout/Container";
+import type { EventPollVM } from "@/domain/polls/getEventPollsVM";
+import { getEventPollsVM } from "@/domain/polls/getEventPollsVM";
+import { requireEventForUser } from "@/features/events/permissions";
 import { prisma } from "@/lib/prisma";
 import {
-  ReservationStatus as RS,
-  EventMemberRole as ER,
   EventGiftMode as EGM,
+  EventMemberRole as ER,
+  EventModuleKey,
+  EventPollStatus,
+  EventPollType,
+  EventRsvpStatus,
+  ReservationStatus,
 } from "@prisma/client";
-import { notFound } from "next/navigation";
-import LeaveEventDialog from "./LeaveEventDialog";
-import { requireEventForUser } from "@/features/events/permissions";
-import { EventBringSection } from "./_components/EventBringSection";
-import { EventAvailableModules } from "./_components/EventAvailableModules";
-import { EventHeader } from "./_components/EventHeader";
-import { EventMyListSection } from "./_components/EventMyListSection";
-import { EventParticipantsSection } from "./_components/EventParticipantsSection";
-import { EventOtherListsSection } from "./_components/EventOtherListsSection";
-import { SecretSantaSection } from "./_components/SecretSantaSection";
-import { ReservationStatus } from "@prisma/client";
-import type { GiftListWithParticipantAndItems } from "./_components/EventOtherListsSection";
+import { notFound, redirect } from "next/navigation";
+import type { GiftListWithParticipantAndItems } from "./gifts/_components/types";
+import { EventHeader } from "./_components/header";
+import { EventShellClient } from "./_components/tabs/EventShellClient";
+import { ModuleRenderer } from "./_components/tabs/ModuleRenderer";
+import {
+  buildEventTabs,
+  DEFAULT_TAB_KEY,
+  EventTabKey,
+  normalizeTabKey,
+} from "./_components/tabs/event-tabs.config";
+import type { ModuleProps } from "./_components/tabs/module-props";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type PageProps = {
+  params: { slug?: string };
+  searchParams?: { tab?: string | string[] };
+};
 
-type PageProps = { params: Promise<{ slug?: string }> };
-const STATUS = RS;
 const ROLE = ER;
 const MODE = EGM;
 
-export default async function EventPage({ params }: PageProps) {
+export default async function EventPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   if (!slug) notFound();
+
+  const sp = (await searchParams) ?? {};
 
   const session = await auth();
   if (!session?.user) return <main className="p-6">Non autorisé</main>;
@@ -47,230 +61,480 @@ export default async function EventPage({ params }: PageProps) {
   const event = await requireEventForUser(slug, meId);
   if (!event) notFound();
 
+  const modules = (event.modules ?? []).sort((a, b) => a.position - b.position);
+  const moduleByKey = new Map(modules.map((m) => [m.key, m]));
+
+  const defaultGiftSettings = {
+    isNoSpoil: true,
+    isAnonReservations: true,
+    isSecondHandOk: false,
+    isHandmadeOk: false,
+    budgetCapCents: null as number | null,
+  };
+
+  const giftsSettings = moduleByKey.get(EventModuleKey.GIFTS)?.giftsSettings ?? defaultGiftSettings;
+  const secretSantaSettings = moduleByKey.get(EventModuleKey.SECRET_SANTA)?.secretSantaSettings ?? {
+    budgetCapCents: null as number | null,
+  };
+  const overviewSettings = moduleByKey.get(EventModuleKey.OVERVIEW)?.overviewSettings ?? {
+    rsvpRequired: true,
+  };
+
+  const hasPotluck = moduleByKey.get(EventModuleKey.POTLUCK)?.enabled ?? false;
+  const giftsModuleEnabled = moduleByKey.get(EventModuleKey.GIFTS)?.enabled ?? false;
+  const rsvpRequired = overviewSettings.rsvpRequired ?? true;
+
+  const pollsCount = await prisma.eventPoll.count({ where: { eventId: event.id } });
+  const hasGifts = giftsModuleEnabled;
+
   const isAdmin = event.memberships.some(
     (m) => m.userId === meId && (m.role === ROLE.ADMIN || m.role === ROLE.OWNER),
   );
 
-  const roleByUser = new Map(event.memberships.map(m => [m.userId, m.role]));
+  const userMembership = event.memberships.find((m) => m.userId === meId);
+  const userRole = userMembership?.role || "MEMBER";
+  const userRsvpStatus = userMembership?.rsvpStatus ?? EventRsvpStatus.PENDING;
 
-  const myRole = roleByUser.get(meId);
-  const canRemoveByUserId = new Map<string, boolean>();
-
-  for (const m of event.memberships) {
-    const targetRole = m.role;
-    const targetId = m.userId;
-
-    let allowed = false;
-    if (myRole === "OWNER") allowed = targetId !== meId;
-    else if (myRole === "ADMIN") allowed = targetRole === "MEMBER";
-
-    canRemoveByUserId.set(targetId, allowed);
-  }
-
-  const canRemoveRecord: Record<string, boolean> =
-    Object.fromEntries(canRemoveByUserId);
-
-  const isOwnerRole = myRole === "OWNER";
-  const isAdminRole = myRole === "ADMIN";
-
-  const canRemoveRelativeById = new Map<string, boolean>();
-
-  for (const rel of event.relatives ?? []) {
-    let allowed = false;
-
-    if (isOwnerRole || isAdminRole) {
-      // OWNER / ADMIN peuvent retirer n'importe quel proche de l'événement
-      allowed = true;
-    } else {
-      // MEMBER : uniquement les proches qu'il a créés
-      allowed = rel.createdById === meId;
-    }
-
-    canRemoveRelativeById.set(rel.id, allowed);
-  }
-
-  const canRemoveRelativeRecord: Record<string, boolean> =
-    Object.fromEntries(canRemoveRelativeById);
-
-
-  const rawLists = event.lists as GiftListWithParticipantAndItems[];
-
-  const ownerMembership = event.memberships.find((m) => m.role === ROLE.OWNER);
-  const ownerUserId = ownerMembership?.userId ?? null;
-
-  let myList: GiftListWithParticipantAndItems | null = null;
-  let otherLists: GiftListWithParticipantAndItems[] = [];
-
-  if (event.hasGifts) {
-    if (event.giftMode === MODE.HOST_LIST && ownerUserId) {
-      // Mode "Host list" :
-      // - l'hôte voit uniquement SA liste
-      // - les invités voient uniquement la liste de l'hôte (pas leurs anciennes listes)
-      const hostList =
-        rawLists.find(
-          (l) => l.ownerId === ownerUserId && l.eventRelativeId === null,
-        ) ?? null;
-
-      if (meId === ownerUserId) {
-        // hôte : "Ma liste" = liste de l'hôte, aucune autre liste affichée
-        myList = hostList;
-        otherLists = [];
-      } else {
-        // invité : pas de "Ma liste" perso, on ne garde que la liste de l'hôte
-        myList = null;
-        otherLists = hostList ? [hostList] : [];
-      }
-    } else {
-      // PERSONAL_LISTS / SECRET_SANTA : comportement standard
-      myList =
-        rawLists.find(
-          (l) => l.ownerId === meId && l.eventRelativeId === null,
-        ) ?? null;
-
-      // Tout le reste (autres users + tous les proches)
-      otherLists = rawLists.filter(
-        (l) => !(l.ownerId === meId && l.eventRelativeId === null),
-      );
-    }
-  }
-
-  const showBudget =
-    event.hasGifts &&
-    event.giftMode !== MODE.HOST_LIST &&
-    typeof event.budgetCapCents === "number";
-
-  const bringItems = await prisma.eventBringItem.findMany({
-    where: { eventId: event.id },
-    include: {
-      bringers: {
-        include: {
-          user: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const members = event.memberships.map((m) => ({
-    id: m.userId,
-    name: m.user?.name ?? null,
+  const participants = event.memberships.map((m) => ({
+    id: m.userId ?? m.id,
+    name: m.user?.name ?? m.user?.email ?? "Invité",
     email: m.user?.email ?? null,
+    imageUrl: (m.user as { image?: string } | null | undefined)?.image ?? null,
+    rsvpStatus: m.rsvpStatus,
+    role: m.role,
   }));
 
-  const canContributeToBring = event.memberships.some((m) => m.userId === meId);
+  const rsvpSummary = { going: 0, maybe: 0, notGoing: 0, pending: 0 };
+  const rsvpByUserId = new Map(event.memberships.map((m) => [m.userId, m.rsvpStatus]));
 
-  const reservedCountByUserId: Record<string, number> = {};
+  const bump = (status: EventRsvpStatus) => {
+    switch (status) {
+      case EventRsvpStatus.GOING:
+        rsvpSummary.going += 1;
+        break;
+      case EventRsvpStatus.MAYBE:
+        rsvpSummary.maybe += 1;
+        break;
+      case EventRsvpStatus.NOT_GOING:
+        rsvpSummary.notGoing += 1;
+        break;
+      default:
+        rsvpSummary.pending += 1;
+        break;
+    }
+  };
 
-  for (const list of otherLists) {
-    const count = list.items.filter((i) =>
-      i.reservations.some(
-        (r) =>
-          r.byUserId === meId &&
-          r.status === ReservationStatus.RESERVED,
-      ),
-    ).length;
+  for (const m of event.memberships) {
+    bump(m.rsvpStatus);
+  }
 
-    // On ne compte que pour des listes de users,
-    // les proches (ownerId null) ne sont pas dans canRemoveByUserId de toute façon
-    if (count > 0 && list.ownerId) {
-      reservedCountByUserId[list.ownerId] = count;
+  for (const rel of event.relatives ?? []) {
+    const ownerStatus =
+      rsvpByUserId.get(rel.managedProfile?.ownerId ?? rel.createdById) ?? EventRsvpStatus.PENDING;
+    bump(ownerStatus);
+  }
+
+  const headerEvent = {
+    id: event.id,
+    slug: event.slug,
+    title: event.title,
+    description: event.description,
+    eventOn: event.eventOn ? event.eventOn.toISOString() : null,
+    eventTime: event.eventTime,
+    location: event.location,
+    colorHex: event.colorHex,
+
+    giftMode: event.giftMode,
+    isNoSpoil: giftsSettings.isNoSpoil,
+    isAnonReservations: giftsSettings.isAnonReservations,
+    isSecondHandOk: giftsSettings.isSecondHandOk,
+    isHandmadeOk: giftsSettings.isHandmadeOk,
+    budgetCapCents: giftsSettings.budgetCapCents,
+
+    hasBringSection: hasPotluck,
+    rsvpRequired,
+    scheduleMode: event.scheduleMode,
+    locationMode: event.locationMode,
+  } satisfies Parameters<typeof EventHeader>[0]["event"];
+
+  const showBudget =
+    hasGifts &&
+    event.giftMode !== MODE.HOST_LIST &&
+    typeof giftsSettings.budgetCapCents === "number";
+
+  const requestedTabParam = Array.isArray(sp.tab) ? sp.tab[0] : sp.tab;
+  const requestedTab = normalizeTabKey(requestedTabParam);
+
+  const tabs = buildEventTabs({
+    scheduleMode: event.scheduleMode,
+    locationMode: event.locationMode,
+    eventOn: event.eventOn,
+    pollsCount,
+    userRole,
+    modules: modules.map((m) => ({
+      key: m.key,
+      enabled: m.enabled,
+      position: m.position,
+      giftsSettings: m.giftsSettings
+        ? {
+            isNoSpoil: m.giftsSettings.isNoSpoil,
+            isAnonReservations: m.giftsSettings.isAnonReservations,
+            isSecondHandOk: m.giftsSettings.isSecondHandOk,
+            isHandmadeOk: m.giftsSettings.isHandmadeOk,
+            budgetCapCents: m.giftsSettings.budgetCapCents,
+          }
+        : undefined,
+    })),
+  });
+  const enabledTabs = tabs.filter((t) => t.enabled || t.key === DEFAULT_TAB_KEY);
+  const enabledKeys = enabledTabs.map((t) => t.key);
+  const activeTab: EventTabKey =
+    requestedTab && enabledKeys.includes(requestedTab) ? requestedTab : DEFAULT_TAB_KEY;
+
+  if (requestedTabParam && (!requestedTab || !enabledKeys.includes(requestedTab))) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(searchParams ?? {})) {
+      if (k === "tab") continue;
+      if (Array.isArray(v)) {
+        v.forEach((val) => params.append(k, val));
+      } else if (typeof v === "string") {
+        params.set(k, v);
+      }
+    }
+    if (activeTab !== DEFAULT_TAB_KEY) params.set("tab", activeTab);
+    const url = params.toString() ? `/event/${slug}?${params.toString()}` : `/event/${slug}`;
+    redirect(url);
+  }
+
+  const membersCount = event.memberships.length;
+  const participantsCount = event.memberships.length + (event.relatives?.length ?? 0);
+
+  let giftStats: {
+    myItemsCount: number;
+    otherItemsCount: number;
+    myReservationsCount: number;
+  } | null = null;
+  if (giftsModuleEnabled) {
+    const [myItemsCount, otherItemsCount, myReservationsCount] = await Promise.all([
+      prisma.giftItem.count({
+        where: {
+          list: {
+            eventId: event.id,
+            ownerId: meId,
+          },
+        },
+      }),
+      prisma.giftItem.count({
+        where: {
+          list: {
+            eventId: event.id,
+            ownerId: { not: meId },
+          },
+        },
+      }),
+      prisma.reservation.count({
+        where: {
+          byUserId: meId,
+          status: { not: ReservationStatus.RELEASED },
+          item: {
+            list: {
+              eventId: event.id,
+            },
+          },
+        },
+      }),
+    ]);
+
+    giftStats = { myItemsCount, otherItemsCount, myReservationsCount };
+  }
+
+  let giftLists: GiftListWithParticipantAndItems[] = [];
+  let hostList: GiftListWithParticipantAndItems | null = null;
+  let myList: GiftListWithParticipantAndItems | null = null;
+  let otherLists: GiftListWithParticipantAndItems[] = [];
+  if (giftsModuleEnabled || activeTab === "gifts") {
+    giftLists = (await prisma.giftList.findMany({
+      where: { eventId: event.id },
+      include: {
+        owner: true,
+        eventRelative: true,
+        items: {
+          include: {
+            reservations: {
+              where: { status: { not: ReservationStatus.RELEASED } },
+              include: { byUser: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    })) as GiftListWithParticipantAndItems[];
+
+    hostList =
+      giftLists.find((l) => l.ownerId === event.ownerId && l.eventRelativeId === null) ?? null;
+    myList = giftLists.find((l) => l.ownerId === meId && l.eventRelativeId === null) ?? null;
+
+    if (event.giftMode === MODE.HOST_LIST && hostList) {
+      otherLists = meId === event.ownerId ? [] : [hostList];
+    } else {
+      otherLists = giftLists.filter((l) => !(l.ownerId === meId && l.eventRelativeId === null));
     }
   }
 
+  let potluckStats: { totalItems: number; myClaims: number } | null = null;
+  if (hasPotluck) {
+    const [totalItems, myClaims] = await Promise.all([
+      prisma.eventBringItem.count({ where: { eventId: event.id } }),
+      prisma.eventBringParticipation.count({
+        where: { userId: meId, item: { eventId: event.id } },
+      }),
+    ]);
+
+    potluckStats = { totalItems, myClaims };
+  }
+
+  const pollsVmPromise =
+    pollsCount > 0 ? getEventPollsVM(event.id, meId) : Promise.resolve([] as EventPollVM[]);
+  let canonicalPolls: EventPollVM[] = [];
+  let schedulePollOpen: EventPollVM | null = null;
+  let locationPollOpen: EventPollVM | null = null;
+
+  const loadPollsVm = () => pollsVmPromise;
+
+  // Module-specific data fetched only for active tab (strategy A)
+  const moduleProps: ModuleProps = {
+    overview: {
+      eventTitle: event.title,
+      eventDate: event.eventOn ? event.eventOn.toISOString() : null,
+      location: event.location,
+      rsvpSummary,
+      participantsCount,
+      eventId: event.id,
+      showLeaveSection: !isAdmin,
+      eventSlug: slug,
+      description: event.description,
+      canEditDescription: isAdmin,
+      tabs: enabledTabs,
+      rsvpRequired,
+      myRsvpStatus: userRsvpStatus,
+      canEditEvent: isAdmin,
+      userRole,
+      scheduleMode: event.scheduleMode,
+      locationMode: event.locationMode,
+      giftMode: event.giftMode,
+      giftsStats: giftStats ?? undefined,
+      potluckStats: potluckStats ?? undefined,
+    },
+  };
+
+  const giftSectionProps = {
+    eventId: event.id,
+    slug: event.slug,
+    giftMode: event.giftMode,
+    isNoSpoil: giftsSettings.isNoSpoil,
+    isAnonReservations: giftsSettings.isAnonReservations,
+    currentUserId: meId,
+    isEventOwner: event.ownerId === meId,
+    isAdmin,
+    hostList,
+    myList,
+    otherLists,
+  };
+
+  if (pollsCount > 0) {
+    canonicalPolls = (await loadPollsVm()).filter(
+      (poll) =>
+        (poll.type === EventPollType.SCHEDULE || poll.type === EventPollType.LOCATION) &&
+        poll.status === EventPollStatus.OPEN &&
+        poll.isActive,
+    );
+
+    if (canonicalPolls.length > 0) {
+      if (moduleProps.overview) {
+        moduleProps.overview.pollsProps = {
+          polls: canonicalPolls,
+          totalMembers: membersCount,
+          canEdit: isAdmin,
+          meId,
+        };
+      }
+    }
+
+    schedulePollOpen =
+      canonicalPolls.find(
+        (poll) =>
+          poll.type === EventPollType.SCHEDULE && poll.status === EventPollStatus.OPEN && poll.isActive,
+      ) ?? null;
+
+    locationPollOpen =
+      canonicalPolls.find(
+        (poll) =>
+          poll.type === EventPollType.LOCATION && poll.status === EventPollStatus.OPEN && poll.isActive,
+      ) ?? null;
+  }
+
+  if (activeTab === "gifts" && enabledKeys.includes("gifts")) {
+    moduleProps.gifts = { ...giftSectionProps };
+  }
+
+  if (activeTab === "secret-santa" && enabledKeys.includes("secret-santa")) {
+    moduleProps.secretSanta = {
+      eventId: event.id,
+      slug: event.slug,
+      isAdmin,
+      membersCount: event.memberships.length,
+      budgetCapCents: secretSantaSettings.budgetCapCents,
+      isSecondHandOk: giftsSettings.isSecondHandOk,
+      isHandmadeOk: giftsSettings.isHandmadeOk,
+    };
+  }
+
+  if (activeTab === "potluck" && enabledKeys.includes("potluck")) {
+    const [items, members] = await Promise.all([
+      prisma.eventBringItem.findMany({
+        where: { eventId: event.id },
+        include: {
+          bringers: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.eventMember.findMany({
+        where: { eventId: event.id },
+        select: {
+          id: true,
+          userId: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    moduleProps.potluck = {
+      eventId: event.id,
+      slug: event.slug,
+      currentUserId: meId,
+      userRole,
+      items: items.map((item) => ({
+        id: item.id,
+        label: item.label,
+        note: item.note,
+        category: item.category!,
+        createdById: item.createdById,
+        bringers: item.bringers.map((b) => ({
+          id: b.id,
+          userId: b.userId!,
+          user: b.user
+            ? {
+                name: b.user.name,
+                email: b.user.email,
+              }
+            : null,
+        })),
+      })),
+      members: members.map((m) => ({
+        id: m.id,
+        userId: m.userId,
+        user: m.user
+          ? {
+              name: m.user.name,
+              email: m.user.email,
+            }
+          : null,
+      })),
+    };
+  }
+
+  if (activeTab === "timeline" && enabledKeys.includes("timeline")) {
+    moduleProps.timeline = {
+      eventOn: event.eventOn ? event.eventOn.toISOString() : null,
+      eventTime: event.eventTime,
+      location: event.location,
+      scheduleMode: event.scheduleMode,
+      locationMode: event.locationMode,
+    };
+  }
+
+  if (activeTab === "expenses" && enabledKeys.includes("expenses")) {
+    moduleProps.expenses = {};
+  }
+
+  if (activeTab === "polls" && enabledKeys.includes("polls")) {
+    const polls = await loadPollsVm();
+    moduleProps.polls = {
+      polls,
+      slug,
+      canEdit: isAdmin,
+      totalMembers: membersCount,
+      meId,
+    };
+  }
+
+  if (activeTab === "chat" && enabledKeys.includes("chat")) {
+    moduleProps.chat = {};
+  }
+
+  const moduleNode = <ModuleRenderer activeTab={activeTab} moduleProps={moduleProps} />;
+
   return (
-    <main className="space-y-8 p-0">
-      {/* Barre de retour uniquement */}
-      <EventHeader
-        event={event}
-        slug={slug}
-        isAdmin={isAdmin}
-        showBudget={showBudget}
-      />
+    <div className="">
+      <Container className="space-y-0">
+        <div className="border-border relative right-1/2 left-1/2 -mr-[50vw] -ml-[50vw] w-screen border-b bg-white">
+          <Container className="py-3">
+            <EventHeader
+              event={headerEvent}
+              slug={slug}
+              schedulePollOpen={schedulePollOpen}
+              locationPollOpen={locationPollOpen}
+              meId={meId}
+              isAdmin={isAdmin}
+              canEditEvent={isAdmin}
+              canEditEventMeta={isAdmin}
+              showBudget={showBudget}
+              participants={participants}
+              rsvpSummary={rsvpSummary}
+            />
+          </Container>
+        </div>
 
-      {event.giftMode === MODE.SECRET_SANTA && (
-        <SecretSantaSection
+        <EventShellClient
+          tabs={enabledTabs}
+          activeTab={activeTab}
+          modules={modules.map((m) => ({
+            key: m.key,
+            enabled: m.enabled,
+            position: m.position,
+            giftsSettings: m.giftsSettings
+              ? {
+                  isNoSpoil: m.giftsSettings.isNoSpoil,
+                  isAnonReservations: m.giftsSettings.isAnonReservations,
+                  isSecondHandOk: m.giftsSettings.isSecondHandOk,
+                  isHandmadeOk: m.giftsSettings.isHandmadeOk,
+                  budgetCapCents: m.giftsSettings.budgetCapCents,
+                }
+              : undefined,
+          }))}
           eventId={event.id}
-          slug={slug}
-          isAdmin={isAdmin}
-          membersCount={event.memberships.length}
-          budgetCapCents={event.budgetCapCents}
-          isSecondHandOk={event.isSecondHandOk}
-          isHandmadeOk={event.isHandmadeOk}
-        />
-      )}
-
-      <EventAvailableModules
-        eventId={event.id}
-        slug={event.slug}
-        hasBringSection={event.hasBringSection}
-        isAdmin={isAdmin}
-      />
-
-      {event.hasBringSection && (
-        <EventBringSection
-          eventId={event.id}
-          slug={event.slug}
-          items={bringItems}
-          currentUserId={meId}
-          canContribute={canContributeToBring}
-          totalMembers={event.memberships.length}
-          isAdmin={isAdmin}
-          members={members}
-        />
-      )}
-
-      {/* Ma liste */}
-      {event.hasGifts && myList && (
-        <EventMyListSection
-          eventId={event.id}
-          slug={slug}
-          isNoSpoil={event.isNoSpoil}
-          myList={myList}
-        />
-      )}
-
-      {/* Participants (toujours) */}
-      <EventParticipantsSection
-        eventId={event.id}
-        slug={event.slug}
-        meId={meId}
-        memberships={event.memberships}
-        canRemoveByUserId={canRemoveRecord}
-        reservedCountByUserId={reservedCountByUserId}
-        relatives={event.relatives}                    // NEW
-        canRemoveRelativeById={canRemoveRelativeRecord} // NEW
-      />
-      {/* Listes des autres participants (uniquement en mode listes perso) */}
-      {event.hasGifts && otherLists.length > 0 && (
-        <EventOtherListsSection
-          eventId={event.id}
-          slug={slug}
-          meId={meId}
-          otherLists={otherLists}
-          isAdmin={isAdmin}
-          isAnonReservations={event.isAnonReservations}
-        />
-      )}
-      {/* Danger zone: quitter l’événement */}
-      {!isAdmin && (
-        <section
-          aria-labelledby="leave-event-heading"
-          className="mt-12 border-t pt-8"
+          eventSlug={slug}
+          canManageModules={isAdmin}
+          giftMode={event.giftMode}
         >
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <h2
-              id="leave-event-heading"
-              className="text-sm font-semibold text-foreground"
-            >
-              Ne plus participer à cet événement
-            </h2>
-            <p>
-              Vous pourrez toujours être réinvité plus tard par l’organisateur.
-            </p>
-            <LeaveEventDialog eventId={event.id} />
-          </div>
-        </section>
-      )}
-    </main>
+          {moduleNode}
+        </EventShellClient>
+      </Container>
+    </div>
   );
 }

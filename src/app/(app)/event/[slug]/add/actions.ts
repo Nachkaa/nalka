@@ -9,7 +9,7 @@ import { limit } from "@/lib/rate-limit";
 import { validateGiftUrlOrThrow } from "@/lib/url";
 import { processGiftImage } from "@/lib/gift-image";
 import { syncGiftListsForEvent } from "@/domain/gift-lists";
-import { EventGiftMode } from "@prisma/client";
+import { EventGiftMode, EventModuleKey } from "@prisma/client";
 
 export async function addGift(eventId: string, slug: string, formData: FormData) {
   const session = await auth();
@@ -22,6 +22,7 @@ export async function addGift(eventId: string, slug: string, formData: FormData)
 
   const me = await prisma.user.findUnique({
     where: { email: session.user.email },
+    select: { id: true },
   });
   if (!me) throw new Error("Utilisateur introuvable");
 
@@ -40,12 +41,17 @@ export async function addGift(eventId: string, slug: string, formData: FormData)
       select: {
         id: true,
         ownerId: true,
-        hasGifts: true,
         giftMode: true,
+        modules: {
+          where: { key: EventModuleKey.GIFTS },
+          select: { enabled: true },
+          take: 1,
+        },
       },
     });
     if (!event) throw new Error("Event not found");
-    if (!event.hasGifts) {
+
+    if (event.modules[0]?.enabled !== true) {
       throw new Error("Les cadeaux sont désactivés pour cet événement.");
     }
 
@@ -53,9 +59,7 @@ export async function addGift(eventId: string, slug: string, formData: FormData)
     await syncGiftListsForEvent(tx, event.id);
 
     // choix de la liste cible selon le mode
-    let targetList:
-      | { id: string }
-      | null = null;
+    let targetList: { id: string } | null = null;
 
     if (event.giftMode === EventGiftMode.HOST_LIST) {
       // une seule liste : celle du propriétaire de l'événement
@@ -67,7 +71,7 @@ export async function addGift(eventId: string, slug: string, formData: FormData)
         select: { id: true },
       });
     } else {
-      // modes PERSONAL_LISTS / SECRET_SANTA : liste perso de l'utilisateur courant
+      // mode PERSONAL_LISTS : liste perso de l'utilisateur courant
       targetList = await tx.giftList.findFirst({
         where: {
           eventId: event.id,
@@ -90,9 +94,7 @@ export async function addGift(eventId: string, slug: string, formData: FormData)
   const imageFile = formData.get("image") as File | null;
   const rawImageUrl = formData.get("imageUrl");
   const imageUrl =
-    typeof rawImageUrl === "string" && rawImageUrl.trim().length > 0
-      ? rawImageUrl.trim()
-      : null;
+    typeof rawImageUrl === "string" && rawImageUrl.trim().length > 0 ? rawImageUrl.trim() : null;
 
   let imagePath: string | null = null;
 

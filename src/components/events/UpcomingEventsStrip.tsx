@@ -5,6 +5,7 @@ type UpcomingEvent = {
   slug: string;
   title: string;
   eventOn: Date;
+  eventTime?: string | null;
   location: string | null;
 };
 
@@ -12,12 +13,15 @@ type Props = {
   events: UpcomingEvent[];
 };
 
-function formatEventDate(date: Date) {
-  return new Intl.DateTimeFormat("fr-FR", {
+function formatEventDate(date: Date, time?: string | null) {
+  const base = new Intl.DateTimeFormat("fr-FR", {
     weekday: "short",
     day: "numeric",
     month: "short",
   }).format(date);
+
+  const t = time?.trim();
+  return t ? `${base} · ${t}` : base;
 }
 
 function formatDiffLabel(date: Date) {
@@ -27,9 +31,7 @@ function formatDiffLabel(date: Date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
 
-  const diffDays = Math.round(
-    (d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const diffDays = Math.round((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) return "Aujourd’hui";
   if (diffDays === 1) return "Demain";
@@ -53,13 +55,7 @@ export function UpcomingEventsStrip({ events }: Props) {
           </h2>
         </div>
 
-        <div
-          className="
-            flex gap-3 overflow-x-auto pb-1
-            snap-x snap-mandatory
-            [touch-action:pan-x]
-          "
-        >
+        <div className="flex [touch-action:pan-x] snap-x snap-mandatory gap-3 overflow-x-auto pb-1">
           {events.map((event) => {
             const label = formatDiffLabel(event.eventOn);
 
@@ -67,28 +63,14 @@ export function UpcomingEventsStrip({ events }: Props) {
               <Link
                 key={event.id}
                 href={`/event/${event.slug}`}
-                className="
-                  w-[260px]
-                  shrink-0
-                  rounded-xl
-                  border border-[color-mix(in_oklch,var(--cream),black_6%)]
-                  bg-white/90
-                  px-3 py-3
-                  text-sm text-forest
-                  shadow-sm
-                  transition
-                  hover:border-[var(--primary)]
-                  hover:bg-white
-                "
+                className="text-forest w-[260px] shrink-0 rounded-xl border border-[color-mix(in_oklch,var(--cream),black_6%)] bg-white/90 px-3 py-3 text-sm shadow-sm transition hover:border-[var(--primary)] hover:bg-white"
               >
                 {/* Ligne titre */}
-                <p className="line-clamp-1 font-medium">
-                  {event.title}
-                </p>
+                <p className="line-clamp-1 font-medium">{event.title}</p>
 
                 {/* Ligne date + J-… + lieu */}
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--muted-primary)]">
-                  <span>{formatEventDate(event.eventOn)}</span>
+                  <span>{formatEventDate(event.eventOn, event.eventTime)}</span>
 
                   {label && (
                     <span className="rounded-full bg-[color-mix(in_oklch,var(--primary),white_15%)] px-2 py-0.5 text-[11px] font-medium text-white">

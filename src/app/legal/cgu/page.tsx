@@ -25,61 +25,59 @@ export default function Page() {
           "prose-li:my-2 prose-li:leading-7",
         ].join(" ")}
       >
-        <p className="text-sm text-muted-foreground not-prose">
+        <p className="text-muted-foreground not-prose text-sm">
           Dernière mise à jour&nbsp;: {UPDATED_AT}
         </p>
 
         <h2 id="objet">1. Objet</h2>
         <p>
-          Nalka permet de créer des événements et des listes de souhaits afin de
-          partager des cadeaux entre proches. Toute utilisation doit rester
-          conforme aux présentes conditions et à la loi.
+          Nalka permet de créer des événements et des listes de souhaits afin de partager des
+          cadeaux entre proches. Toute utilisation doit rester conforme aux présentes conditions et
+          à la loi.
         </p>
 
         <h2 id="compte">2. Compte</h2>
         <p>
-          Un compte nécessite une adresse e-mail valide. Vous êtes responsable
-          de la sécurité et de l’usage de votre compte.
+          Un compte nécessite une adresse e-mail valide. Vous êtes responsable de la sécurité et de
+          l’usage de votre compte.
         </p>
 
         <h2 id="contenus">3. Contenus</h2>
         <p>
-          Vous restez propriétaire de vos contenus. Vous accordez à Nalka une
-          licence limitée et non exclusive pour les héberger, afficher et
-          sauvegarder.
+          Vous restez propriétaire de vos contenus. Vous accordez à Nalka une licence limitée et non
+          exclusive pour les héberger, afficher et sauvegarder.
         </p>
 
         <h2 id="responsabilite">4. Responsabilité</h2>
         <p>
-          Le service est fourni « en l’état ». Nalka ne garantit pas l’absence
-          d’erreurs ou d’interruptions. La responsabilité totale est limitée au
-          montant éventuellement payé sur les 12 derniers mois.
+          Le service est fourni « en l’état ». Nalka ne garantit pas l’absence d’erreurs ou
+          d’interruptions. La responsabilité totale est limitée au montant éventuellement payé sur
+          les 12 derniers mois.
         </p>
 
         <h2 id="suspension">5. Suspension / Suppression</h2>
         <p>
-          Nalka peut suspendre ou supprimer un compte en cas de violation des
-          règles, de fraude ou de menace pour la sécurité. Vous pouvez à tout
-          moment supprimer votre compte.
+          Nalka peut suspendre ou supprimer un compte en cas de violation des règles, de fraude ou
+          de menace pour la sécurité. Vous pouvez à tout moment supprimer votre compte.
         </p>
 
         <h2 id="donnees">6. Données personnelles</h2>
         <p>
           Le traitement des données est décrit dans la{" "}
-          <a href="/privacy">Politique de confidentialité</a>. Elle fait partie
-          intégrante des présentes CGU.
+          <a href="/privacy">Politique de confidentialité</a>. Elle fait partie intégrante des
+          présentes CGU.
         </p>
 
         <h2 id="modif">7. Modifications</h2>
         <p>
-          Nalka peut modifier les CGU à tout moment. Les changements importants
-          seront notifiés raisonnablement. L’usage continu vaut acceptation.
+          Nalka peut modifier les CGU à tout moment. Les changements importants seront notifiés
+          raisonnablement. L’usage continu vaut acceptation.
         </p>
 
         <h2 id="droit">8. Droit applicable</h2>
         <p>
-          Droit français. Compétence exclusive des tribunaux de Paris, sous
-          réserve de dispositions impératives plus favorables au consommateur.
+          Droit français. Compétence exclusive des tribunaux de Paris, sous réserve de dispositions
+          impératives plus favorables au consommateur.
         </p>
 
         <h2 id="contact">9. Contact</h2>

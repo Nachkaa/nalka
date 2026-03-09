@@ -18,7 +18,7 @@ const PUBLIC_PREFIXES = [
 const hasSessionCookie = (req: NextRequest) =>
   Boolean(
     req.cookies.get("__Secure-authjs.session-token")?.value ||
-    req.cookies.get("authjs.session-token")?.value
+      req.cookies.get("authjs.session-token")?.value,
   );
 
 const isPublicPath = (pathname: string) =>
@@ -61,12 +61,17 @@ export function middleware(req: NextRequest) {
   // Never touch ANY API, especially /api/auth
   if (pathname.startsWith("/api/")) return NextResponse.next();
 
+  const authed = hasSessionCookie(req);
+
   // Public pages: allow through
   if (isPublicPath(pathname)) {
+    // Authenticated users landing on / go straight to the app shell
+    if (pathname === "/" && authed) {
+      return withSecurity(req, NextResponse.redirect(new URL("/event", origin)));
+    }
+
     return withSecurity(req, NextResponse.next());
   }
-
-  const authed = hasSessionCookie(req);
 
   if (!authed) {
     const url = new URL("/login", origin);

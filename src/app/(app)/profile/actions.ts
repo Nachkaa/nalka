@@ -4,7 +4,6 @@ import "server-only";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 
 export async function updateProfile(formData: FormData) {
   const session = await auth();

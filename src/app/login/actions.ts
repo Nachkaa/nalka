@@ -23,8 +23,7 @@ function withQuery(path: string, extra: Record<string, string | undefined>) {
 }
 
 // null -> undefined to satisfy Record<string, string | undefined>
-const asOpt = (v: string | null | undefined): string | undefined =>
-  v ?? undefined;
+const asOpt = (v: string | null | undefined): string | undefined => v ?? undefined;
 
 export async function sendMagicLink(input: unknown) {
   const raw =
@@ -60,8 +59,8 @@ export async function sendMagicLink(input: unknown) {
 
       redirectTo = withQuery(redirectTo, {
         source: "invite",
-        eventTitle: token?.event.title,          // string | undefined
-        inviter: asOpt(token?.event.owner?.name) // string | undefined
+        eventTitle: token?.event.title, // string | undefined
+        inviter: asOpt(token?.event.owner?.name), // string | undefined
       });
     }
   }

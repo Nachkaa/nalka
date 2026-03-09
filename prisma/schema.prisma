@@ -3,81 +3,34 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-enum EventBudgetMode {
-  NONE
-  FIXED
-}
-
-enum EventMemberRole {
-  OWNER
-  ADMIN
-  MEMBER
-}
-
-enum InviteStatus {
-  PENDING
-  ACCEPTED
-  CANCELLED
-}
-
-enum ReservationStatus {
-  RESERVED
-  PURCHASED
-  RELEASED
-}
-
-enum EventGiftMode {
-  HOST_LIST // seulement ma liste
-  SECRET_SANTA // Secret Santa
-  PERSONAL_LISTS // une liste par personne
-}
-
-enum BringCategory {
-  DRINKS
-  FOOD
-  GEAR
-  OTHER
-}
-
-enum ParticipantKind {
-  USER
-  MANAGED // managed relative: child, parent, etc.
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  isAdmin       Boolean   @default(false) // platform-wide admin
-
-  accounts Account[]
-  sessions Session[]
-
-  // relations
-  eventMemberships EventMember[]
-  eventInvitesSent EventInvite[] @relation("InvitedBy")
-  giftLists        GiftList[]
-  reservations     Reservation[]
-  ideas            Idea[]
-  ownedEvents      Event[]       @relation("OwnedEvents")
-
-  managedProfiles ManagedProfile[]
-  eventRelatives  EventRelative[]
-
-  giftSuggestions GiftItem[] @relation("GiftItemSuggestedBy")
-
-  //items créés par ce user
+  id                  String                    @id @default(cuid())
+  name                String?
+  email               String                    @unique
+  emailVerified       DateTime?
+  image               String?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  isAdmin             Boolean                   @default(false)
+  accounts            Account[]
+  ownedEvents         Event[]                   @relation("OwnedEvents")
   bringItems          EventBringItem[]
-  //participations “je ramène ça”
   bringParticipations EventBringParticipation[]
+  eventInvitesSent    EventInvite[]             @relation("InvitedBy")
+  eventMemberships    EventMember[]
+  pollVotes           EventPollVote[]
+  eventRelatives      EventRelative[]
+  giftSuggestions     GiftItem[]                @relation("GiftItemSuggestedBy")
+  giftLists           GiftList[]
+  ideas               Idea[]
+  managedProfiles     ManagedProfile[]
+  reservations        Reservation[]
+  sessions            Session[]
 }
 
 model Account {
@@ -93,8 +46,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -104,8 +56,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -117,72 +68,130 @@ model VerificationToken {
 }
 
 model Event {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String            @id @default(cuid())
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  ownerId      String
+  title        String
+  description  String?
+  eventOn      DateTime?
+  location     String?
+  colorHex     String            @default("#0ea5e9")
+  linkEnabled  Boolean           @default(false)
+  joinCode     String?           @unique
+  slug         String            @unique
+  budgetMode   EventBudgetMode   @default(NONE)
+  budgetCents  Int?
+  memberLimit  Int               @default(50)
+  imagePath    String?           @db.VarChar(512)
+  giftMode     EventGiftMode     @default(HOST_LIST)
+  status       EventStatus       @default(PLANNING)
+  locationMode EventLocationMode @default(TBD)
+  scheduleMode EventScheduleMode @default(TBD)
+  eventTime    String?           @db.VarChar(5)
+  owner        User              @relation("OwnedEvents", fields: [ownerId], references: [id], onDelete: Cascade)
+  bringItems   EventBringItem[]
+  invites      EventInvite[]
+  memberships  EventMember[]
+  modules      EventModule[]
+  polls        EventPoll[]
+  relatives    EventRelative[]
+  lists        GiftList[]
+  inviteTokens InviteToken[]     @relation("Event_InviteTokens")
 
-  // owner
-  ownerId String
-  owner   User   @relation("OwnedEvents", fields: [ownerId], references: [id], onDelete: Cascade)
-
-  // core
-  title       String
-  description String?
-  eventOn     DateTime
-  location    String?
-  colorHex    String   @default("#0ea5e9")
-
-  // access
-  linkEnabled Boolean @default(false)
-  joinCode    String? @unique
-  slug        String  @unique
-
-  // budget (optional global hints)
-  budgetMode  EventBudgetMode @default(NONE)
-  budgetCents Int?
-
-  // RULES — flat, explicit
-  hasGifts           Boolean       @default(true)
-  giftMode           EventGiftMode @default(PERSONAL_LISTS)
-  isNoSpoil          Boolean       @default(true)
-  isAnonReservations Boolean       @default(true)
-  isSecondHandOk     Boolean       @default(false)
-  isHandmadeOk       Boolean       @default(false)
-
-  budgetCapCents Int?
-
-  // misc
-  settings Json?
-
-  // children
-  memberships EventMember[]
-  invites     EventInvite[]
-  lists       GiftList[]
-
-  memberLimit  Int           @default(50)
-  inviteTokens InviteToken[] @relation("Event_InviteTokens")
-
-  // image
-  imagePath String? @db.VarChar(512)
-
-  hasBringSection Boolean          @default(false)
-  bringItems      EventBringItem[]
-
-  relatives EventRelative[]
-
+  @@index([ownerId, status])
   @@index([ownerId, eventOn])
 }
 
-model EventMember {
-  id        String          @id @default(cuid())
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  eventId   String
-  userId    String
-  role      EventMemberRole @default(MEMBER)
+model EventModule {
+  id                  String                    @id @default(cuid())
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  eventId             String
+  key                 EventModuleKey
+  enabled             Boolean                   @default(true)
+  position            Int
+  chatSettings        EventChatSettings?
+  expensesSettings    EventExpensesSettings?
+  giftsSettings       EventGiftsSettings?
+  event               Event                     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  overviewSettings    EventOverviewSettings?
+  pollsSettings       EventPollsSettings?
+  potluckSettings     EventPotluckSettings?
+  secretSantaSettings EventSecretSantaSettings?
+  timelineSettings    EventTimelineSettings?
 
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([eventId, key])
+  @@index([eventId, enabled])
+  @@index([eventId, position])
+}
+
+model EventGiftsSettings {
+  id                 String      @id @default(cuid())
+  eventModuleId      String      @unique
+  isNoSpoil          Boolean     @default(true)
+  isAnonReservations Boolean     @default(true)
+  isSecondHandOk     Boolean     @default(false)
+  isHandmadeOk       Boolean     @default(false)
+  budgetCapCents     Int?
+  eventModule        EventModule @relation(fields: [eventModuleId], references: [id], onDelete: Cascade)
+}
+
+model EventSecretSantaSettings {
+  id             String      @id @default(cuid())
+  eventModuleId  String      @unique
+  budgetCapCents Int?
+  eventModule    EventModule @relation(fields: [eventModuleId], references: [id], onDelete: Cascade)
+}
+
+model EventPotluckSettings {
+  id            String      @id @default(cuid())
+  eventModuleId String      @unique
+  eventModule   EventModule @relation(fields: [eventModuleId], references: [id], onDelete: Cascade)
+}
+
+model EventTimelineSettings {
+  id            String      @id @default(cuid())
+  eventModuleId String      @unique
+  eventModule   EventModule @relation(fields: [eventModuleId], references: [id], onDelete: Cascade)
+}
+
+model EventExpensesSettings {
+  id            String      @id @default(cuid())
+  eventModuleId String      @unique
+  eventModule   EventModule @relation(fields: [eventModuleId], references: [id], onDelete: Cascade)
+}
+
+model EventPollsSettings {
+  id            String      @id @default(cuid())
+  eventModuleId String      @unique
+  eventModule   EventModule @relation(fields: [eventModuleId], references: [id], onDelete: Cascade)
+}
+
+model EventChatSettings {
+  id            String      @id @default(cuid())
+  eventModuleId String      @unique
+  eventModule   EventModule @relation(fields: [eventModuleId], references: [id], onDelete: Cascade)
+}
+
+model EventOverviewSettings {
+  id            String      @id @default(cuid())
+  eventModuleId String      @unique
+  rsvpRequired  Boolean     @default(true)
+  eventModule   EventModule @relation(fields: [eventModuleId], references: [id], onDelete: Cascade)
+}
+
+model EventMember {
+  id              String          @id @default(cuid())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  eventId         String
+  userId          String
+  role            EventMemberRole @default(MEMBER)
+  rsvpRespondedAt DateTime?
+  rsvpStatus      EventRsvpStatus @default(PENDING)
+  event           Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId], name: "userId_eventId")
   @@index([userId])
@@ -200,29 +209,25 @@ model EventInvite {
   status      InviteStatus    @default(PENDING)
   invitedById String
   expiresAt   DateTime
-
-  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  invitedBy User  @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  event       Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitedBy   User            @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
 
   @@index([eventId, status])
   @@index([email])
 }
 
 model GiftList {
-  id              String  @id @default(cuid())
-  title           String  @default("Ma liste")
+  id              String         @id @default(cuid())
+  title           String         @default("Ma liste")
   ownerId         String?
-  eventRelativeId String? @unique
-
-  eventId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  owner         User?          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventRelative EventRelative? @relation(fields: [eventRelativeId], references: [id], onDelete: Cascade)
-
-  items GiftItem[]
+  eventId         String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  eventRelativeId String?        @unique
+  items           GiftItem[]
+  event           Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventRelative   EventRelative? @relation(fields: [eventRelativeId], references: [id], onDelete: Cascade)
+  owner           User?          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   @@unique([ownerId, eventId], name: "owner_event_unique")
   @@index([eventId])
@@ -231,24 +236,21 @@ model GiftList {
 }
 
 model GiftItem {
-  id         String   @id @default(cuid())
-  listId     String
-  title      String
-  url        String?
-  priceCents Int?
-  note       String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  imagePath String? @db.VarChar(512)
-
-  isSuggestion      Boolean @default(false)
+  id                String        @id @default(cuid())
+  listId            String
+  title             String
+  url               String?
+  priceCents        Int?
+  note              String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  imagePath         String?       @db.VarChar(512)
+  isSuggestion      Boolean       @default(false)
   suggestedByUserId String?
-  suggestedByUser   User?   @relation("GiftItemSuggestedBy", fields: [suggestedByUserId], references: [id])
-
-  list         GiftList      @relation(fields: [listId], references: [id], onDelete: Cascade)
-  reservations Reservation[]
-  ideas        Idea[]
+  list              GiftList      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  suggestedByUser   User?         @relation("GiftItemSuggestedBy", fields: [suggestedByUserId], references: [id])
+  ideas             Idea[]
+  reservations      Reservation[]
 
   @@index([listId])
   @@index([suggestedByUserId])
@@ -262,9 +264,8 @@ model Reservation {
   anonymous Boolean           @default(false)
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
-
-  item   GiftItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  byUser User     @relation(fields: [byUserId], references: [id], onDelete: Cascade)
+  byUser    User              @relation(fields: [byUserId], references: [id], onDelete: Cascade)
+  item      GiftItem          @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([itemId, status])
   @@index([byUserId, status])
@@ -277,9 +278,8 @@ model Idea {
   text      String
   anonymous Boolean  @default(true)
   createdAt DateTime @default(now())
-
-  item   GiftItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  byUser User     @relation(fields: [byUserId], references: [id], onDelete: Cascade)
+  byUser    User     @relation(fields: [byUserId], references: [id], onDelete: Cascade)
+  item      GiftItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([itemId])
   @@index([byUserId])
@@ -298,13 +298,13 @@ model SecretSantaAssignment {
 model InviteToken {
   id            String    @id @default(cuid())
   eventId       String
-  event         Event     @relation("Event_InviteTokens", fields: [eventId], references: [id], onDelete: Cascade)
   code          String    @unique
-  remainingUses Int       @default(1) // single-use default
+  remainingUses Int       @default(1)
   expiresAt     DateTime?
   createdById   String
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  event         Event     @relation("Event_InviteTokens", fields: [eventId], references: [id], onDelete: Cascade)
 }
 
 model RateLimitHit {
@@ -316,76 +316,207 @@ model RateLimitHit {
 }
 
 model EventBringItem {
-  id       String         @id @default(cuid())
-  label    String
-  category BringCategory?
-  note     String? // "Sans gluten", "Prendre des verres", etc.
-
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId String
-
-  createdBy   User?   @relation(fields: [createdById], references: [id])
+  id          String                    @id @default(cuid())
+  label       String
+  category    BringCategory?
+  note        String?
+  eventId     String
   createdById String?
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  createdBy   User?                     @relation(fields: [createdById], references: [id])
+  event       Event                     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  bringers    EventBringParticipation[]
 
-  bringers EventBringParticipation[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@index([eventId])
+  @@index([createdById])
 }
 
 model EventBringParticipation {
-  id String @id @default(cuid())
-
-  item   EventBringItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  itemId String
-
-  user   User?   @relation(fields: [userId], references: [id])
-  userId String?
-
-  // Optionnel si tu autorises des “guests” nominatifs non logués
+  id          String         @id @default(cuid())
+  itemId      String
+  userId      String?
   displayName String?
+  createdAt   DateTime       @default(now())
+  item        EventBringItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user        User?          @relation(fields: [userId], references: [id])
 
-  createdAt DateTime @default(now())
+  @@unique([userId, itemId])
+  @@index([itemId])
+  @@index([userId])
 }
 
 model ManagedProfile {
-  id      String @id @default(cuid())
-  ownerId String
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  firstName String
-  birthYear Int? // optionnel
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime? // soft delete: “retiré de mes proches”
-
+  id             String          @id @default(cuid())
+  ownerId        String
+  firstName      String
+  birthYear      Int?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
   eventRelatives EventRelative[]
+  owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model EventRelative {
-  id String @id @default(cuid())
-
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  // Qui gère ce proche dans cet event (le propriétaire côté Nalka)
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
-
-  // Optionnel: lien vers un profil réutilisable
+  id               String          @id @default(cuid())
+  eventId          String
+  createdById      String
   managedProfileId String?
+  firstName        String
+  birthYear        Int?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  createdBy        User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  event            Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
   managedProfile   ManagedProfile? @relation(fields: [managedProfileId], references: [id])
-
-  // Snapshot pour cet event
-  firstName String
-  birthYear Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  giftList GiftList?
+  giftList         GiftList?
 
   @@index([eventId])
   @@index([managedProfileId])
+}
+
+model EventPoll {
+  id                String                 @id @default(cuid())
+  eventId           String
+  type              EventPollType
+  status            EventPollStatus        @default(OPEN)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  archivedAt        DateTime?
+  closedAt          DateTime?
+  closedReason      EventPollClosedReason?
+  finalizedOptionId String?                @unique
+  isActive          Boolean                @default(true)
+  event             Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  finalizedOption   EventPollOption?       @relation("PollFinalizedOption", fields: [finalizedOptionId], references: [id])
+  options           EventPollOption[]
+  votes             EventPollVote[]
+
+  @@index([eventId, type, isActive])
+  @@index([eventId, type])
+}
+
+model EventPollOption {
+  id              String          @id @default(cuid())
+  pollId          String
+  sort            Int             @default(0)
+  dateValue       DateTime?
+  textValue       String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  finalizedByPoll EventPoll?      @relation("PollFinalizedOption")
+  poll            EventPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes           EventPollVote[]
+
+  @@unique([pollId, sort])
+  @@index([pollId])
+}
+
+model EventPollVote {
+  id           String          @id @default(cuid())
+  pollId       String
+  pollOptionId String
+  byUserId     String
+  createdAt    DateTime        @default(now())
+  user         User            @relation(fields: [byUserId], references: [id], onDelete: Cascade)
+  poll         EventPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option       EventPollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
+
+  @@unique([pollOptionId, byUserId])
+  @@index([pollId])
+  @@index([pollOptionId])
+  @@index([byUserId])
+  @@index([pollId, byUserId])
+}
+
+enum EventScheduleMode {
+  TBD
+  EXACT
+  POLL
+}
+
+enum EventLocationMode {
+  TBD
+  EXACT
+  POLL
+}
+
+enum EventPollType {
+  SCHEDULE
+  LOCATION
+}
+
+enum EventPollStatus {
+  OPEN
+  CLOSED
+}
+
+enum EventPollClosedReason {
+  FINAL_SET
+  HOST_CLOSED
+  REPLACED
+}
+
+enum EventStatus {
+  PLANNING
+  ACTIVE
+}
+
+enum EventBudgetMode {
+  NONE
+  FIXED
+}
+
+enum EventMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum EventRsvpStatus {
+  PENDING
+  GOING
+  MAYBE
+  NOT_GOING
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  CANCELLED
+}
+
+enum ReservationStatus {
+  RESERVED
+  PURCHASED
+  RELEASED
+}
+
+enum EventGiftMode {
+  HOST_LIST
+  PERSONAL_LISTS
+}
+
+enum BringCategory {
+  DRINKS
+  FOOD
+  GEAR
+  OTHER
+}
+
+enum ParticipantKind {
+  USER
+  MANAGED
+}
+
+enum EventModuleKey {
+  OVERVIEW
+  GIFTS
+  SECRET_SANTA
+  POTLUCK
+  TIMELINE
+  EXPENSES
+  POLLS
+  CHAT
 }

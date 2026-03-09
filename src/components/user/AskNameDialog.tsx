@@ -1,6 +1,7 @@
+// src/components/user/AskNameDialog.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   Dialog,
@@ -14,23 +15,18 @@ import { Button } from "@/components/ui/button";
 
 export function AskNameDialog() {
   const { data: session, status } = useSession();
-  const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const [value, setValue] = useState("");
 
-  useEffect(() => {
-    if (status !== "authenticated") return;
-
+  const shouldAskName = useMemo(() => {
+    if (status !== "authenticated") return false;
     const rawName = session?.user?.name ?? "";
-    const hasName = rawName.trim().length >= 2;
+    return rawName.trim().length < 2;
+  }, [status, session?.user?.name]);
 
-    if (!hasName) {
-      setOpen(true);
-    }
-  }, [status, session]);
+  const open = shouldAskName && !dismissed;
 
-  if (status !== "authenticated") {
-    return null;
-  }
+  if (status !== "authenticated") return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,19 +40,23 @@ export function AskNameDialog() {
     });
 
     if (res.ok) {
-      setOpen(false);
+      setDismissed(true);
       window.location.reload();
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        // si l’utilisateur ferme, on “dismiss” pour éviter réouverture en boucle
+        if (!next) setDismissed(true);
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Ton prénom ?</DialogTitle>
-          <DialogDescription>
-            C’est plus sympa que ton e-mail.
-          </DialogDescription>
+          <DialogDescription>C’est plus sympa que ton e-mail.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">

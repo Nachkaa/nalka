@@ -27,14 +27,18 @@ export default function GiftRemovedEmail({
           width="100%"
           cellPadding={0}
           cellSpacing={0}
-          style={{ maxWidth: 600, margin: "0 auto", backgroundColor: "#ffffff", borderRadius: 16, padding: 24 }}
+          style={{
+            maxWidth: 600,
+            margin: "0 auto",
+            backgroundColor: "#ffffff",
+            borderRadius: 16,
+            padding: 24,
+          }}
         >
           <tbody>
             <tr>
               <td>
-                <p style={{ fontSize: 14, margin: "0 0 16px" }}>
-                  Bonjour {recipientName},
-                </p>
+                <p style={{ fontSize: 14, margin: "0 0 16px" }}>Bonjour {recipientName},</p>
 
                 <p style={{ fontSize: 14, margin: "0 0 12px" }}>
                   {ownerName} a retiré de sa liste le cadeau&nbsp;:
@@ -51,9 +55,8 @@ export default function GiftRemovedEmail({
                 </p>
 
                 <p style={{ fontSize: 14, margin: "0 0 12px" }}>
-                  Si tu avais prévu d&apos;offrir ce cadeau pour
-                  l&apos;événement «&nbsp;{eventTitle}&nbsp;», tu peux
-                  maintenant choisir une autre idée sur sa liste.
+                  Si tu avais prévu d&apos;offrir ce cadeau pour l&apos;événement «&nbsp;
+                  {eventTitle}&nbsp;», tu peux maintenant choisir une autre idée sur sa liste.
                 </p>
 
                 <p style={{ fontSize: 14, margin: "0 0 24px" }}>
@@ -61,8 +64,8 @@ export default function GiftRemovedEmail({
                 </p>
 
                 <p style={{ fontSize: 12, color: "#777777", margin: 0 }}>
-                  Cet email t&apos;a été envoyé automatiquement par Nalka suite
-                  à une modification de liste.
+                  Cet email t&apos;a été envoyé automatiquement par Nalka suite à une modification
+                  de liste.
                 </p>
               </td>
             </tr>

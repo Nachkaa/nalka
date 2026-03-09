@@ -1,3 +1,4 @@
+// FILE: src/app/join/page.tsx
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
@@ -7,12 +8,22 @@ import { InlineMagicLink } from "@/features/auth/inline-magic-link";
 
 type Search = { code?: string };
 
-export default async function JoinPage({
-  searchParams,
-}: {
-  searchParams: Promise<Search>;
-}) {
-  const { code } = await searchParams; 
+function getErrorMessage(e: unknown) {
+  if (e && typeof e === "object" && "message" in e) {
+    const m = (e as { message?: unknown }).message;
+    if (typeof m === "string" && m !== "NEXT_REDIRECT") return m;
+  }
+  return "Impossible de rejoindre l’événement";
+}
+
+function isNextRedirect(e: unknown) {
+  if (!e || typeof e !== "object") return false;
+  const digest = (e as { digest?: unknown }).digest;
+  return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT");
+}
+
+export default async function JoinPage({ searchParams }: { searchParams: Promise<Search> }) {
+  const { code } = await searchParams;
   if (!code) redirect("/");
 
   const session = await auth();
@@ -26,12 +37,12 @@ export default async function JoinPage({
             <CardTitle>Rejoindre l’événement</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Entrez votre e-mail pour recevoir un lien de connexion. Vous
-              reviendrez ici pour accepter l’invitation.
+            <p className="text-muted-foreground text-sm">
+              Entrez votre e-mail pour recevoir un lien de connexion. Vous reviendrez ici pour
+              accepter l’invitation.
             </p>
             <InlineMagicLink redirectTo={from} />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Déjà un compte ?{" "}
               <Link
                 className="underline underline-offset-4"
@@ -46,13 +57,14 @@ export default async function JoinPage({
     );
   }
 
-  // Authenticated: accept then redirect
-  let res: { slug: string };
   try {
-    res = await acceptInvite(code);
-  } catch (e: any) {
-    if (e?.digest === "NEXT_REDIRECT") throw e;
-    const msg = e?.message ?? "Impossible de rejoindre l’événement";
+    const res = await acceptInvite(code);
+    redirect(`/event/${res.slug}`);
+  } catch (e: unknown) {
+    if (isNextRedirect(e)) throw e;
+
+    const msg = getErrorMessage(e);
+
     return (
       <section className="container mx-auto max-w-md py-10">
         <Card>
@@ -60,7 +72,7 @@ export default async function JoinPage({
             <CardTitle>Invitation invalide</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-destructive">{msg}</p>
+            <p className="text-destructive text-sm">{msg}</p>
             <div className="flex gap-2">
               <Link
                 href="/"
@@ -70,7 +82,7 @@ export default async function JoinPage({
               </Link>
               <Link
                 href={`/join?code=${encodeURIComponent(code)}`}
-                className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 text-sm text-primary-foreground"
+                className="bg-primary text-primary-foreground inline-flex h-9 items-center justify-center rounded-md px-3 text-sm"
               >
                 Réessayer
               </Link>
@@ -80,6 +92,4 @@ export default async function JoinPage({
       </section>
     );
   }
-
-  redirect(`/event/${res.slug}`);
 }

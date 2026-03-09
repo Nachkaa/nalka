@@ -21,7 +21,13 @@ type UrlMetaResponse = {
   imageUrl?: string | null;
 };
 
-export default function FetchFromLink({ urlInputId, titleInputId, noteInputId, imageInputId, onImageUrlChange,}: Props) {
+export default function FetchFromLink({
+  urlInputId,
+  titleInputId,
+  noteInputId,
+  imageInputId,
+  onImageUrlChange,
+}: Props) {
   const [pending, setPending] = useState(false);
 
   async function onClick() {
@@ -76,7 +82,6 @@ export default function FetchFromLink({ urlInputId, titleInputId, noteInputId, i
       if (typeof data.imageUrl === "string" && data.imageUrl && onImageUrlChange) {
         onImageUrlChange(data.imageUrl);
       }
-      
     } finally {
       setPending(false);
     }
@@ -84,7 +89,11 @@ export default function FetchFromLink({ urlInputId, titleInputId, noteInputId, i
 
   return (
     <Button type="button" variant="secondary" size="sm" onClick={onClick} disabled={pending}>
-      {pending ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <Wand2 className="mr-2 h-3 w-3" />}
+      {pending ? (
+        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+      ) : (
+        <Wand2 className="mr-2 h-3 w-3" />
+      )}
       Compléter depuis le lien
     </Button>
   );

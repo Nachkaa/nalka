@@ -1,9 +1,11 @@
+// FILE: src/features/events/actions/invite.ts
 // CHANGE ONLY THIS FILE: relax auth (owner allowed) + accept id or slug
 
 "use server";
 
-import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { EventGiftMode, EventModuleKey } from "@prisma/client";
 import { randomBytes } from "crypto";
 
 const TOKEN_WINDOW_MIN = 15;
@@ -11,6 +13,14 @@ const TOKENS_PER_WINDOW_MAX = 30;
 
 function appBaseUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+}
+
+// Typed error helper (no `any`)
+type HttpError = Error & { status?: number };
+function httpError(message: string, status: number): HttpError {
+  const err: HttpError = new Error(message);
+  err.status = status;
+  return err;
 }
 
 // helper: resolve event by id or slug
@@ -41,7 +51,10 @@ async function resolveEvent(ref: string) {
   return bySlug;
 }
 
-export async function createInviteToken(eventRef: string, opts?: { uses?: number; ttlMinutes?: number }) {
+export async function createInviteToken(
+  eventRef: string,
+  opts?: { uses?: number; ttlMinutes?: number },
+) {
   const session = await auth();
   if (!session?.user?.email) throw new Error("Unauthorized");
   const me = await prisma.user.findUnique({ where: { email: session.user.email } });
@@ -61,9 +74,7 @@ export async function createInviteToken(eventRef: string, opts?: { uses?: number
     isAdmin = !!membership && ["OWNER", "ADMIN"].includes(membership.role);
   }
   if (!isOwner && !isAdmin) {
-    const err: any = new Error("Forbidden");
-    err.status = 403;
-    throw err;
+    throw httpError("Forbidden", 403);
   }
 
   // rate limit: tokens created by this user for this event in last window
@@ -72,16 +83,12 @@ export async function createInviteToken(eventRef: string, opts?: { uses?: number
     where: { eventId: event.id, createdById: me.id, createdAt: { gt: since } },
   });
   if (recent >= TOKENS_PER_WINDOW_MAX) {
-    const err: any = new Error("Too many invites created. Try later.");
-    err.status = 429;
-    throw err;
+    throw httpError("Too many invites created. Try later.", 429);
   }
 
   const remainingCapacity = Math.max(0, (event.memberLimit ?? 50) - event.memberships.length);
   if (remainingCapacity <= 0) {
-    const err: any = new Error("Event is full");
-    err.status = 409;
-    throw err;
+    throw httpError("Event is full", 409);
   }
 
   const requestedUses = Math.max(1, Math.trunc(opts?.uses ?? 1));
@@ -102,7 +109,12 @@ export async function createInviteToken(eventRef: string, opts?: { uses?: number
   });
 
   const url = `${appBaseUrl()}/join?code=${token.code}`;
-  return { url, expiresAt: token.expiresAt, remainingUses: token.remainingUses, slug: event.slug };
+  return {
+    url,
+    expiresAt: token.expiresAt,
+    remainingUses: token.remainingUses,
+    slug: event.slug,
+  };
 }
 
 export async function acceptInvite(code: string) {
@@ -119,8 +131,12 @@ export async function acceptInvite(code: string) {
           id: true,
           slug: true,
           memberLimit: true,
-          hasGifts: true,
           giftMode: true,
+          modules: {
+            where: { key: EventModuleKey.GIFTS },
+            select: { enabled: true },
+            take: 1,
+          },
         },
       },
     },
@@ -135,6 +151,8 @@ export async function acceptInvite(code: string) {
   if (token.remainingUses <= 0) {
     throw Object.assign(new Error("Link already used"), { status: 409 });
   }
+
+  const giftsEnabled = token.event.modules[0]?.enabled === true;
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
@@ -186,9 +204,9 @@ export async function acceptInvite(code: string) {
       joinedNow = true;
     }
 
-    // 4) Si l’event a des cadeaux en mode listes perso,
+    // 4) Si l’event a des cadeaux en mode listes perso / secret santa,
     //    on garantit la GiftList perso du user (ownerId = user.id)
-    if (token.event.hasGifts && token.event.giftMode === "PERSONAL_LISTS") {
+    if (joinedNow && giftsEnabled && token.event.giftMode === EventGiftMode.PERSONAL_LISTS) {
       const existingList = await tx.giftList.findFirst({
         where: {
           eventId: token.eventId,

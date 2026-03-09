@@ -14,5 +14,9 @@ export default function FieldCharCount({ forId, max }: { forId: string; max: num
     return () => el.removeEventListener("input", onInput);
   }, [forId]);
 
-  return <div className="text-xs text-muted-foreground text-right">{len}/{max}</div>;
+  return (
+    <div className="text-muted-foreground text-right text-xs">
+      {len}/{max}
+    </div>
+  );
 }

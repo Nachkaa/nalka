@@ -1,3 +1,4 @@
+// FILE: src/app/(app)/event/[slug]/ReserveButton.tsx
 "use client";
 
 import { useOptimistic, useTransition } from "react";
@@ -8,19 +9,28 @@ import { cn } from "@/lib/utils";
 type Props = {
   itemId: string;
   eventId: string;
-  /** true if I have the reservation */
   initialIsMine: boolean;
-  /** true if someone else has it */
   initialTakenByOther: boolean;
-  /** text to show when taken by someone and not anonymous, e.g. "Juliette" */
   reservedByName?: string | null;
-  /** notify parent so it can reorder */
   onOptimisticChange?: (nextIsMine: boolean) => void;
-  /** optional extra classes (e.g. "w-full" on mobile) */
   className?: string;
 };
 
 type Optimistic = { isMine: boolean; takenByOther: boolean };
+
+function getErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  if (
+    e &&
+    typeof e === "object" &&
+    "message" in e &&
+    typeof (e as { message?: unknown }).message === "string"
+  ) {
+    return (e as { message: string }).message;
+  }
+  return "";
+}
 
 export default function ReserveButton({
   itemId,
@@ -39,16 +49,14 @@ export default function ReserveButton({
 
   const disabled = state.takenByOther;
 
-  // no fixed width; default to a compact width unless caller overrides with className
   const base =
     "inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 font-medium transition-colors justify-center";
   const tone = state.isMine
     ? "cursor-pointer bg-[var(--chart-4)] text-[var(--primary-foreground)] hover:bg-[color-mix(in_oklch,var(--destructive),black_10%)]"
     : disabled
-    ? "cursor-not-allowed bg-[var(--muted)] text-[var(--muted-foreground)]"
-    : "cursor-pointer bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[color-mix(in_oklch,var(--primary),black_10%)]";
+      ? "cursor-not-allowed bg-[var(--muted)] text-[var(--muted-foreground)]"
+      : "cursor-pointer bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[color-mix(in_oklch,var(--primary),black_10%)]";
 
-  // apply a sensible default width if none provided
   const defaultWidth = className ? "" : "w-28";
 
   function onClick() {
@@ -65,7 +73,7 @@ export default function ReserveButton({
         onOptimisticChange?.(false);
         try {
           await cancelReservation(fd);
-        } catch (e) {
+        } catch (e: unknown) {
           setState(prev);
           onOptimisticChange?.(true);
           console.error("cancelReservation failed", e);
@@ -76,20 +84,20 @@ export default function ReserveButton({
       const prev = state;
       setState({ isMine: true, takenByOther: false });
       onOptimisticChange?.(true);
+
       try {
         await reserveItem(fd);
-      } catch (e: any) {
-        const msg = typeof e?.message === "string" ? e.message : "";
-        if (msg.toLowerCase().includes("already reserved")) {
+      } catch (e: unknown) {
+        const msg = getErrorMessage(e).toLowerCase();
+
+        if (msg.includes("already reserved")) {
           setState({ isMine: false, takenByOther: true });
           onOptimisticChange?.(false);
-        } else if (msg.toLowerCase().includes("forbidden")) {
-          setState(prev);
-          onOptimisticChange?.(prev.isMine);
         } else {
           setState(prev);
           onOptimisticChange?.(prev.isMine);
         }
+
         console.error("reserveItem failed", e);
       }
     });
@@ -110,10 +118,10 @@ export default function ReserveButton({
         isPending
           ? "Action en cours"
           : state.isMine
-          ? "Annuler ma réservation"
-          : disabled
-          ? takenLabel
-          : "Réserver"
+            ? "Annuler ma réservation"
+            : disabled
+              ? takenLabel
+              : "Réserver"
       }
     >
       {isPending ? (

@@ -1,28 +1,29 @@
+﻿// FILE: src/components/site-header.tsx
 "use client";
 
+import { CalendarDays, LogOut, Plus, User } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
-import { User, LogOut, CalendarDays } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
-function initials(name?: string | null, email?: string | null) {
-  if (name && name.trim()) {
-    const parts = name.trim().split(" ");
-    const i = (parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "");
-    return i.toUpperCase() || "U";
-  }
-  return email?.[0]?.toUpperCase() ?? "U";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+function initial(name?: string | null, email?: string | null) {
+  return (name?.trim()?.[0] ?? email?.[0] ?? "U").toUpperCase();
 }
 
 export default function SiteHeader() {
   const { data: session, status } = useSession();
-  const detailsRef = useRef<HTMLDetailsElement>(null);
-  const firstItemRef = useRef<HTMLAnchorElement>(null);
+  const pathname = usePathname();
   const [upcomingCount, setUpcomingCount] = useState<number | null>(null);
-
-  const closeMenu = () => {
-    if (detailsRef.current?.open) detailsRef.current.open = false;
-  };
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -34,37 +35,43 @@ export default function SiteHeader() {
         const res = await fetch("/api/events/upcoming-count");
         if (!res.ok) return;
         const data = (await res.json()) as { count?: number };
-        if (!cancelled && typeof data.count === "number") {
-          setUpcomingCount(data.count);
-        }
+        if (!cancelled && typeof data.count === "number") setUpcomingCount(data.count);
       } catch {
-        // silent fail, no badge
+        // silent fail
       }
     };
 
     loadCount();
-
     return () => {
       cancelled = true;
     };
   }, [status]);
 
+  const isEvents = pathname === "/event" || pathname.startsWith("/event/");
+
+  if (pathname === "/") return null;
+
   return (
-    <header className="sticky top-0 z-40 border-b bg-[var(--header)]/95 text-[var(--header-foreground)] backdrop-blur border-[var(--header-border)]">
+    <header className="border-border text-foreground sticky top-0 z-40 border-b bg-white">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 text-[var(--header-foreground)]">
-          <span className="font-semibold tracking-tight text-[var(--primary)]">NALKA</span>
+        <Link href="/" className="flex items-center gap-2">
+          <span className="bg-linear-to-r from-[var(--primary-500)] to-[var(--primary-600)] bg-clip-text text-lg font-semibold tracking-tight text-transparent">
+            Nalka
+          </span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {status === "loading" && (
-            <div aria-label="Chargement" className="h-9 w-9 animate-pulse rounded-full bg-[var(--muted)]" />
+            <div
+              aria-label="Chargement"
+              className="h-9 w-9 animate-pulse rounded-full bg-[var(--muted)]"
+            />
           )}
 
           {status !== "loading" && !session && (
             <Link
               href="/login?reset=1"
-              className="rounded-md border px-3 py-2 text-sm border-[var(--header-border)] hover:bg-[color-mix(in_oklch,var(--header),black_4%)]"
+              className="rounded-md border border-[var(--header-border)] px-3 py-2 text-sm hover:bg-[color-mix(in_oklch,var(--header),black_4%)]"
             >
               Se connecter
             </Link>
@@ -72,102 +79,100 @@ export default function SiteHeader() {
 
           {session && (
             <>
-              {/* Top-level link with badge */}
+              {/* One nav item only */}
               <Link
                 href="/event"
-                className="relative hidden items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--header-foreground)] hover:bg-[color-mix(in_oklch,var(--header),black_4%)] sm:inline-flex"
+                className={[
+                  "hidden items-center gap-2 rounded-md px-3 py-2 text-sm sm:inline-flex",
+                  "hover:bg-[color-mix(in_oklch,var(--header),black_4%)]",
+                  isEvents ? "bg-[color-mix(in_oklch,var(--header),black_6%)]" : "",
+                ].join(" ")}
               >
                 <span>Mes événements</span>
-
-                {upcomingCount !== null && upcomingCount > 0 && (
-                  <span className="text-xs text-[var(--muted-primary)]">
-                    ({upcomingCount})
+                {typeof upcomingCount === "number" && upcomingCount > 0 && (
+                  <span className="rounded-full bg-[color-mix(in_oklch,var(--primary),white_85%)] px-2 py-0.5 text-xs font-medium text-[var(--primary)]">
+                    {upcomingCount}
                   </span>
                 )}
               </Link>
-              
-              {/* Mobile : icône + badge */}
-              {/* Mobile : gros bouton rond + badge */}
+
+              {/* Mobile shortcut */}
               <Link
                 href="/event"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--header-border)] bg-[var(--header)] text-[var(--header-foreground)] hover:bg-[color-mix(in_oklch,var(--header),black_4%)] sm:hidden"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--header-border)] hover:bg-[color-mix(in_oklch,var(--header),black_4%)] sm:hidden"
                 aria-label="Mes événements"
               >
                 <CalendarDays size={18} />
               </Link>
 
-              <details
-                ref={detailsRef}
-                className="relative"
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    e.preventDefault();
-                    closeMenu();
-                  }
-                  if (e.key === "ArrowDown") {
-                    e.preventDefault();
-                    if (!detailsRef.current?.open) {
-                      if (detailsRef.current) detailsRef.current.open = true;
-                    }
-                    queueMicrotask(() => firstItemRef.current?.focus());
-                  }
-                }}
+              {/* One primary action */}
+              <Link
+                href="/event/new"
+                aria-label="Créer un événement"
+                title="Créer un événement"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--primary)] text-[var(--background)] hover:bg-[color-mix(in_oklch,var(--primary),black_6%)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:outline-none"
               >
-                <summary
-                  aria-label="Ouvrir le menu du compte"
-                  aria-haspopup="menu"
-                  aria-controls="account-menu"
-                  aria-expanded={detailsRef.current?.open ?? false}
-                  className="list-none cursor-pointer select-none rounded-full bg-[var(--primary)] text-[var(--background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-                >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full">
-                    {initials(session.user?.name, session.user?.email)}
-                  </span>
-                </summary>
+                <Plus size={18} />
+              </Link>
 
-                <div
-                  id="account-menu"
-                  role="menu"
-                  className="absolute right-0 mt-2 w-56 rounded-xl border border-[var(--header-border)] bg-[var(--header)] text-[var(--header-primary)] shadow-soft"
-                >
-                  <div className="truncate px-3 py-2 text-xs text-[var(--muted-primary)]">
-                    {session.user?.name}
-                  </div>
-
-                  <Link
-                    ref={firstItemRef}
-                    role="menuitem"
-                    href="/profile"
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--header-foreground)] visited:text-[var(--header-foreground)] hover:bg-[color-mix(in_oklch,var(--header),black_4%)] hover:text-[var(--header-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-                    onClick={closeMenu}
-                  >
-                    <User size={16} />
-                    <span>Profil</span>
-                  </Link>
-
-                  <Link
-                    role="menuitem"
-                    href="/event"
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--header-foreground)] visited:text-[var(--header-foreground)] hover:bg-[color-mix(in_oklch,var(--header),black_4%)] hover:text-[var(--header-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-                    onClick={closeMenu}
-                  >
-                    <CalendarDays size={16} />
-                    <span>Événements</span>
-                  </Link>
-
+              {/* Avatar should NOT be another primary blob */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <button
-                    role="menuitem"
-                    onClick={() => {
-                      closeMenu();
+                    aria-label="Ouvrir le menu du compte"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-(--header-border) bg-(--header) text-sm font-semibold text-(--header-foreground) hover:bg-[color-mix(in_oklch,var(--header),black_4%)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:outline-none"
+                  >
+                    {initial(session.user?.name, session.user?.email)}
+                  </button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent
+                  align="end"
+                  className="border-border bg-background text-foreground w-56 rounded-xl border p-1 shadow-md"
+                >
+                  {session.user?.name && (
+                    <>
+                      <DropdownMenuLabel className="text-muted-foreground truncate px-2 py-1.5 text-xs">
+                        {session.user.name}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm"
+                    >
+                      <User size={16} className="text-muted-foreground" />
+                      <span>Mon profil</span>
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/event"
+                      className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm"
+                    >
+                      <CalendarDays size={16} className="text-muted-foreground" />
+                      <span>Mes événements</span>
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
                       signOut({ callbackUrl: "/" });
                     }}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--header-foreground)] hover:bg-[color-mix(in_oklch,var(--header),black_4%)] hover:text-[var(--header-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                    className="text-destructive focus:text-destructive flex items-center gap-2 rounded-lg px-2 py-2 text-sm"
                   >
                     <LogOut size={16} />
-                    <span>Se déconnecter</span>
-                  </button>
-                </div>
-              </details>
+                    <span>Déconnexion</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           )}
         </div>

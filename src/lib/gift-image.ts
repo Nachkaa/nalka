@@ -19,7 +19,7 @@ export async function processGiftImage(file: File | null | undefined): Promise<s
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  let img = sharp(buffer).rotate();
+  const img = sharp(buffer).rotate();
   const meta = await img.metadata();
   if (!meta.width || !meta.height) {
     throw new Error("Image invalide");
