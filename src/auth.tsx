@@ -33,7 +33,17 @@ function smtpConfigFromEnv(): SMTPTransport.Options {
     throw new Error("SMTP config missing (SMTP_* or EMAIL_SERVER_*)");
   }
 
-  return { host, port, secure: port === 465, auth: { user, pass } };
+  return {
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
+    dnsTimeout: 5_000,
+    tls: { servername: host },
+  };
 }
 
 let cachedTransporter: Transporter | null = null;
@@ -123,16 +133,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const text = await render(emailComponent, { plainText: true });
 
         const transporter = await getTransporter();
+        const startedAt = Date.now();
+        console.log("[mail] send:start to=%s mode=%s", identifier, MAIL_MODE);
 
-        const info = await transporter.sendMail({
-          to: identifier,
-          from: provider.from ?? process.env.MAIL_FROM!,
-          subject: isInvite
-            ? "Invitation a rejoindre un evenement Nalka"
-            : "Votre lien de connexion Nalka",
-          html,
-          text,
-        });
+        let info: nodemailer.SentMessageInfo;
+        try {
+          info = await transporter.sendMail({
+            to: identifier,
+            from: provider.from ?? process.env.MAIL_FROM!,
+            subject: isInvite
+              ? "Invitation a rejoindre un evenement Nalka"
+              : "Votre lien de connexion Nalka",
+            html,
+            text,
+          });
+          console.log("[mail] send:ok to=%s durMs=%d", identifier, Date.now() - startedAt);
+        } catch (error) {
+          console.error(
+            "[mail] send:fail to=%s durMs=%d error=%s",
+            identifier,
+            Date.now() - startedAt,
+            error instanceof Error ? error.stack ?? error.message : String(error),
+          );
+          throw error;
+        }
 
         if (MAIL_MODE === "ethereal") {
           const preview = nodemailer.getTestMessageUrl(info);

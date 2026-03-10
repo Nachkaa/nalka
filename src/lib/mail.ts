@@ -25,6 +25,11 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
       port,
       secure: port === 465,
       auth: { user, pass },
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
+      dnsTimeout: 5_000,
+      tls: { servername: host },
     });
     return cached;
   }
