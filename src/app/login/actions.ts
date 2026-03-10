@@ -1,5 +1,5 @@
-// tolerant parsing and prefer redirectTo
 "use server";
+// tolerant parsing and prefer redirectTo
 
 import { signIn } from "@/auth";
 import { z } from "zod";
@@ -26,6 +26,7 @@ function withQuery(path: string, extra: Record<string, string | undefined>) {
 const asOpt = (v: string | null | undefined): string | undefined => v ?? undefined;
 
 export async function sendMagicLink(input: unknown) {
+  console.info("[login-action] sendMagicLink:start");
   const raw =
     input instanceof FormData
       ? {
@@ -35,42 +36,51 @@ export async function sendMagicLink(input: unknown) {
         }
       : (input as Partial<z.infer<typeof Schema>>);
 
-  const { email } = Schema.pick({ email: true }).parse({ email: raw?.email });
-  const redirectToIn = pickSafePath(raw?.redirectTo);
-  const callbackUrlIn = pickSafePath(raw?.callbackUrl);
+  try {
+    const { email } = Schema.pick({ email: true }).parse({ email: raw?.email });
+    const redirectToIn = pickSafePath(raw?.redirectTo);
+    const callbackUrlIn = pickSafePath(raw?.callbackUrl);
 
-  let redirectTo = redirectToIn || callbackUrlIn || "/event/new";
+    let redirectTo = redirectToIn || callbackUrlIn || "/event/new";
 
-  if (redirectTo.startsWith("/join")) {
-    const code = new URL("http://x" + redirectTo).searchParams.get("code") || "";
+    if (redirectTo.startsWith("/join")) {
+      const code = new URL("http://x" + redirectTo).searchParams.get("code") || "";
 
-    if (code) {
-      const token = await prisma.inviteToken.findUnique({
-        where: { code },
-        select: {
-          event: {
-            select: {
-              title: true,
-              owner: { select: { name: true } },
+      if (code) {
+        const token = await prisma.inviteToken.findUnique({
+          where: { code },
+          select: {
+            event: {
+              select: {
+                title: true,
+                owner: { select: { name: true } },
+              },
             },
           },
-        },
-      });
+        });
 
-      redirectTo = withQuery(redirectTo, {
-        source: "invite",
-        eventTitle: token?.event.title, // string | undefined
-        inviter: asOpt(token?.event.owner?.name), // string | undefined
-      });
+        redirectTo = withQuery(redirectTo, {
+          source: "invite",
+          eventTitle: token?.event.title, // string | undefined
+          inviter: asOpt(token?.event.owner?.name), // string | undefined
+        });
+      }
     }
+
+    const res = await signIn("nodemailer", {
+      email,
+      redirect: false,
+      redirectTo,
+    });
+
+    if (res?.error) throw new Error(res.error);
+    console.info("[login-action] sendMagicLink:ok");
+    return { ok: true };
+  } catch (error) {
+    console.error(
+      "[login-action] sendMagicLink:fail",
+      error instanceof Error ? error.stack ?? error.message : String(error),
+    );
+    throw error;
   }
-
-  const res = await signIn("nodemailer", {
-    email,
-    redirect: false,
-    redirectTo,
-  });
-
-  if (res?.error) throw new Error(res.error);
-  return { ok: true };
 }
