@@ -109,7 +109,8 @@ function LoginForm() {
 
     startSend(async () => {
       try {
-        await sendMagicLink(fd);
+        const result = await sendMagicLink(fd);
+        if (!result.ok) throw new Error(result.error);
         setEmail(provided);
         setSent(true);
         setCooldown(60);
@@ -161,7 +162,8 @@ function LoginForm() {
         const fd = new FormData();
         fd.append("email", email);
         fd.append("redirectTo", redirectTo || from || "/event");
-        await sendMagicLink(fd);
+        const result = await sendMagicLink(fd);
+        if (!result.ok) throw new Error(result.error);
         setCooldown(60);
         setResendSuccess(true);
       } catch {

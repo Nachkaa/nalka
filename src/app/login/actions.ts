@@ -25,6 +25,8 @@ function withQuery(path: string, extra: Record<string, string | undefined>) {
 // null -> undefined to satisfy Record<string, string | undefined>
 const asOpt = (v: string | null | undefined): string | undefined => v ?? undefined;
 
+const SIGN_IN_TIMEOUT_MS = 15_000;
+
 export async function sendMagicLink(input: unknown) {
   console.info("[login-action] sendMagicLink:start");
   const raw =
@@ -67,20 +69,41 @@ export async function sendMagicLink(input: unknown) {
       }
     }
 
-    const res = await signIn("nodemailer", {
-      email,
-      redirect: false,
-      redirectTo,
+    console.info("[login-action] sendMagicLink:beforeSignIn");
+    const signInStartedAt = Date.now();
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(() => {
+        reject(new Error("SIGN_IN_TIMEOUT"));
+      }, SIGN_IN_TIMEOUT_MS);
     });
+    const res = await Promise.race([
+      signIn("nodemailer", {
+        email,
+        redirect: false,
+        redirectTo,
+      }),
+      timeoutPromise,
+    ]).finally(() => {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+    });
+    console.info(
+      "[login-action] sendMagicLink:afterSignIn duration_ms=%d",
+      Date.now() - signInStartedAt,
+    );
 
     if (res?.error) throw new Error(res.error);
     console.info("[login-action] sendMagicLink:ok");
     return { ok: true };
   } catch (error) {
+    const isTimeout = error instanceof Error && error.message === "SIGN_IN_TIMEOUT";
     console.error(
       "[login-action] sendMagicLink:fail",
       error instanceof Error ? error.stack ?? error.message : String(error),
     );
-    throw error;
+    return {
+      ok: false as const,
+      error: isTimeout ? "TIMEOUT" : "FAILED",
+    };
   }
 }
