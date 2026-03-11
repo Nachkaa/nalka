@@ -1,4 +1,4 @@
-// src/middleware.ts
+// src/proxy.ts
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -55,38 +55,60 @@ const withSecurity = (req: NextRequest, res: NextResponse) => {
   return res;
 };
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
+  const startedAt = Date.now();
   const { pathname, origin, search } = req.nextUrl;
+  console.info("[proxy] start path=%s", pathname);
 
-  // Never touch ANY API, especially /api/auth
-  if (pathname.startsWith("/api/")) return NextResponse.next();
-
-  const authed = hasSessionCookie(req);
-
-  // Public pages: allow through
-  if (isPublicPath(pathname)) {
-    // Authenticated users landing on / go straight to the app shell
-    if (pathname === "/" && authed) {
-      return withSecurity(req, NextResponse.redirect(new URL("/event", origin)));
+  try {
+    // Never touch ANY API, especially /api/auth
+    if (pathname.startsWith("/api/")) {
+      console.info("[proxy] ok path=%s durMs=%d", pathname, Date.now() - startedAt);
+      return NextResponse.next();
     }
 
+    const authed = hasSessionCookie(req);
+
+    // Public pages: allow through
+    if (isPublicPath(pathname)) {
+      // Authenticated users landing on / go straight to the app shell
+      if (pathname === "/" && authed) {
+        const to = new URL("/event", origin);
+        console.info("[proxy] redirect path=%s to=%s", pathname, to.pathname);
+        return withSecurity(req, NextResponse.redirect(to));
+      }
+
+      console.info("[proxy] ok path=%s durMs=%d", pathname, Date.now() - startedAt);
+      return withSecurity(req, NextResponse.next());
+    }
+
+    if (!authed) {
+      const url = new URL("/login", origin);
+      url.searchParams.set("from", pathname + (search || ""));
+      console.info("[proxy] redirect path=%s to=%s", pathname, url.pathname);
+      return withSecurity(req, NextResponse.redirect(url));
+    }
+
+    if (authed && pathname === "/login") {
+      const to = new URL("/event", origin);
+      console.info("[proxy] redirect path=%s to=%s", pathname, to.pathname);
+      return withSecurity(req, NextResponse.redirect(to));
+    }
+
+    console.info("[proxy] ok path=%s durMs=%d", pathname, Date.now() - startedAt);
     return withSecurity(req, NextResponse.next());
+  } catch (error) {
+    console.error(
+      "[proxy] fail path=%s durMs=%d error=%s",
+      pathname,
+      Date.now() - startedAt,
+      error instanceof Error ? error.stack ?? error.message : String(error),
+    );
+    throw error;
   }
-
-  if (!authed) {
-    const url = new URL("/login", origin);
-    url.searchParams.set("from", pathname + (search || ""));
-    return withSecurity(req, NextResponse.redirect(url));
-  }
-
-  if (authed && pathname === "/login") {
-    return withSecurity(req, NextResponse.redirect(new URL("/event", origin)));
-  }
-
-  return withSecurity(req, NextResponse.next());
 }
 
 // Exclude auth + all api + next internals + static asset paths
 export const config = {
-  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico|images|assets|gift-images).*)"],
+  matcher: ["/((?!api/|api/auth/|login$|_next/static|_next/image|favicon.ico|images|assets|gift-images).*)"],
 };
