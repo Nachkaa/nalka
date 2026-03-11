@@ -15,10 +15,9 @@ import { Label } from "@/components/ui/label";
 import { resolveInboxUrl } from "@/lib/auth/inboxProviders";
 import { maskEmail } from "@/lib/auth/maskEmail";
 import { Loader2 } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { sendMagicLink } from "./actions";
 
 export default function Page() {
   return (
@@ -109,8 +108,12 @@ function LoginForm() {
 
     startSend(async () => {
       try {
-        const result = await sendMagicLink(fd);
-        if (!result.ok) throw new Error(result.error);
+        const result = await signIn("nodemailer", {
+          email: provided,
+          redirect: false,
+          callbackUrl: redirectValue || "/event",
+        });
+        if (!result || result.error) throw new Error(result?.error ?? "SIGNIN_FAILED");
         setEmail(provided);
         setSent(true);
         setCooldown(60);
@@ -159,11 +162,12 @@ function LoginForm() {
     }
     startSend(async () => {
       try {
-        const fd = new FormData();
-        fd.append("email", email);
-        fd.append("redirectTo", redirectTo || from || "/event");
-        const result = await sendMagicLink(fd);
-        if (!result.ok) throw new Error(result.error);
+        const result = await signIn("nodemailer", {
+          email,
+          redirect: false,
+          callbackUrl: redirectTo || from || "/event",
+        });
+        if (!result || result.error) throw new Error(result?.error ?? "SIGNIN_FAILED");
         setCooldown(60);
         setResendSuccess(true);
       } catch {

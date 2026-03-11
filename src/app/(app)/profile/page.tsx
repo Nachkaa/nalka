@@ -156,7 +156,8 @@ export default function ProfilePage() {
                   onClick={() =>
                     startDelete(async () => {
                       await deleteMyAccount();
-                      await signOut({ redirect: true, callbackUrl: "/" });
+                      await signOut({ redirect: false, callbackUrl: "/" });
+                      window.location.assign("/");
                     })
                   }
                 >

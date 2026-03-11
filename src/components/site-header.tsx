@@ -164,7 +164,9 @@ export default function SiteHeader() {
                   <DropdownMenuItem
                     onSelect={(e) => {
                       e.preventDefault();
-                      signOut({ callbackUrl: "/" });
+                      void signOut({ redirect: false, callbackUrl: "/" }).then(() => {
+                        window.location.assign("/");
+                      });
                     }}
                     className="text-destructive focus:text-destructive flex items-center gap-2 rounded-lg px-2 py-2 text-sm"
                   >
