@@ -110,6 +110,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       from: process.env.MAIL_FROM!,
 
       async sendVerificationRequest({ identifier, url, provider }) {
+        console.log("[mail] request:start to=%s", identifier);
         const u = new URL(url);
         const redir = u.searchParams.get("redirectTo") || u.searchParams.get("callbackUrl") || "";
 
@@ -129,10 +130,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               supportEmail: "contact@nalka.fr",
             });
 
+        console.log("[mail] render:html:start to=%s", identifier);
         const html = await render(emailComponent);
+        console.log("[mail] render:html:ok to=%s", identifier);
+        console.log("[mail] render:text:start to=%s", identifier);
         const text = await render(emailComponent, { plainText: true });
+        console.log("[mail] render:text:ok to=%s", identifier);
 
+        console.log("[mail] transporter:start to=%s", identifier);
         const transporter = await getTransporter();
+        console.log("[mail] transporter:ok to=%s", identifier);
         const startedAt = Date.now();
         console.log("[mail] send:start to=%s mode=%s", identifier, MAIL_MODE);
 
