@@ -1,7 +1,6 @@
-import type { NextAuthConfig } from "next-auth";
+import type { NextAuthOptions } from "next-auth";
 
-export const authConfig: NextAuthConfig = {
-  trustHost: true,
+export const authConfig: NextAuthOptions = {
   session: { strategy: "database" },
   pages: { signIn: "/login" },
   providers: [],

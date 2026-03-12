@@ -1,7 +1,7 @@
-﻿// FILE: src/auth.tsx
-import NextAuth from "next-auth";
-import NodemailerProvider from "next-auth/providers/nodemailer";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+// FILE: src/auth.tsx
+import NextAuth, { getServerSession, type NextAuthOptions } from "next-auth";
+import EmailProvider from "next-auth/providers/email";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
 import { render } from "@react-email/render";
@@ -69,7 +69,6 @@ async function getTransporter(): Promise<Transporter> {
     return cachedTransporter;
   }
 
-  // MAIL_MODE === "ethereal"
   const acc = await nodemailer.createTestAccount();
   cachedTransporter = nodemailer.createTransport({
     host: "smtp.ethereal.email",
@@ -82,8 +81,6 @@ async function getTransporter(): Promise<Transporter> {
   return cachedTransporter;
 }
 
-// NextAuth requires a "server" in the provider even when sendVerificationRequest is overridden.
-// Use a safe placeholder when not in SMTP mode.
 const providerServer: SMTPTransport.Options =
   MAIL_MODE === "smtp"
     ? smtpConfigFromEnv()
@@ -94,23 +91,17 @@ const providerServer: SMTPTransport.Options =
         auth: { user: "ignored", pass: "ignored" },
       };
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
-  secret: process.env.AUTH_SECRET,
-  trustHost: true,
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   session: { strategy: "database" },
-
   pages: { signIn: "/login", error: "/login" },
-
   providers: [
-    NodemailerProvider({
-      id: "nodemailer",
+    EmailProvider({
       maxAge: 60 * 60 * 24 * 7,
       server: providerServer,
       from: process.env.MAIL_FROM!,
-
       async sendVerificationRequest({ identifier, url, provider }) {
-        console.log("[mail] request:start to=%s", identifier);
         const u = new URL(url);
         const redir = u.searchParams.get("redirectTo") || u.searchParams.get("callbackUrl") || "";
 
@@ -130,18 +121,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               supportEmail: "contact@nalka.fr",
             });
 
-        console.log("[mail] render:html:start to=%s", identifier);
         const html = await render(emailComponent);
-        console.log("[mail] render:html:ok to=%s", identifier);
-        console.log("[mail] render:text:start to=%s", identifier);
         const text = await render(emailComponent, { plainText: true });
-        console.log("[mail] render:text:ok to=%s", identifier);
-
-        console.log("[mail] transporter:start to=%s", identifier);
         const transporter = await getTransporter();
-        console.log("[mail] transporter:ok to=%s", identifier);
-        const startedAt = Date.now();
-        console.log("[mail] send:start to=%s mode=%s", identifier, MAIL_MODE);
 
         let info: nodemailer.SentMessageInfo;
         try {
@@ -154,14 +136,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             html,
             text,
           });
-          console.log("[mail] send:ok to=%s durMs=%d", identifier, Date.now() - startedAt);
         } catch (error) {
-          console.error(
-            "[mail] send:fail to=%s durMs=%d error=%s",
-            identifier,
-            Date.now() - startedAt,
-            error instanceof Error ? error.stack ?? error.message : String(error),
-          );
           throw error;
         }
 
@@ -176,4 +151,122 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-});
+};
+
+const authRouteHandler = NextAuth(authOptions);
+
+export const handlers = {
+  GET: authRouteHandler,
+  POST: authRouteHandler,
+};
+
+export function auth() {
+  return getServerSession(authOptions);
+}
+
+type ServerSignInOptions = {
+  email?: string;
+  redirect?: boolean;
+  redirectTo?: string;
+  callbackUrl?: string;
+};
+
+type ServerSignInResult = {
+  error?: string;
+  ok: boolean;
+  status: number;
+  url: string | null;
+};
+
+function authBaseUrl() {
+  return (
+    process.env.NEXTAUTH_URL || process.env.AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || ""
+  ).replace(/\/+$/, "");
+}
+
+export async function signIn(
+  provider: string,
+  options: ServerSignInOptions = {},
+): Promise<ServerSignInResult> {
+  if (provider !== "nodemailer" && provider !== "email") {
+    return { ok: false, status: 400, url: null, error: "UNSUPPORTED_PROVIDER" };
+  }
+
+  const baseUrl = authBaseUrl();
+  if (!baseUrl) {
+    return { ok: false, status: 500, url: null, error: "MISSING_AUTH_BASE_URL" };
+  }
+
+  const csrfRes = await fetch(`${baseUrl}/api/auth/csrf`, { cache: "no-store" });
+  if (!csrfRes.ok) {
+    return { ok: false, status: csrfRes.status, url: null, error: `CSRF_HTTP_${csrfRes.status}` };
+  }
+
+  const csrfData: unknown = await csrfRes.json();
+  const csrfToken =
+    typeof csrfData === "object" &&
+    csrfData !== null &&
+    "csrfToken" in csrfData &&
+    typeof (csrfData as { csrfToken?: unknown }).csrfToken === "string"
+      ? (csrfData as { csrfToken: string }).csrfToken
+      : "";
+  if (!csrfToken) {
+    return { ok: false, status: 500, url: null, error: "MISSING_CSRF_TOKEN" };
+  }
+
+  const cookieHeader = csrfRes.headers
+    .getSetCookie()
+    .map((cookie) => cookie.split(";", 1)[0])
+    .filter(Boolean)
+    .join("; ");
+
+  const form = new URLSearchParams();
+  form.set("csrfToken", csrfToken);
+  if (options.email) form.set("email", options.email);
+  const callbackUrl = options.redirectTo || options.callbackUrl;
+  if (callbackUrl) form.set("callbackUrl", callbackUrl);
+  form.set("json", "true");
+
+  const headers: Record<string, string> = {
+    "content-type": "application/x-www-form-urlencoded",
+  };
+  if (cookieHeader) headers.cookie = cookieHeader;
+
+  const response = await fetch(`${baseUrl}/api/auth/signin/email`, {
+    method: "POST",
+    headers,
+    body: form.toString(),
+    redirect: "manual",
+    cache: "no-store",
+  });
+
+  let payload: unknown = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  const error =
+    typeof payload === "object" &&
+    payload !== null &&
+    "error" in payload &&
+    typeof (payload as { error?: unknown }).error === "string"
+      ? (payload as { error: string }).error
+      : undefined;
+
+  const url =
+    typeof payload === "object" &&
+    payload !== null &&
+    "url" in payload &&
+    typeof (payload as { url?: unknown }).url === "string"
+      ? (payload as { url: string }).url
+      : null;
+
+  return {
+    ok: response.ok && !error,
+    status: response.status,
+    url,
+    error: error ?? (response.ok ? undefined : `SIGNIN_HTTP_${response.status}`),
+  };
+}

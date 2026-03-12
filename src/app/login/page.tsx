@@ -108,7 +108,7 @@ function LoginForm() {
 
     startSend(async () => {
       try {
-        const result = await signIn("nodemailer", {
+        const result = await signIn("email", {
           email: provided,
           redirect: false,
           callbackUrl: redirectValue || "/event",
@@ -162,7 +162,7 @@ function LoginForm() {
     }
     startSend(async () => {
       try {
-        const result = await signIn("nodemailer", {
+        const result = await signIn("email", {
           email,
           redirect: false,
           callbackUrl: redirectTo || from || "/event",

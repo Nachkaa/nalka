@@ -1,0 +1,12 @@
+[next-auth][error][SIGNIN_EMAIL_ERROR] 
+https://next-auth.js.org/errors#signin_email_error connect EACCES 65.109.90.220:443 {
+  error: {
+    message: 'connect EACCES 65.109.90.220:443',
+    stack: 'Error: connect EACCES 65.109.90.220:443\n' +
+      '    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)\n' +
+      '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+    name: 'Error'
+  },
+  providerId: 'email',
+  message: 'connect EACCES 65.109.90.220:443'
+}
