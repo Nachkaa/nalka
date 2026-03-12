@@ -24,6 +24,15 @@ const hasSessionCookie = (req: NextRequest) =>
 const isPublicPath = (pathname: string) =>
   PUBLIC.has(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
 
+const isSuspiciousPath = (pathname: string) =>
+  pathname.endsWith(".php") ||
+  pathname.includes(".php/") ||
+  pathname === "/.env" ||
+  pathname.startsWith("/.env.") ||
+  pathname === "/wp-login.php" ||
+  pathname === "/xmlrpc.php" ||
+  pathname === "/admin/config.php";
+
 const makeNonce = () => {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes); // Edge runtime: Web Crypto only
@@ -63,6 +72,11 @@ export function proxy(req: NextRequest) {
   try {
     // Never touch ANY API, especially /api/auth
     if (pathname.startsWith("/api/")) {
+      console.info("[proxy] ok path=%s durMs=%d", pathname, Date.now() - startedAt);
+      return NextResponse.next();
+    }
+
+    if (isSuspiciousPath(pathname)) {
       console.info("[proxy] ok path=%s durMs=%d", pathname, Date.now() - startedAt);
       return NextResponse.next();
     }
