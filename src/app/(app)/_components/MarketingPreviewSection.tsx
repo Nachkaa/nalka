@@ -38,7 +38,7 @@ function PrivateBadge() {
 
 export function MarketingPreviewSection() {
   return (
-    <section className="bg-background py-20 md:py-28">
+    <section id="espace-prive" className="bg-background py-20 md:py-28">
       <Container className="flex flex-col items-center gap-10 text-center">
         <div className="space-y-3">
           <h2 className="text-foreground text-3xl font-semibold tracking-tight md:text-5xl">

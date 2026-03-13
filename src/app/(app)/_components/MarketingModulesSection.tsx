@@ -73,7 +73,7 @@ type ModuleStatus = "ALWAYS_ON" | "OPTIONAL" | "SOON";
 
 export function MarketingModulesSection() {
   return (
-    <section className="bg-background pt-10 pb-10 md:pt-14 md:pb-28">
+    <section id="modules-evenement" className="bg-background pt-10 pb-10 md:pt-14 md:pb-28">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,hsl(var(--primary)/0.12),transparent_70%)]" />
       <Container className="flex flex-col items-center gap-10 text-center">
         <div className="space-y-3">

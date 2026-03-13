@@ -38,7 +38,7 @@ const examples = [
 
 export function MarketingExamplesSection() {
   return (
-    <section className="bg-background py-20 md:py-24">
+    <section id="idees-evenements" className="bg-background py-20 md:py-24">
       <Container className="flex flex-col gap-10 md:gap-12">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
           {highlights.map((item) => {

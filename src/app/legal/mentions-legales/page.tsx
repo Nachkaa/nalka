@@ -1,18 +1,36 @@
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { StructuredData } from "@/components/seo/StructuredData";
+import { absoluteUrl, buildPublicMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Mentions légales",
+export const metadata = buildPublicMetadata({
+  title: "Mentions legales",
   description:
-    "Mentions légales du site Nalka : informations sur l’éditeur, l’hébergeur et le responsable de publication.",
-  robots: { index: true, follow: true },
-};
+    "Consultez les mentions legales de Nalka avec les informations sur l'editeur, l'hebergeur et le responsable de publication.",
+  path: "/legal/mentions-legales",
+});
 
 const UPDATED_AT = "2025-11-10";
 
 export default function Page() {
+  const breadcrumbs = [{ name: "Accueil", href: "/" }, { name: "Mentions legales" }];
+
   return (
     <>
-      <PageHeader title="Mentions légales" />
+      <StructuredData
+        data={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: breadcrumbs.map((item, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: item.name,
+            item: item.href ? absoluteUrl(item.href) : absoluteUrl("/legal/mentions-legales"),
+          })),
+        }}
+      />
+      <Breadcrumbs items={breadcrumbs} />
+      <PageHeader title="Mentions legales" />
       <main
         className={[
           "prose prose-neutral mx-auto",
@@ -25,26 +43,26 @@ export default function Page() {
         ].join(" ")}
       >
         <p className="text-muted-foreground not-prose text-sm">
-          Dernière mise à jour&nbsp;: {UPDATED_AT}
+          Derniere mise a jour&nbsp;: {UPDATED_AT}
         </p>
 
-        <h2>1. Éditeur</h2>
+        <h2>1. Editeur</h2>
         <p>
-          <strong>Nom&nbsp;:</strong> Aurèle Soyez
+          <strong>Nom&nbsp;:</strong> Aurele Soyez
           <br />
-          <strong>Adresse&nbsp;:</strong> 1 rue Galléan 06000 Nice
+          <strong>Adresse&nbsp;:</strong> 1 rue Gallean 06000 Nice
           <br />
           <strong>Contact&nbsp;:</strong> <a href="mailto:contact@nalka.fr">contact@nalka.fr</a>
           <br />
-          <strong>Statut&nbsp;:</strong> Éditeur personne physique (activité non immatriculée)
+          <strong>Statut&nbsp;:</strong> Editeur personne physique (activite non immatriculee)
           <br />
           <strong>TVA&nbsp;:</strong> non applicable (article&nbsp;293&nbsp;B du&nbsp;CGI)
         </p>
 
         <h2>2. Directeur de la publication</h2>
-        <p>Aurèle Soyez</p>
+        <p>Aurele Soyez</p>
 
-        <h2>3. Hébergeur</h2>
+        <h2>3. Hebergeur</h2>
         <p>
           <strong>IONOS SE</strong>
           <br />
@@ -56,25 +74,25 @@ export default function Page() {
             www.ionos.fr
           </a>
           <br />
-          Téléphone&nbsp;: +49&nbsp;721&nbsp;960&nbsp;0
+          Telephone&nbsp;: +49&nbsp;721&nbsp;960&nbsp;0
         </p>
 
-        <h2>4. Propriété intellectuelle</h2>
+        <h2>4. Propriete intellectuelle</h2>
         <p>
-          L’ensemble du contenu du site (textes, images, code, graphismes, logos) est protégé par le
-          droit de la propriété intellectuelle. Toute reproduction totale ou partielle sans
-          autorisation préalable est interdite.
+          L'ensemble du contenu du site (textes, images, code, graphismes, logos) est protege par le
+          droit de la propriete intellectuelle. Toute reproduction totale ou partielle sans
+          autorisation prealable est interdite.
         </p>
 
-        <h2>5. Responsabilité</h2>
+        <h2>5. Responsabilite</h2>
         <p>
-          Nalka ne peut être tenue responsable des erreurs, omissions ou dysfonctionnements
-          temporaires du service. Les liens externes ne relèvent pas de sa responsabilité.
+          Nalka ne peut etre tenue responsable des erreurs, omissions ou dysfonctionnements
+          temporaires du service. Les liens externes ne relevent pas de sa responsabilite.
         </p>
 
         <h2>6. Signalement de contenu illicite</h2>
         <p>
-          Pour toute demande de retrait ou signalement d’un contenu illicite, contactez&nbsp;:{" "}
+          Pour toute demande de retrait ou signalement d'un contenu illicite, contactez&nbsp;:{" "}
           <a href="mailto:contact@nalka.fr">contact@nalka.fr</a>.
         </p>
       </main>

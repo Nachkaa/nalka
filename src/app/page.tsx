@@ -1,4 +1,5 @@
 import { Mail } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { MarketingExamplesSection } from "@/app/(app)/_components/MarketingExamplesSection";
@@ -8,8 +9,17 @@ import { MarketingPreviewSection } from "@/app/(app)/_components/MarketingPrevie
 import { MarketingPrivacySection } from "@/app/(app)/_components/MarketingPrivacySection";
 import { Container } from "@/components/layout/Container";
 import { MarketingNavbar } from "@/components/marketing/MarketingNavbar";
+import { StructuredData } from "@/components/seo/StructuredData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { absoluteUrl, buildPublicMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPublicMetadata({
+  title: "Organisation d'evenements prives et listes cadeaux",
+  description:
+    "Organisez un evenement prive avec invitations, cadeaux, Secret Santa et depenses dans un espace clair, discret et sans spoiler.",
+  path: "/",
+});
 
 function MockEventCard() {
   return (
@@ -57,6 +67,16 @@ function MockEventCard() {
 export default function MarketingHomePage() {
   return (
     <>
+      <StructuredData
+        data={{
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Organisation d'evenements prives et listes cadeaux",
+          url: absoluteUrl("/"),
+          description:
+            "Organisez un evenement prive avec invitations, cadeaux, Secret Santa et depenses dans un espace clair, discret et sans spoiler.",
+        }}
+      />
       <MarketingNavbar />
 
       <section className="relative isolate overflow-hidden">
@@ -66,7 +86,7 @@ export default function MarketingHomePage() {
 
         <Container className="relative flex flex-col gap-10 py-12 md:py-16 lg:py-16">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-14">
-            <div id="comment" className="space-y-6">
+            <div className="space-y-6">
               <h1 className="text-foreground text-2xl leading-tight font-semibold tracking-tight md:text-5xl lg:text-[2.5rem]">
                 Créez un événement privé en toute simplicité.
               </h1>
@@ -102,6 +122,26 @@ export default function MarketingHomePage() {
                 <p className="text-muted-foreground text-sm">
                   Aucun mot de passe. Connexion par lien magique sécurisé.
                 </p>
+                <nav aria-label="Acces rapides" className="flex flex-wrap gap-3 text-sm">
+                  <Link
+                    href="#fonctionnement"
+                    className="text-foreground underline-offset-4 hover:underline"
+                  >
+                    Voir comment creer un evenement prive
+                  </Link>
+                  <Link
+                    href="#modules-evenement"
+                    className="text-foreground underline-offset-4 hover:underline"
+                  >
+                    Decouvrir les modules cadeaux, Secret Santa et depenses
+                  </Link>
+                  <Link
+                    href="#idees-evenements"
+                    className="text-foreground underline-offset-4 hover:underline"
+                  >
+                    Explorer des exemples d'evenements prives
+                  </Link>
+                </nav>
               </div>
             </div>
 

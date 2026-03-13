@@ -1,17 +1,35 @@
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { StructuredData } from "@/components/seo/StructuredData";
+import { absoluteUrl, buildPublicMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "Cookies",
+export const metadata = buildPublicMetadata({
+  title: "Politique cookies",
   description:
-    "Informations sur l’utilisation des cookies sur Nalka : cookies nécessaires, mesure d’audience et gestion du consentement.",
-  robots: { index: true, follow: true },
-};
+    "Consultez la politique cookies de Nalka pour comprendre les cookies necessaires, la mesure d'audience et la gestion du consentement.",
+  path: "/legal/cookies",
+});
 
 const UPDATED_AT = "2025-11-10";
 
 export default function Page() {
+  const breadcrumbs = [{ name: "Accueil", href: "/" }, { name: "Politique cookies" }];
+
   return (
     <>
+      <StructuredData
+        data={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: breadcrumbs.map((item, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: item.name,
+            item: item.href ? absoluteUrl(item.href) : absoluteUrl("/legal/cookies"),
+          })),
+        }}
+      />
+      <Breadcrumbs items={breadcrumbs} />
       <PageHeader title="Cookies" />
       <main
         className={[
@@ -25,28 +43,28 @@ export default function Page() {
         ].join(" ")}
       >
         <p className="text-muted-foreground not-prose text-sm">
-          Dernière mise à jour&nbsp;: {UPDATED_AT}
+          Derniere mise a jour&nbsp;: {UPDATED_AT}
         </p>
 
-        <h2>1. Cookies strictement nécessaires</h2>
+        <h2>1. Cookies strictement necessaires</h2>
         <p>
           Ces cookies sont indispensables au fonctionnement du site&nbsp;: gestion de session,
-          sécurité, et enregistrement de votre préférence de consentement. Ils ne nécessitent pas
-          d’accord préalable.
+          securite, et enregistrement de votre preference de consentement. Ils ne necessitent pas
+          d'accord prealable.
         </p>
 
-        <h2>2. Mesure d’audience</h2>
+        <h2>2. Mesure d'audience</h2>
         <p>
-          Des cookies peuvent être utilisés pour mesurer la fréquentation et améliorer l’expérience
-          utilisateur. Ils ne sont déposés qu’après votre accord explicite via le bandeau de
-          consentement. Vous pouvez refuser aussi facilement qu’accepter, et retirer votre choix à
+          Des cookies peuvent etre utilises pour mesurer la frequentation et ameliorer l'experience
+          utilisateur. Ils ne sont deposes qu'apres votre accord explicite via le bandeau de
+          consentement. Vous pouvez refuser aussi facilement qu'accepter, et retirer votre choix a
           tout moment.
         </p>
 
-        <h2>3. Durée de validité du choix</h2>
+        <h2>3. Duree de validite du choix</h2>
         <p>
-          Votre préférence (acceptation ou refus) est conservée pendant 6&nbsp;mois, puis redemandée
-          à expiration de ce délai.
+          Votre preference (acceptation ou refus) est conservee pendant 6&nbsp;mois, puis redemandee
+          a expiration de ce delai.
         </p>
 
         <h2>4. Modifier votre choix</h2>
@@ -62,7 +80,7 @@ function ConsentManager() {
   const setConsent = (value: "granted" | "denied") => {
     localStorage.setItem("cookie.consent", value);
     window.dispatchEvent(new CustomEvent("nalka:consent", { detail: { consent: value } }));
-    alert(`Consentement défini sur « ${value} ». Rechargez la page pour appliquer.`);
+    alert(`Consentement defini sur "${value}". Rechargez la page pour appliquer.`);
   };
 
   return (

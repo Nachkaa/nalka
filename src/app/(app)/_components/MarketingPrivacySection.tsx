@@ -28,7 +28,10 @@ const items = [
 
 export function MarketingPrivacySection() {
   return (
-    <section className="relative isolate overflow-hidden bg-[#0b0b10] py-10 md:py-18">
+    <section
+      id="confidentialite-privee"
+      className="relative isolate overflow-hidden bg-[#0b0b10] py-10 md:py-18"
+    >
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* top-left glow */}
         <div
