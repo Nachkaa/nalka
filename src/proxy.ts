@@ -18,7 +18,9 @@ const PUBLIC_PREFIXES = [
 const hasSessionCookie = (req: NextRequest) =>
   Boolean(
     req.cookies.get("__Secure-authjs.session-token")?.value ||
-      req.cookies.get("authjs.session-token")?.value,
+      req.cookies.get("authjs.session-token")?.value ||
+      req.cookies.get("__Secure-next-auth.session-token")?.value ||
+      req.cookies.get("next-auth.session-token")?.value,
   );
 
 const isPublicPath = (pathname: string) =>
@@ -85,8 +87,8 @@ export function proxy(req: NextRequest) {
 
     // Public pages: allow through
     if (isPublicPath(pathname)) {
-      // Authenticated users landing on / go straight to the app shell
-      if (pathname === "/" && authed) {
+      // Authenticated users landing on guest-facing entry points go straight to the app shell
+      if (authed && (pathname === "/" || pathname === "/login")) {
         const to = new URL("/event", origin);
         console.info("[proxy] redirect path=%s to=%s", pathname, to.pathname);
         return withSecurity(req, NextResponse.redirect(to));
@@ -101,12 +103,6 @@ export function proxy(req: NextRequest) {
       url.searchParams.set("from", pathname + (search || ""));
       console.info("[proxy] redirect path=%s to=%s", pathname, url.pathname);
       return withSecurity(req, NextResponse.redirect(url));
-    }
-
-    if (authed && pathname === "/login") {
-      const to = new URL("/event", origin);
-      console.info("[proxy] redirect path=%s to=%s", pathname, to.pathname);
-      return withSecurity(req, NextResponse.redirect(to));
     }
 
     console.info("[proxy] ok path=%s durMs=%d", pathname, Date.now() - startedAt);
@@ -124,5 +120,5 @@ export function proxy(req: NextRequest) {
 
 // Exclude auth + all api + next internals + static asset paths
 export const config = {
-  matcher: ["/((?!api/|api/auth/|login$|_next/static|_next/image|favicon.ico|images|assets|gift-images).*)"],
+  matcher: ["/((?!api/|api/auth/|_next/static|_next/image|favicon.ico|images|assets|gift-images).*)"],
 };

@@ -1,4 +1,3 @@
-// FILE: src/app/login/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,21 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
+const SIGN_IN_ERROR_MESSAGES: Record<string, string> = {
+  Verification: "Le lien de connexion a expire. Demandez-en un nouveau ci-dessous.",
+  OAuthSignin: "Connexion Google indisponible pour le moment. Reessayez.",
+  OAuthCallback: "Connexion Google indisponible pour le moment. Reessayez.",
+  OAuthCreateAccount: "Connexion Google indisponible pour le moment. Reessayez.",
+  AccessDenied: "La connexion Google a ete annulee.",
+  AccountNotLinked:
+    "Ce compte existe deja avec une autre methode. Utilisez le lien e-mail pour vous connecter.",
+  OAuthAccountNotLinked:
+    "Connexion Google impossible pour le moment. Reessayez dans un instant.",
+  EmailSignin: "Envoi impossible. Verifiez l'adresse e-mail.",
+  Callback: "Connexion impossible pour le moment. Reessayez.",
+  Default: "Connexion impossible pour le moment. Reessayez.",
+};
+
 export default function Page() {
   return (
     <Suspense
@@ -36,7 +50,6 @@ export default function Page() {
 function LoginFormShell() {
   const searchParams = useSearchParams();
   const reset = searchParams.get("reset") === "1";
-  // Remount quand reset=1 => état remis à zéro sans setState dans un effect
   return <LoginForm key={reset ? "reset" : "normal"} />;
 }
 
@@ -59,14 +72,15 @@ function LoginForm() {
   const [cooldown, setCooldown] = useState(0);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [helpNote, setHelpNote] = useState(false);
+  const [isGooglePending, setIsGooglePending] = useState(false);
   const [isSending, startSend] = useTransition();
   const emailInputRef = useRef<HTMLInputElement>(null);
   const tipsRef = useRef<HTMLDetailsElement | null>(null);
 
   const errorCode = useMemo(() => searchParams.get("error") ?? "", [searchParams]);
-  const verificationFailed = errorCode === "Verification";
-
   const shouldFocus = searchParams.get("reset") === "1";
+  const callbackTarget = redirectTo || from || "/event";
+
   useEffect(() => {
     if (!shouldFocus) return;
     requestAnimationFrame(() => emailInputRef.current?.focus());
@@ -90,8 +104,42 @@ function LoginForm() {
     return () => window.clearInterval(timer);
   }, [sent, cooldown]);
 
+  useEffect(() => {
+    if (!errorCode) return;
+    setError(SIGN_IN_ERROR_MESSAGES[errorCode] ?? SIGN_IN_ERROR_MESSAGES.Default);
+  }, [errorCode]);
+
   const mailboxUrl = useMemo(() => resolveInboxUrl(email), [email]);
   const masked = useMemo(() => (email ? maskEmail(email) : ""), [email]);
+
+  async function handleGoogleSignIn() {
+    setError("");
+    setIsGooglePending(true);
+
+    try {
+      const result = await signIn("google", {
+        callbackUrl: callbackTarget,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(SIGN_IN_ERROR_MESSAGES[result.error] ?? SIGN_IN_ERROR_MESSAGES.Default);
+        setIsGooglePending(false);
+        return;
+      }
+
+      if (result?.url) {
+        window.location.assign(result.url);
+        return;
+      }
+
+      setError(SIGN_IN_ERROR_MESSAGES.Default);
+    } catch {
+      setError(SIGN_IN_ERROR_MESSAGES.Default);
+    }
+
+    setIsGooglePending(false);
+  }
 
   function submit(form: HTMLFormElement) {
     setError("");
@@ -103,7 +151,7 @@ function LoginForm() {
       sessionStorage.setItem("auth:lastEmail", provided);
       if (redirectValue) sessionStorage.setItem("auth:lastRedirect", redirectValue);
     } catch {
-      // sessionStorage peut être indisponible (mode privé, etc.)
+      // sessionStorage peut etre indisponible
     }
 
     startSend(async () => {
@@ -121,7 +169,7 @@ function LoginForm() {
         setHelpNote(false);
         setRedirectTo(redirectValue || "/event");
       } catch {
-        setError("Envoi impossible. Vérifiez l’adresse.");
+        setError("Envoi impossible. Verifiez l'adresse e-mail.");
         setSent(false);
       }
     });
@@ -141,7 +189,7 @@ function LoginForm() {
       sessionStorage.removeItem("auth:lastEmail");
       sessionStorage.removeItem("auth:lastRedirect");
     } catch {
-      /* ignore */
+      // ignore
     }
     setSent(false);
     setCooldown(0);
@@ -157,7 +205,7 @@ function LoginForm() {
     setError("");
     setResendSuccess(false);
     if (!email) {
-      setError('Adresse manquante. Cliquez sur "Changer d’e-mail".');
+      setError('Adresse manquante. Cliquez sur "Changer d\'e-mail".');
       return;
     }
     startSend(async () => {
@@ -165,7 +213,7 @@ function LoginForm() {
         const result = await signIn("email", {
           email,
           redirect: false,
-          callbackUrl: redirectTo || from || "/event",
+          callbackUrl: callbackTarget,
         });
         if (!result || result.error) throw new Error(result?.error ?? "SIGNIN_FAILED");
         setCooldown(60);
@@ -183,6 +231,7 @@ function LoginForm() {
       </main>
     );
   }
+
   if (status === "authenticated") return null;
 
   return (
@@ -190,30 +239,57 @@ function LoginForm() {
       <Card className="w-full max-w-md rounded-2xl bg-white! shadow-lg">
         {!sent ? (
           <>
-            {verificationFailed && (
-              <div className="border-destructive/40 bg-destructive/10 text-destructive mx-6 mt-6 rounded-md border p-3 text-sm">
-                Le lien de connexion n’est plus valide (déjà utilisé ou expiré). Demandez simplement
-                un nouveau lien ci-dessous.
-              </div>
-            )}
-
-            <CardHeader className="space-y-1">
+            <CardHeader className="space-y-2">
               <CardTitle className="text-2xl">Connexion</CardTitle>
               <CardDescription>
-                Entrez votre e-mail. Nous vous enverrons un lien sécurisé.
+                Continuez avec Google pour acceder rapidement a vos evenements prives.
               </CardDescription>
             </CardHeader>
 
-            <form
-              noValidate
-              onSubmit={(e) => {
-                e.preventDefault();
-                submit(e.currentTarget);
-              }}
-            >
-              <CardContent className="space-y-8">
+            <CardContent className="space-y-6">
+              <Button
+                type="button"
+                className="h-11 w-full text-base"
+                onClick={handleGoogleSignIn}
+                disabled={isGooglePending || isSending}
+                aria-busy={isGooglePending}
+              >
+                {isGooglePending ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    Redirection...
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-3">
+                    <GoogleIcon />
+                    Continuer avec Google
+                  </span>
+                )}
+              </Button>
+
+              <div className="flex items-center gap-3">
+                <div className="bg-border h-px flex-1" />
+                <span className="text-muted-foreground text-xs uppercase tracking-[0.12em]">
+                  ou par e-mail
+                </span>
+                <div className="bg-border h-px flex-1" />
+              </div>
+
+              <form
+                noValidate
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submit(e.currentTarget);
+                }}
+                className="space-y-5 rounded-xl border border-dashed p-4"
+              >
                 <div className="grid gap-4">
-                  <Label htmlFor="email">Adresse e-mail</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="email">Lien magique e-mail</Label>
+                    <p className="text-muted-foreground text-xs">
+                      Option secondaire si vous ne souhaitez pas utiliser Google.
+                    </p>
+                  </div>
                   <Input
                     id="email"
                     name="email"
@@ -226,26 +302,16 @@ function LoginForm() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="h-11 text-base"
-                    disabled={isSending}
+                    disabled={isSending || isGooglePending}
                   />
-                  <p className="text-muted-foreground text-xs">
-                    Aucun mot de passe. Vous recevrez un lien de connexion.
-                  </p>
                 </div>
 
                 <input type="hidden" name="redirectTo" value={redirectTo} />
 
-                {error && (
-                  <p className="text-destructive text-sm" role="alert">
-                    {error}
-                  </p>
-                )}
-              </CardContent>
-
-              <CardFooter className="grid gap-5">
                 <Button
                   type="submit"
-                  disabled={isSending}
+                  variant="secondary"
+                  disabled={isSending || isGooglePending}
                   className="h-11 w-full text-base"
                   aria-busy={isSending}
                 >
@@ -255,27 +321,35 @@ function LoginForm() {
                       Envoi...
                     </span>
                   ) : (
-                    "Recevoir le lien"
+                    "Recevoir un lien"
                   )}
                 </Button>
+              </form>
 
-                <p className="text-muted-foreground text-center text-xs">
-                  Nalka © {new Date().getFullYear()}
+              {error ? (
+                <p className="text-destructive text-sm" role="alert">
+                  {error}
                 </p>
-              </CardFooter>
-            </form>
+              ) : null}
+            </CardContent>
+
+            <CardFooter>
+              <p className="text-muted-foreground w-full text-center text-xs">
+                Nalka © {new Date().getFullYear()}
+              </p>
+            </CardFooter>
           </>
         ) : (
           <>
             <CardHeader className="space-y-2 pb-4">
-              {resendSuccess && (
+              {resendSuccess ? (
                 <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-                  E-mail renvoyé.
+                  E-mail renvoye.
                 </div>
-              )}
-              <CardTitle className="text-2xl">Lien envoyé</CardTitle>
+              ) : null}
+              <CardTitle className="text-2xl">Lien envoye</CardTitle>
               <CardDescription>
-                Si un compte existe pour cette adresse, un e-mail a été envoyé à
+                Si un compte existe pour cette adresse, un e-mail a ete envoye a{" "}
                 <span className="text-foreground font-semibold">{masked || "cette adresse"}</span>.
               </CardDescription>
             </CardHeader>
@@ -283,13 +357,13 @@ function LoginForm() {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Button type="button" className="h-11 w-full text-base" onClick={handleOpenMailbox}>
-                  Ouvrir ma boîte mail
+                  Ouvrir ma boite mail
                 </Button>
-                {!mailboxUrl && helpNote && (
+                {!mailboxUrl && helpNote ? (
                   <p className="text-muted-foreground text-center text-sm">
-                    Ouvrez votre messagerie et cherchez &quot;Connexion&quot;.
+                    Ouvrez votre messagerie et cherchez "Connexion".
                   </p>
-                )}
+                ) : null}
               </div>
 
               <div className="flex justify-center">
@@ -298,7 +372,7 @@ function LoginForm() {
                   onClick={handleChangeEmail}
                   className="text-primary text-sm font-medium underline-offset-4 hover:underline"
                 >
-                  Changer d’e-mail
+                  Changer d'e-mail
                 </button>
               </div>
 
@@ -321,11 +395,11 @@ function LoginForm() {
                     "Renvoyer le lien"
                   )}
                 </Button>
-                {error && (
+                {error ? (
                   <p className="text-destructive text-center text-sm" role="alert">
                     {error}
                   </p>
-                )}
+                ) : null}
               </div>
 
               <details
@@ -333,14 +407,14 @@ function LoginForm() {
                 className="group border-border/60 bg-muted/40 rounded-lg border px-4 py-3"
               >
                 <summary className="text-foreground cursor-pointer text-sm font-medium">
-                  Pas de mail reçu ?
+                  Pas de mail recu ?
                 </summary>
                 <ul className="text-muted-foreground mt-3 space-y-2 text-sm">
-                  <li>- Spam / Indésirables</li>
+                  <li>- Spam / Indesirables</li>
                   <li>- Onglet Promotions (Gmail)</li>
                   <li>- Attendre 1-2 minutes</li>
-                  <li>- Seul le dernier lien reçu fonctionne</li>
-                  <li>- Rechercher &quot;connexion&quot; + nom de l&apos;app</li>
+                  <li>- Seul le dernier lien recu fonctionne</li>
+                  <li>- Rechercher "connexion" + nom de l'app</li>
                 </ul>
               </details>
             </CardContent>
@@ -348,5 +422,28 @@ function LoginForm() {
         )}
       </Card>
     </main>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+      <path
+        d="M21.805 12.23c0-.68-.06-1.334-.173-1.962H12v3.713h5.5a4.703 4.703 0 0 1-2.04 3.085v2.56h3.3c1.93-1.777 3.045-4.395 3.045-7.396Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 22c2.76 0 5.075-.915 6.766-2.474l-3.3-2.56c-.915.614-2.086.977-3.466.977-2.658 0-4.91-1.794-5.715-4.206H2.873v2.64A10 10 0 0 0 12 22Z"
+        fill="#34A853"
+      />
+      <path
+        d="M6.285 13.737A5.997 5.997 0 0 1 5.965 12c0-.603.11-1.19.32-1.737v-2.64H2.873A10 10 0 0 0 2 12c0 1.61.386 3.134 1.073 4.377l3.212-2.64Z"
+        fill="#FBBC04"
+      />
+      <path
+        d="M12 6.057c1.5 0 2.846.516 3.907 1.53l2.93-2.93C17.07 3.012 14.755 2 12 2a10 10 0 0 0-9.127 5.623l3.412 2.64C7.09 7.851 9.342 6.057 12 6.057Z"
+        fill="#EA4335"
+      />
+    </svg>
   );
 }

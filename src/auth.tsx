@@ -1,6 +1,7 @@
 // FILE: src/auth.tsx
 import NextAuth, { getServerSession, type NextAuthOptions } from "next-auth";
 import EmailProvider from "next-auth/providers/email";
+import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
@@ -91,66 +92,83 @@ const providerServer: SMTPTransport.Options =
         auth: { user: "ignored", pass: "ignored" },
       };
 
+const googleClientId = process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
+
+const providers: NextAuthOptions["providers"] = [];
+
+if (googleClientId && googleClientSecret) {
+  providers.push(
+    GoogleProvider({
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
+      allowDangerousEmailAccountLinking: true,
+    }),
+  );
+}
+
+providers.push(
+  EmailProvider({
+    maxAge: 60 * 60 * 24 * 7,
+    server: providerServer,
+    from: process.env.MAIL_FROM!,
+    async sendVerificationRequest({ identifier, url, provider }) {
+      const u = new URL(url);
+      const redir = u.searchParams.get("redirectTo") || u.searchParams.get("callbackUrl") || "";
+
+      const cb = redir ? new URL(redir, u.origin) : null;
+      const isInvite = cb?.searchParams.get("source") === "invite";
+
+      const emailComponent = isInvite
+        ? InviteEmail({
+            link: url,
+            eventTitle: cb?.searchParams.get("eventTitle") || "Votre evenement",
+            inviterName: cb?.searchParams.get("inviter") || "Un membre",
+            appName: "Nalka",
+          })
+        : MagicLinkEmail({
+            url,
+            appName: "Nalka",
+            supportEmail: "contact@nalka.fr",
+          });
+
+      const html = await render(emailComponent);
+      const text = await render(emailComponent, { plainText: true });
+      const transporter = await getTransporter();
+
+      let info: nodemailer.SentMessageInfo;
+      try {
+        info = await transporter.sendMail({
+          to: identifier,
+          from: provider.from ?? process.env.MAIL_FROM!,
+          subject: isInvite
+            ? "Invitation a rejoindre un evenement Nalka"
+            : "Votre lien de connexion Nalka",
+          html,
+          text,
+        });
+      } catch (error) {
+        throw error;
+      }
+
+      if (MAIL_MODE === "ethereal") {
+        const preview = nodemailer.getTestMessageUrl(info);
+        if (preview) console.log("[mail] ethereal preview:", preview);
+      } else if (MAIL_MODE === "console") {
+        const msg =
+          typeof info.message === "string" ? info.message : (info.message?.toString?.() ?? "");
+        console.log("[mail] console message:", msg || info);
+      }
+    },
+  }),
+);
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   session: { strategy: "database" },
   pages: { signIn: "/login", error: "/login" },
-  providers: [
-    EmailProvider({
-      maxAge: 60 * 60 * 24 * 7,
-      server: providerServer,
-      from: process.env.MAIL_FROM!,
-      async sendVerificationRequest({ identifier, url, provider }) {
-        const u = new URL(url);
-        const redir = u.searchParams.get("redirectTo") || u.searchParams.get("callbackUrl") || "";
-
-        const cb = redir ? new URL(redir, u.origin) : null;
-        const isInvite = cb?.searchParams.get("source") === "invite";
-
-        const emailComponent = isInvite
-          ? InviteEmail({
-              link: url,
-              eventTitle: cb?.searchParams.get("eventTitle") || "Votre evenement",
-              inviterName: cb?.searchParams.get("inviter") || "Un membre",
-              appName: "Nalka",
-            })
-          : MagicLinkEmail({
-              url,
-              appName: "Nalka",
-              supportEmail: "contact@nalka.fr",
-            });
-
-        const html = await render(emailComponent);
-        const text = await render(emailComponent, { plainText: true });
-        const transporter = await getTransporter();
-
-        let info: nodemailer.SentMessageInfo;
-        try {
-          info = await transporter.sendMail({
-            to: identifier,
-            from: provider.from ?? process.env.MAIL_FROM!,
-            subject: isInvite
-              ? "Invitation a rejoindre un evenement Nalka"
-              : "Votre lien de connexion Nalka",
-            html,
-            text,
-          });
-        } catch (error) {
-          throw error;
-        }
-
-        if (MAIL_MODE === "ethereal") {
-          const preview = nodemailer.getTestMessageUrl(info);
-          if (preview) console.log("[mail] ethereal preview:", preview);
-        } else if (MAIL_MODE === "console") {
-          const msg =
-            typeof info.message === "string" ? info.message : (info.message?.toString?.() ?? "");
-          console.log("[mail] console message:", msg || info);
-        }
-      },
-    }),
-  ],
+  providers,
 };
 
 const authRouteHandler = NextAuth(authOptions);

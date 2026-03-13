@@ -1,12 +1,14 @@
 import { Mail } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { MarketingExamplesSection } from "@/app/(app)/_components/MarketingExamplesSection";
 import { MarketingHowItWorksSection } from "@/app/(app)/_components/MarketingHowItWorksSection";
 import { MarketingModulesSection } from "@/app/(app)/_components/MarketingModulesSection";
 import { MarketingPreviewSection } from "@/app/(app)/_components/MarketingPreviewSection";
 import { MarketingPrivacySection } from "@/app/(app)/_components/MarketingPrivacySection";
+import { auth } from "@/auth";
 import { Container } from "@/components/layout/Container";
 import { MarketingNavbar } from "@/components/marketing/MarketingNavbar";
 import { StructuredData } from "@/components/seo/StructuredData";
@@ -64,7 +66,13 @@ function MockEventCard() {
   );
 }
 
-export default function MarketingHomePage() {
+export default async function MarketingHomePage() {
+  const session = await auth();
+
+  if (session?.user) {
+    redirect("/event");
+  }
+
   return (
     <>
       <StructuredData

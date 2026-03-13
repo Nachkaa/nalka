@@ -24,6 +24,7 @@ export default function SiteHeader() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [upcomingCount, setUpcomingCount] = useState<number | null>(null);
+  const homeHref = session ? "/event" : "/";
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -54,7 +55,7 @@ export default function SiteHeader() {
   return (
     <header className="border-border text-foreground sticky top-0 z-40 border-b bg-white">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href={homeHref} className="flex items-center gap-2">
           <span className="bg-linear-to-r from-[var(--primary-500)] to-[var(--primary-600)] bg-clip-text text-lg font-semibold tracking-tight text-transparent">
             Nalka
           </span>
