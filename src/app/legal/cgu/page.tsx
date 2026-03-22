@@ -59,7 +59,7 @@ export default function Page() {
         <h2 id="compte">2. Compte</h2>
         <p>
           Un compte necessite une adresse e-mail valide. Vous etes responsable de la securite et de
-          l'usage de votre compte.
+          l&apos;usage de votre compte.
         </p>
 
         <h2 id="contenus">3. Contenus</h2>
@@ -70,8 +70,9 @@ export default function Page() {
 
         <h2 id="responsabilite">4. Responsabilite</h2>
         <p>
-          Le service est fourni "en l'etat". Nalka ne garantit pas l'absence d'erreurs ou
-          d'interruptions. La responsabilite totale est limitee au montant eventuellement paye sur
+          Le service est fourni &quot;en l&apos;etat&quot;. Nalka ne garantit pas l&apos;absence
+          d&apos;erreurs ou d&apos;interruptions. La responsabilite totale est limitee au montant
+          eventuellement paye sur
           les 12 derniers mois.
         </p>
 
@@ -91,7 +92,7 @@ export default function Page() {
         <h2 id="modif">7. Modifications</h2>
         <p>
           Nalka peut modifier les CGU a tout moment. Les changements importants seront notifies
-          raisonnablement. L'usage continu vaut acceptation.
+          raisonnablement. L&apos;usage continu vaut acceptation.
         </p>
 
         <h2 id="droit">8. Droit applicable</h2>
@@ -102,7 +103,7 @@ export default function Page() {
 
         <h2 id="contact">9. Contact</h2>
         <p>
-          Support et signalement d'abus&nbsp;:{" "}
+          Support et signalement d&apos;abus&nbsp;:{" "}
           <a href="mailto:contact@nalka.fr">contact@nalka.fr</a>
         </p>
       </main>

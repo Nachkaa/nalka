@@ -361,7 +361,7 @@ function LoginForm() {
                 </Button>
                 {!mailboxUrl && helpNote ? (
                   <p className="text-muted-foreground text-center text-sm">
-                    Ouvrez votre messagerie et cherchez "Connexion".
+                    Ouvrez votre messagerie et cherchez &quot;Connexion&quot;.
                   </p>
                 ) : null}
               </div>
@@ -372,7 +372,7 @@ function LoginForm() {
                   onClick={handleChangeEmail}
                   className="text-primary text-sm font-medium underline-offset-4 hover:underline"
                 >
-                  Changer d'e-mail
+                  Changer d&apos;e-mail
                 </button>
               </div>
 
@@ -414,7 +414,7 @@ function LoginForm() {
                   <li>- Onglet Promotions (Gmail)</li>
                   <li>- Attendre 1-2 minutes</li>
                   <li>- Seul le dernier lien recu fonctionne</li>
-                  <li>- Rechercher "connexion" + nom de l'app</li>
+                  <li>- Rechercher &quot;connexion&quot; + nom de l&apos;app</li>
                 </ul>
               </details>
             </CardContent>

@@ -79,7 +79,7 @@ export default function Page() {
 
         <h2>4. Propriete intellectuelle</h2>
         <p>
-          L'ensemble du contenu du site (textes, images, code, graphismes, logos) est protege par le
+          L&apos;ensemble du contenu du site (textes, images, code, graphismes, logos) est protege par le
           droit de la propriete intellectuelle. Toute reproduction totale ou partielle sans
           autorisation prealable est interdite.
         </p>
@@ -92,7 +92,7 @@ export default function Page() {
 
         <h2>6. Signalement de contenu illicite</h2>
         <p>
-          Pour toute demande de retrait ou signalement d'un contenu illicite, contactez&nbsp;:{" "}
+          Pour toute demande de retrait ou signalement d&apos;un contenu illicite, contactez&nbsp;:{" "}
           <a href="mailto:contact@nalka.fr">contact@nalka.fr</a>.
         </p>
       </main>

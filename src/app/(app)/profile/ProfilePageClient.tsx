@@ -128,7 +128,7 @@ export function ProfilePageClient({ isGoogleLinked, googleLinkedJustNow }: Props
                 className="mt-1 w-full cursor-not-allowed rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-neutral-500"
               />
               <p className="mt-1 text-xs text-neutral-500">
-                L'adresse e-mail ne peut pas etre modifiee.
+                L&apos;adresse e-mail ne peut pas etre modifiee.
               </p>
             </div>
           </section>

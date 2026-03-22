@@ -63,7 +63,7 @@ export default function Page() {
         <h2>3. Donnees traitees</h2>
         <ul>
           <li>
-            <strong>Compte&nbsp;:</strong> adresse e-mail, journaux d'authentification.
+            <strong>Compte&nbsp;:</strong> adresse e-mail, journaux d&apos;authentification.
           </li>
           <li>
             <strong>Application&nbsp;:</strong> evenements, listes de souhaits, reservations,
@@ -81,21 +81,21 @@ export default function Page() {
             <strong>Fourniture du service</strong> - execution du contrat.
           </li>
           <li>
-            <strong>Securite et prevention de l'abus</strong> - interet legitime.
+            <strong>Securite et prevention de l&apos;abus</strong> - interet legitime.
           </li>
           <li>
-            <strong>Mesure d'audience</strong> - consentement.
+            <strong>Mesure d&apos;audience</strong> - consentement.
           </li>
         </ul>
 
         <h2>5. Destinataires et sous-traitants</h2>
         <p>
           Donnees accessibles uniquement aux prestataires techniques necessaires&nbsp;: hebergement,
-          e-mail, mesure d'audience. Tous sont lies par des accords de sous-traitance conformes au
+          e-mail, mesure d&apos;audience. Tous sont lies par des accords de sous-traitance conformes au
           RGPD.
         </p>
 
-        <h2>6. Transferts hors de l'Union europeenne</h2>
+        <h2>6. Transferts hors de l&apos;Union europeenne</h2>
         <p>
           En cas de transfert, des garanties appropriees sont appliquees, telles que les Clauses
           Contractuelles Types approuvees par la Commission europeenne.
@@ -103,15 +103,15 @@ export default function Page() {
 
         <h2>7. Durees de conservation</h2>
         <ul>
-          <li>Compte&nbsp;: jusqu'a suppression volontaire.</li>
-          <li>Journaux de securite&nbsp;: jusqu'a 12&nbsp;mois.</li>
+          <li>Compte&nbsp;: jusqu&apos;a suppression volontaire.</li>
+          <li>Journaux de securite&nbsp;: jusqu&apos;a 12&nbsp;mois.</li>
           <li>Preferences cookies&nbsp;: 6&nbsp;mois.</li>
-          <li>Copies de sauvegarde&nbsp;: selon la politique d'exploitation.</li>
+          <li>Copies de sauvegarde&nbsp;: selon la politique d&apos;exploitation.</li>
         </ul>
 
         <h2>8. Vos droits</h2>
         <p>
-          Vous disposez des droits d'acces, rectification, effacement, limitation, opposition,
+          Vous disposez des droits d&apos;acces, rectification, effacement, limitation, opposition,
           portabilite, retrait du consentement et definition de directives post-mortem.
         </p>
         <p>

@@ -50,14 +50,14 @@ export default function Page() {
         <p>
           Ces cookies sont indispensables au fonctionnement du site&nbsp;: gestion de session,
           securite, et enregistrement de votre preference de consentement. Ils ne necessitent pas
-          d'accord prealable.
+          d&apos;accord prealable.
         </p>
 
-        <h2>2. Mesure d'audience</h2>
+        <h2>2. Mesure d&apos;audience</h2>
         <p>
-          Des cookies peuvent etre utilises pour mesurer la frequentation et ameliorer l'experience
-          utilisateur. Ils ne sont deposes qu'apres votre accord explicite via le bandeau de
-          consentement. Vous pouvez refuser aussi facilement qu'accepter, et retirer votre choix a
+          Des cookies peuvent etre utilises pour mesurer la frequentation et ameliorer l&apos;experience
+          utilisateur. Ils ne sont deposes qu&apos;apres votre accord explicite via le bandeau de
+          consentement. Vous pouvez refuser aussi facilement qu&apos;accepter, et retirer votre choix a
           tout moment.
         </p>
 

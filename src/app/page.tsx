@@ -147,7 +147,7 @@ export default async function MarketingHomePage() {
                     href="#idees-evenements"
                     className="text-foreground underline-offset-4 hover:underline"
                   >
-                    Explorer des exemples d'evenements prives
+                    Explorer des exemples d&apos;evenements prives
                   </Link>
                 </nav>
               </div>
