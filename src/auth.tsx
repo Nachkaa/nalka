@@ -169,6 +169,15 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: "database" },
   pages: { signIn: "/login", error: "/login" },
   providers,
+  callbacks: {
+    session({ session, user }) {
+      if (session.user) {
+        session.user.id = user.id;
+      }
+
+      return session;
+    },
+  },
 };
 
 const authRouteHandler = NextAuth(authOptions);

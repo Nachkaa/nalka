@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { Button } from "@/components/ui/button";
+import { createInviteToken } from "@/features/events/actions/invite";
 import { Loader2, Pencil, Share2 } from "lucide-react";
 import Link from "next/link";
 import { useTransition } from "react";
@@ -17,21 +18,35 @@ export function EventHeaderActions({ slug, isAdmin, title }: EventHeaderActionsP
 
   if (!isAdmin) return null;
 
+  const copyToClipboard = async (value: string) => {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+  };
+
   const handleShare = () => {
     if (isPending) return;
 
     startTransition(async () => {
       try {
-        const shareUrl = `${window.location.origin}/event/${slug}`;
+        const result = await createInviteToken(slug);
+        const shareUrl = result.url;
         const shareTitle = title ?? "Evenement";
-
-        const canClipboard = !!navigator.clipboard?.writeText;
         const canShare = typeof navigator.share === "function";
 
-        if (canClipboard) {
-          await navigator.clipboard.writeText(shareUrl);
-          toast.success("Lien copie");
-        }
+        await copyToClipboard(shareUrl);
+        toast.success("Lien d'invitation copie");
 
         if (canShare) {
           try {
@@ -41,22 +56,23 @@ export function EventHeaderActions({ slug, isAdmin, title }: EventHeaderActionsP
             if ((err as { name?: string })?.name === "AbortError") return;
           }
         }
-
-        if (!canClipboard) {
-          const textarea = document.createElement("textarea");
-          textarea.value = shareUrl;
-          textarea.setAttribute("readonly", "");
-          textarea.style.position = "fixed";
-          textarea.style.opacity = "0";
-          document.body.appendChild(textarea);
-          textarea.select();
-          document.execCommand("copy");
-          document.body.removeChild(textarea);
-          toast.success("Lien copie");
-        }
       } catch (error) {
         console.error(error);
-        toast.error("Impossible de partager le lien");
+        toast.error("Impossible de partager le lien d'invitation");
+      }
+    });
+  };
+
+  const handleCopyDirectLink = () => {
+    if (isPending) return;
+
+    startTransition(async () => {
+      try {
+        await copyToClipboard(`${window.location.origin}/event/${slug}`);
+        toast.success("Lien direct copie");
+      } catch (error) {
+        console.error(error);
+        toast.error("Impossible de copier le lien direct");
       }
     });
   };

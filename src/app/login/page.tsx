@@ -58,13 +58,14 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = useMemo(() => searchParams.get("from") || "/event", [searchParams]);
+  const hasExplicitFrom = useMemo(() => searchParams.has("from"), [searchParams]);
 
   const [email, setEmail] = useState(() => {
     if (typeof window === "undefined") return "";
     return sessionStorage.getItem("auth:lastEmail") ?? "";
   });
   const [redirectTo, setRedirectTo] = useState(() => {
-    if (typeof window === "undefined") return from;
+    if (typeof window === "undefined" || hasExplicitFrom) return from;
     return sessionStorage.getItem("auth:lastRedirect") ?? from;
   });
   const [sent, setSent] = useState(false);
@@ -82,13 +83,23 @@ function LoginForm() {
   const callbackTarget = redirectTo || from || "/event";
 
   useEffect(() => {
+    if (!hasExplicitFrom) return;
+    setRedirectTo(from);
+    try {
+      sessionStorage.setItem("auth:lastRedirect", from);
+    } catch {
+      // sessionStorage peut etre indisponible
+    }
+  }, [from, hasExplicitFrom]);
+
+  useEffect(() => {
     if (!shouldFocus) return;
     requestAnimationFrame(() => emailInputRef.current?.focus());
   }, [shouldFocus]);
 
   useEffect(() => {
-    if (status === "authenticated") router.replace("/event");
-  }, [status, router]);
+    if (status === "authenticated") router.replace(callbackTarget);
+  }, [status, router, callbackTarget]);
 
   useEffect(() => {
     if (!sent || cooldown === 0) return;
