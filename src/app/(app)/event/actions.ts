@@ -107,6 +107,7 @@ export async function createEvent(formData: FormData) {
     giftMode,
     giftsEnabled: formData.get("modules.giftsEnabled"),
 
+    secretSantaEnabled: formData.get("modules.secretSantaEnabled"),
     isNoSpoil: formData.get("rules.isNoSpoil"),
     isAnonReservations: formData.get("rules.isAnonReservations"),
     isSecondHandOk: formData.get("rules.isSecondHandOk"),
@@ -174,7 +175,11 @@ export async function createEvent(formData: FormData) {
     const modulesToCreate: { key: EventModuleKey; enabled: boolean; position: number }[] = [
       { key: EventModuleKey.OVERVIEW, enabled: true, position: MODULE_POSITIONS.OVERVIEW },
       { key: EventModuleKey.GIFTS, enabled: !!data.giftsEnabled, position: MODULE_POSITIONS.GIFTS },
-      { key: EventModuleKey.SECRET_SANTA, enabled: false, position: MODULE_POSITIONS.SECRET_SANTA },
+      {
+        key: EventModuleKey.SECRET_SANTA,
+        enabled: !!data.secretSantaEnabled,
+        position: MODULE_POSITIONS.SECRET_SANTA,
+      },
       {
         key: EventModuleKey.POTLUCK,
         enabled: !!data.bringEnabled,

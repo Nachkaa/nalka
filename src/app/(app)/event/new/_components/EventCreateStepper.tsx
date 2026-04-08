@@ -3,7 +3,7 @@
 import { createEvent } from "@/app/(app)/event/actions"; // adjust path
 import { Button } from "@/components/ui/button";
 import { EventModuleKey, type EventGiftMode, type EventLocationMode, type EventScheduleMode } from "@prisma/client";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { StepperHeader } from "./StepperHeader";
@@ -29,7 +29,7 @@ export type Draft = {
   scheduleTime: string;
   pollDates: string[];
   giftMode: EventGiftMode | null;
-  giftsTouched: boolean;
+  secretSantaEnabled: boolean;
   bringEnabled: boolean;
   timelineEnabled: boolean;
 };
@@ -65,36 +65,38 @@ export function EventCreateStepper({ displayName }: Props) {
     scheduleTime: "",
     pollDates: [],
     giftMode: null,
-    giftsTouched: false,
+    secretSantaEnabled: false,
     bringEnabled: false,
     timelineEnabled: false,
   });
   const [step, setStep] = useState(0);
   const [isPending, startTransition] = useTransition();
+  const moduleRecommendations = useMemo(() => inferModuleRecommendations(draft), [draft]);
   const giftRecommendation = useMemo(
     () =>
-      inferModuleRecommendations(draft).find((item) => item.moduleKey === EventModuleKey.GIFTS) ??
+      moduleRecommendations.recommended.find((item) => item.moduleKey === EventModuleKey.GIFTS) ??
       null,
-    [draft],
+    [moduleRecommendations],
   );
-
-  useEffect(() => {
-    setDraft((current) => {
-      if (current.giftsTouched) return current;
-
-      const shouldAutoAdd = giftRecommendation?.autoAdded === true;
-
-      if (shouldAutoAdd && current.giftMode === null) {
-        return { ...current, giftMode: "HOST_LIST" };
-      }
-
-      if (!shouldAutoAdd && current.giftMode !== null) {
-        return { ...current, giftMode: null };
-      }
-
-      return current;
-    });
-  }, [giftRecommendation]);
+  const bringRecommendation = useMemo(
+    () =>
+      moduleRecommendations.recommended.find((item) => item.moduleKey === EventModuleKey.POTLUCK) ??
+      null,
+    [moduleRecommendations],
+  );
+  const secretSantaRecommendation = useMemo(
+    () =>
+      moduleRecommendations.recommended.find(
+        (item) => item.moduleKey === EventModuleKey.SECRET_SANTA,
+      ) ?? null,
+    [moduleRecommendations],
+  );
+  const timelineRecommendation = useMemo(
+    () =>
+      moduleRecommendations.recommended.find((item) => item.moduleKey === EventModuleKey.TIMELINE) ??
+      null,
+    [moduleRecommendations],
+  );
 
   const canNext = useMemo(() => {
     if (step === 1) return draft.title.trim().length > 0;
@@ -142,6 +144,7 @@ export function EventCreateStepper({ displayName }: Props) {
     }
 
     // modules
+    fd.set("modules.secretSantaEnabled", draft.secretSantaEnabled ? "on" : "");
     fd.set("modules.bringEnabled", draft.bringEnabled ? "on" : "");
     fd.set("modules.timelineEnabled", draft.timelineEnabled ? "on" : "");
 
@@ -222,10 +225,15 @@ export function EventCreateStepper({ displayName }: Props) {
             <StepModules
               giftMode={draft.giftMode}
               giftRecommendation={giftRecommendation}
-              onChangeGiftMode={(giftMode) =>
-                setDraft((d) => ({ ...d, giftMode, giftsTouched: true }))
+              secretSantaEnabled={draft.secretSantaEnabled}
+              secretSantaRecommendation={secretSantaRecommendation}
+              bringRecommendation={bringRecommendation}
+              timelineRecommendation={timelineRecommendation}
+              onChangeGiftMode={(giftMode) => setDraft((d) => ({ ...d, giftMode }))}
+              onRemoveGifts={() => setDraft((d) => ({ ...d, giftMode: null }))}
+              onChangeSecretSantaEnabled={(secretSantaEnabled) =>
+                setDraft((d) => ({ ...d, secretSantaEnabled }))
               }
-              onRemoveGifts={() => setDraft((d) => ({ ...d, giftMode: null, giftsTouched: true }))}
               bringEnabled={draft.bringEnabled}
               onChangeBringEnabled={(bringEnabled) => setDraft((d) => ({ ...d, bringEnabled }))}
               timelineEnabled={draft.timelineEnabled}

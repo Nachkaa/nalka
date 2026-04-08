@@ -78,6 +78,7 @@ export const EventCreateSchema = z
     giftMode: giftModeSchema,
     giftsEnabled: checkboxFromForm.optional(),
 
+    secretSantaEnabled: checkboxFromForm.optional(),
     bringEnabled: checkboxFromForm.optional(),
     timelineEnabled: checkboxFromForm.optional(),
 

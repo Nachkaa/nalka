@@ -84,6 +84,7 @@ export function StepReview({ draft }: { draft: Draft }) {
 
   const modules: string[] = [];
   if (giftsValue) modules.push("Cadeaux");
+  if (draft.secretSantaEnabled) modules.push("Secret Santa");
   if (draft.bringEnabled) modules.push("Qui ramène quoi");
   if (draft.timelineEnabled) modules.push("Programme");
 
