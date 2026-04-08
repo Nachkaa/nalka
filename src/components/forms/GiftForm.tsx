@@ -135,10 +135,13 @@ export function GiftForm({ action, defaultValues, submitLabel, footerClassName }
         {preview && (
           <div className="bg-muted relative h-24 w-24 overflow-hidden rounded-lg border">
             {/^https?:\/\//i.test(preview) ? (
-              <img
+              <Image
                 src={preview}
                 alt={title ? `Image du cadeau ${title}` : "Image du cadeau"}
-                className="h-full w-full object-cover"
+                fill
+                sizes="96px"
+                className="object-cover"
+                unoptimized
                 referrerPolicy="no-referrer"
               />
             ) : (

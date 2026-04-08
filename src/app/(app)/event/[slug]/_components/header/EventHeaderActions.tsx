@@ -63,20 +63,6 @@ export function EventHeaderActions({ slug, isAdmin, title }: EventHeaderActionsP
     });
   };
 
-  const handleCopyDirectLink = () => {
-    if (isPending) return;
-
-    startTransition(async () => {
-      try {
-        await copyToClipboard(`${window.location.origin}/event/${slug}`);
-        toast.success("Lien direct copie");
-      } catch (error) {
-        console.error(error);
-        toast.error("Impossible de copier le lien direct");
-      }
-    });
-  };
-
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button

@@ -13,8 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { EditorState } from "./types";
 import { TimelineTimePicker } from "./TimelineTimePicker";
+import type { EditorState } from "./types";
 
 type TimelineMomentEditorDialogProps = {
   open: boolean;
@@ -100,7 +100,7 @@ export function TimelineMomentEditorDialog({
 
           {eventDateLabel ? (
             <p className="text-muted-foreground text-sm sm:col-span-2">
-              Date de l'événement: {eventDateLabel}
+              Date de l&apos;événement: {eventDateLabel}
             </p>
           ) : null}
 
@@ -146,7 +146,7 @@ export function TimelineMomentEditorDialog({
 
           {timeRangeInvalid ? (
             <p className="text-sm text-destructive sm:col-span-2">
-              L'heure de fin doit être après l'heure de début.
+              L&apos;heure de fin doit être après l&apos;heure de début.
             </p>
           ) : null}
         </div>

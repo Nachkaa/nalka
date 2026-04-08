@@ -10,6 +10,7 @@ import type { EventSummary } from "@/features/events/types";
 import { cn } from "@/lib/utils";
 import { EventRsvpStatus } from "@prisma/client";
 import { Calendar, ChevronDown, ChevronRight, Loader2, MapPin, MoveRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -185,7 +186,14 @@ function HeroCard({
         <div className="bg-muted/60 relative overflow-hidden rounded-2xl border">
           <div className="absolute inset-0 bg-linear-to-tr from-black/35 via-transparent to-black/10" />
           {event.imagePath ? (
-            <img src={event.imagePath} alt={event.title} className="h-full w-full object-cover" />
+            <Image
+              src={event.imagePath}
+              alt={event.title}
+              fill
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="object-cover"
+              unoptimized
+            />
           ) : (
             <div className="h-full min-h-[220px] w-full bg-[radial-gradient(circle_at_30%_20%,rgba(14,165,233,0.25),transparent_45%),radial-gradient(circle_at_80%_30%,rgba(236,72,153,0.2),transparent_35%),radial-gradient(circle_at_60%_70%,rgba(59,130,246,0.22),transparent_35%)]" />
           )}
@@ -351,7 +359,14 @@ function EventRow({ event, muted = false }: { event: EventSummary; muted?: boole
     >
       <div className="from-primary/15 via-primary/10 to-primary/20 relative h-14 w-14 overflow-hidden rounded-xl bg-linear-to-br">
         {event.imagePath && (
-          <img src={event.imagePath} alt={event.title} className="h-full w-full object-cover" />
+          <Image
+            src={event.imagePath}
+            alt={event.title}
+            fill
+            sizes="56px"
+            className="object-cover"
+            unoptimized
+          />
         )}
       </div>
 

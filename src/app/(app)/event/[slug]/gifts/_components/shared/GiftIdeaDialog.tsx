@@ -360,10 +360,13 @@ export function GiftIdeaDialog({
                 <div className="bg-muted relative h-20 w-20 overflow-hidden rounded-lg border">
                   {isHttpUrl(preview) ? (
                     // server-safe (no handlers)
-                    <img
+                    <Image
                       src={preview}
                       alt="Aperçu de l’image"
-                      className="h-full w-full object-cover"
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                      unoptimized
                       referrerPolicy="no-referrer"
                     />
                   ) : (
