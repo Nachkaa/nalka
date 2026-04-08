@@ -4,7 +4,6 @@
 import { Button } from "@/components/ui/button";
 import type { EventPollVM } from "@/domain/polls/getEventPollsVM";
 import { formatEventDateTime } from "@/lib/dates/format-date";
-import { cn } from "@/lib/utils";
 import type {
   EventGiftMode,
   EventLocationMode,
@@ -146,10 +145,7 @@ export function EventHeader({
                 type="button"
                 variant="soft"
                 size="sm"
-                className={cn(
-                  "h-8 rounded-full px-3 text-xs font-semibold",
-                  !hasScheduleInfo && "text-muted-foreground",
-                )}
+                className="h-8 rounded-full px-3 text-xs font-semibold"
                 onClick={() => setDateDialogOpen(true)}
                 aria-label={hasScheduleInfo ? "Modifier la date" : "Définir la date"}
                 title={hasScheduleInfo ? dateLabel : "Date à définir"}
@@ -161,10 +157,7 @@ export function EventHeader({
               </Button>
             ) : (
               <span
-                className={cn(
-                  "bg-muted text-foreground inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold",
-                  !hasScheduleInfo && "text-muted-foreground",
-                )}
+                className="bg-muted text-foreground inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold"
                 title={hasScheduleInfo ? dateLabel : "Date à définir"}
               >
                 <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
@@ -179,7 +172,7 @@ export function EventHeader({
                 type="button"
                 variant="soft"
                 size="sm"
-                className={cn("h-8 rounded-full px-3 text-xs font-semibold")}
+                className="h-8 rounded-full px-3 text-xs font-semibold"
                 onClick={() => setLocOpen(true)}
                 aria-label={hasLocation ? "Modifier le lieu" : "Définir le lieu"}
                 title={hasLocation ? locationLabel : "Lieu à définir"}
@@ -196,7 +189,6 @@ export function EventHeader({
                 <span className="max-w-[220px] truncate">{locationLabel}</span>
               </span>
             )}
-
           </div>
 
           <div className="flex shrink-0 items-center gap-2">

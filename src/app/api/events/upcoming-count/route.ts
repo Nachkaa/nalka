@@ -3,23 +3,23 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const session = await auth();
+  let userId = session?.user?.id ?? null;
 
-  if (!session?.user?.id) {
+  if (!userId && session?.user?.email) {
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
+    userId = user?.id ?? null;
+  }
+
+  if (!userId) {
     return Response.json({ count: 0 });
   }
 
-  // On part du début de la journée pour éviter les soucis d’heure
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
   const count = await prisma.event.count({
     where: {
-      eventOn: { gte: today },
-      memberships: {
-        some: {
-          userId: session.user.id,
-        },
-      },
+      OR: [{ ownerId: userId }, { memberships: { some: { userId } } }],
     },
   });
 

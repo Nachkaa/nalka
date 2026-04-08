@@ -28,13 +28,12 @@ export function EventList({ initialEvents }: Props) {
       .filter((e) => e.date && e.date >= todayISO)
       .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
     const undated = events.filter((e) => !e.date);
-    const upcoming = [...datedUpcoming, ...undated];
     const pastEvents = events
       .filter((e) => e.date && e.date < todayISO)
       .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
 
-    const topEvent = upcoming[0] ?? events[0] ?? null;
-    const remainingUpcoming = topEvent ? upcoming.filter((e) => e.id !== topEvent.id) : upcoming;
+    const topEvent = datedUpcoming[0] ?? null;
+    const remainingUpcoming = [...datedUpcoming.slice(1), ...undated];
 
     return { heroEvent: topEvent, upcomingList: remainingUpcoming, past: pastEvents };
   }, [events, todayISO]);
@@ -98,7 +97,7 @@ export function EventList({ initialEvents }: Props) {
         />
       )}
 
-      {events.length > 1 && upcomingList.length > 0 && (
+      {upcomingList.length > 0 && (
         <div className="space-y-3">
           <SectionTitle>ÉVÉNEMENTS À VENIR</SectionTitle>
           <div className="space-y-3">
@@ -144,12 +143,14 @@ function HeroCard({
   isActive: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(event.rsvpStatus === EventRsvpStatus.PENDING);
+  const organizer = isOrganizer(event);
   const roleLabel = isOrganizer(event) ? "Organisateur" : "Invité";
   const dateText = event.dateLabel ?? "Date à définir";
   const locationText = event.locationLabel ?? event.location;
   const statusLabel = STATUS_LABELS[event.rsvpStatus ?? EventRsvpStatus.PENDING];
 
   const showRsvp =
+    !organizer &&
     event.rsvpRequired &&
     (!event.rsvpStatus || event.rsvpStatus === EventRsvpStatus.PENDING || isEditing);
 
@@ -226,7 +227,7 @@ function HeroCard({
                 disabled={isSubmitting && isActive}
                 onSelect={handleSelect}
               />
-            ) : (
+            ) : !organizer ? (
               <div className="flex flex-wrap items-center gap-3">
                 <Badge
                   variant="secondary"
@@ -256,7 +257,7 @@ function HeroCard({
                   Modifier
                 </Button>
               </div>
-            )}
+            ) : null}
 
             <div className="flex flex-wrap items-center gap-3">
               <Button asChild className="shadow-sm" disabled={isSubmitting && isActive}>
