@@ -2,12 +2,13 @@
 
 import { createEvent } from "@/app/(app)/event/actions"; // adjust path
 import { Button } from "@/components/ui/button";
-import { useMemo, useState, useTransition } from "react";
+import { EventModuleKey, type EventGiftMode, type EventLocationMode, type EventScheduleMode } from "@prisma/client";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
-import type { EventGiftMode, EventLocationMode, EventScheduleMode } from "@prisma/client";
 import { AnimatePresence, motion } from "framer-motion";
 import { StepperHeader } from "./StepperHeader";
 import { StepLocation } from "./steps/StepLocation";
+import { inferModuleRecommendations } from "./steps/moduleRecommendations";
 import { StepModules } from "./steps/StepModules";
 import { StepReview } from "./steps/StepReview";
 import { StepSchedule } from "./steps/StepSchedule";
@@ -27,8 +28,10 @@ export type Draft = {
   scheduleDate: string;
   scheduleTime: string;
   pollDates: string[];
-  giftMode: EventGiftMode;
+  giftMode: EventGiftMode | null;
+  giftsTouched: boolean;
   bringEnabled: boolean;
+  timelineEnabled: boolean;
 };
 
 type Props = { displayName: string };
@@ -61,11 +64,37 @@ export function EventCreateStepper({ displayName }: Props) {
     scheduleDate: "",
     scheduleTime: "",
     pollDates: [],
-    giftMode: "HOST_LIST",
+    giftMode: null,
+    giftsTouched: false,
     bringEnabled: false,
+    timelineEnabled: false,
   });
   const [step, setStep] = useState(0);
   const [isPending, startTransition] = useTransition();
+  const giftRecommendation = useMemo(
+    () =>
+      inferModuleRecommendations(draft).find((item) => item.moduleKey === EventModuleKey.GIFTS) ??
+      null,
+    [draft],
+  );
+
+  useEffect(() => {
+    setDraft((current) => {
+      if (current.giftsTouched) return current;
+
+      const shouldAutoAdd = giftRecommendation?.autoAdded === true;
+
+      if (shouldAutoAdd && current.giftMode === null) {
+        return { ...current, giftMode: "HOST_LIST" };
+      }
+
+      if (!shouldAutoAdd && current.giftMode !== null) {
+        return { ...current, giftMode: null };
+      }
+
+      return current;
+    });
+  }, [giftRecommendation]);
 
   const canNext = useMemo(() => {
     if (step === 1) return draft.title.trim().length > 0;
@@ -107,10 +136,14 @@ export function EventCreateStepper({ displayName }: Props) {
     }
 
     // gifts (Prisma enum string)
-    fd.set("giftMode", draft.giftMode);
+    if (draft.giftMode) {
+      fd.set("modules.giftsEnabled", "on");
+      fd.set("giftMode", draft.giftMode);
+    }
 
     // modules
     fd.set("modules.bringEnabled", draft.bringEnabled ? "on" : "");
+    fd.set("modules.timelineEnabled", draft.timelineEnabled ? "on" : "");
 
     // rules (for now you hard-force defaults)
     fd.set("rules.isNoSpoil", "on");
@@ -188,10 +221,17 @@ export function EventCreateStepper({ displayName }: Props) {
           {step === 4 && (
             <StepModules
               giftMode={draft.giftMode}
-              onChangeGiftMode={(giftMode) => setDraft((d) => ({ ...d, giftMode }))}
+              giftRecommendation={giftRecommendation}
+              onChangeGiftMode={(giftMode) =>
+                setDraft((d) => ({ ...d, giftMode, giftsTouched: true }))
+              }
+              onRemoveGifts={() => setDraft((d) => ({ ...d, giftMode: null, giftsTouched: true }))}
               bringEnabled={draft.bringEnabled}
               onChangeBringEnabled={(bringEnabled) => setDraft((d) => ({ ...d, bringEnabled }))}
-              onUpsell={() => {}}
+              timelineEnabled={draft.timelineEnabled}
+              onChangeTimelineEnabled={(timelineEnabled) =>
+                setDraft((d) => ({ ...d, timelineEnabled }))
+              }
             />
           )}
 

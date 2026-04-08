@@ -52,7 +52,7 @@ const TAB_META: Record<EventTabKey, { label: string; description: string }> = {
   gifts: { label: "Cadeaux", description: "Listes et idees cadeaux" },
   "secret-santa": { label: "Secret Santa", description: "Tirage au sort" },
   potluck: { label: "Potluck", description: "Qui apporte quoi" },
-  timeline: { label: "Timeline", description: "Programme & planning" },
+  timeline: { label: "Programme", description: "Moments et déroulé de la journée" },
   expenses: { label: "Depenses", description: "Suivi des couts" },
   polls: { label: "Sondages", description: "Decider ensemble" },
   chat: { label: "Chat", description: "Discussions" },

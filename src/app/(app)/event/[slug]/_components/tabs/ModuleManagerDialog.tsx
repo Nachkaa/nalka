@@ -87,10 +87,9 @@ const MODULE_CATALOG: CatalogEntry[] = [
 
   {
     key: EventModuleKey.TIMELINE,
-    title: "Timeline",
-    description: "Planning et programme",
+    title: "Programme",
+    description: "Moments clés et déroulé de la journée",
     icon: CalendarClock,
-    comingSoon: true,
   },
   {
     key: EventModuleKey.EXPENSES,
@@ -234,8 +233,8 @@ export function ModuleManagerDialog({
         if (!next) setView({ screen: "catalog" });
       }}
     >
-      <DialogContent className="max-w-3xl">
-        <DialogHeader className="gap-1">
+      <DialogContent className="flex h-dvh max-h-dvh w-full max-w-none flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[min(90vh,48rem)] sm:max-w-3xl sm:gap-4 sm:p-6">
+        <DialogHeader className="shrink-0 gap-1 border-b px-4 py-4 sm:border-b-0 sm:px-0 sm:py-0">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <DialogTitle>{header.title}</DialogTitle>
@@ -257,8 +256,9 @@ export function ModuleManagerDialog({
           </div>
         </DialogHeader>
 
-        {view.screen === "catalog" ? (
-          <div className="space-y-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-0 sm:py-0">
+          {view.screen === "catalog" ? (
+            <div className="space-y-6 pb-1">
             {/* Installés */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
@@ -326,31 +326,32 @@ export function ModuleManagerDialog({
                 ))}
               </div>
             </section>
-          </div>
-        ) : view.key === EventModuleKey.GIFTS ? (
-          <GiftsModuleConfig
-            eventId={eventId}
-            eventSlug={eventSlug}
-            initialMode={initialGiftMode}
-            initialSettings={{
-              isAnonReservations: giftModule?.giftsSettings?.isAnonReservations ?? true,
-              isNoSpoil: giftModule?.giftsSettings?.isNoSpoil ?? true,
-            }}
-            onCancel={() => close()}
-            onSaved={() => {
-              close();
-              router.refresh();
-            }}
-          />
-        ) : (
-          <ModuleConfigPlaceholder
-            moduleKey={view.key}
-            onOpenModule={() => {
-              close();
-              goToTab(view.key);
-            }}
-          />
-        )}
+            </div>
+          ) : view.key === EventModuleKey.GIFTS ? (
+            <GiftsModuleConfig
+              eventId={eventId}
+              eventSlug={eventSlug}
+              initialMode={initialGiftMode}
+              initialSettings={{
+                isAnonReservations: giftModule?.giftsSettings?.isAnonReservations ?? true,
+                isNoSpoil: giftModule?.giftsSettings?.isNoSpoil ?? true,
+              }}
+              onCancel={() => close()}
+              onSaved={() => {
+                close();
+                router.refresh();
+              }}
+            />
+          ) : (
+            <ModuleConfigPlaceholder
+              moduleKey={view.key}
+              onOpenModule={() => {
+                close();
+                goToTab(view.key);
+              }}
+            />
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -374,6 +375,7 @@ function ModuleCard(props: {
 
   const HAS_CONFIG: Partial<Record<EventModuleKey, boolean>> = {
     [EventModuleKey.GIFTS]: true,
+    [EventModuleKey.TIMELINE]: true,
   };
 
   const canConfigure = Boolean(HAS_CONFIG[item.key]);
@@ -557,7 +559,8 @@ function GiftsModuleConfig({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-full flex-col">
+      <div className="space-y-6 pb-6">
       <div>
         <p className="text-foreground text-sm font-semibold">Paramètres : Liste de cadeaux</p>
         <p className="text-muted-foreground text-sm">
@@ -628,7 +631,7 @@ function GiftsModuleConfig({
           </div>
         </div>
 
-        <div className="bg-muted/30 flex items-center justify-between rounded-xl border p-4">
+        <div className="bg-muted/30 flex items-center justify-between gap-4 rounded-xl border p-4">
           <div className="space-y-1">
             <p className="text-sm font-semibold">Pas de spoil</p>
             <p className="text-muted-foreground text-sm">
@@ -638,7 +641,7 @@ function GiftsModuleConfig({
           <Switch checked={isNoSpoil} onCheckedChange={setIsNoSpoil} />
         </div>
 
-        <div className="bg-muted/30 flex items-center justify-between rounded-xl border p-4">
+        <div className="bg-muted/30 flex items-center justify-between gap-4 rounded-xl border p-4">
           <div className="space-y-1">
             <p className="text-sm font-semibold">Afficher qui a réservé</p>
             <p className="text-muted-foreground text-sm">
@@ -654,7 +657,9 @@ function GiftsModuleConfig({
         </div>
       </section>
 
-      <div className="flex flex-wrap justify-end gap-3 border-t pt-4">
+      </div>
+
+      <div className="bg-background sticky bottom-0 -mx-4 mt-auto flex flex-wrap justify-end gap-3 border-t px-4 py-4 sm:static sm:mx-0 sm:px-0 sm:pb-0">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
           Annuler
         </Button>
@@ -677,11 +682,13 @@ function ModuleConfigPlaceholder(props: { moduleKey: EventModuleKey; onOpenModul
   const label =
     moduleKey === EventModuleKey.GIFTS
       ? "Paramètres : Liste de cadeaux"
-      : moduleKey === EventModuleKey.POTLUCK
-        ? "Paramètres : Repas partagé"
-        : moduleKey === EventModuleKey.SECRET_SANTA
-          ? "Paramètres : Secret Santa"
-          : "Paramètres du module";
+      : moduleKey === EventModuleKey.TIMELINE
+        ? "Paramètres : Programme"
+        : moduleKey === EventModuleKey.POTLUCK
+          ? "Paramètres : Repas partagé"
+          : moduleKey === EventModuleKey.SECRET_SANTA
+            ? "Paramètres : Secret Santa"
+            : "Paramètres du module";
 
   return (
     <div className="space-y-4">

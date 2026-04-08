@@ -80,11 +80,12 @@ export function StepReview({ draft }: { draft: Draft }) {
         ? `Sondage (${draft.pollLocations?.length ?? 0} proposition${(draft.pollLocations?.length ?? 0) > 1 ? "s" : ""})`
         : "À définir";
 
-  const giftsValue = giftLabel(draft.giftMode);
+  const giftsValue = draft.giftMode ? giftLabel(draft.giftMode) : null;
 
   const modules: string[] = [];
   if (giftsValue) modules.push("Cadeaux");
   if (draft.bringEnabled) modules.push("Qui ramène quoi");
+  if (draft.timelineEnabled) modules.push("Programme");
 
   return (
     <div className="space-y-3">

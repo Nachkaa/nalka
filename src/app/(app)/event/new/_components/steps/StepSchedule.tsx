@@ -9,13 +9,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Input } from "@/components/ui/input";
+import { DatePickerISO } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { EventScheduleMode } from "@prisma/client";
-import { Check, ChevronDown, Plus, X } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { StepHeading } from "./StepHeading";
 
@@ -33,14 +33,6 @@ type Props = {
   onNext?: () => void;
   autoAdvance?: boolean;
 };
-
-function todayISO() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
 
 function fmtPollDate(iso: string) {
   const d = new Date(`${iso}T00:00:00`);
@@ -64,8 +56,6 @@ function buildTimes(stepMinutes = 15) {
 const TIME_OPTIONS = buildTimes(15);
 const DEFAULT_TIME_ANCHOR = "19:00";
 
-type InputWithPicker = HTMLInputElement & { showPicker?: () => void };
-
 export function StepSchedule({
   mode,
   date,
@@ -75,8 +65,6 @@ export function StepSchedule({
   onNext,
   autoAdvance = false,
 }: Props) {
-  const dateRef = useRef<HTMLInputElement | null>(null);
-
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const timeItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -92,20 +80,7 @@ export function StepSchedule({
     });
   }, [timePickerOpen, time]);
 
-  function tryShowPicker() {
-    const el = dateRef.current;
-    if (!el) return;
-    if (typeof el.showPicker === "function") {
-      try {
-        el.showPicker();
-      } catch {
-        // ignore NotAllowedError
-      }
-    }
-  }
-
-  const [pollInput, setPollInput] = useState("");
-  const pollRef = useRef<InputWithPicker | null>(null);
+  const [pollPickerValue, setPollPickerValue] = useState("");
 
   function addPollDate(v: string) {
     if (!v) return;
@@ -118,7 +93,6 @@ export function StepSchedule({
     onChange({ pollDates: pollDates.filter((d) => d !== v) });
   }
 
-  const [lastPollDate, setLastPollDate] = useState<string>("");
   const [activeDate, setActiveDate] = useState<string | null>(null);
   const chipsRef = useRef<HTMLDivElement | null>(null);
 
@@ -148,25 +122,16 @@ export function StepSchedule({
 
         <TabsContent value="EXACT" className="mt-4 space-y-2">
           <Label htmlFor="date">Choisir une date</Label>
-          <Input
-            ref={dateRef}
-            id="date"
-            type="date"
-            min={todayISO()}
+          <DatePickerISO
             value={date}
-            onPointerDown={(e) => {
-              e.preventDefault();
-              tryShowPicker();
-              dateRef.current?.focus();
-            }}
-            onClick={() => {
-              tryShowPicker();
-            }}
-            onChange={(e) => {
-              const v = e.target.value;
+            onChange={(iso) => {
+              const v = iso ?? "";
               onChange({ scheduleDate: v });
-              if (autoAdvance && v && v >= todayISO()) onNext?.();
+              if (autoAdvance && v) onNext?.();
             }}
+            placeholder="Sélectionner une date"
+            disablePast
+            autoOpen={false}
           />
         </TabsContent>
 
@@ -207,58 +172,20 @@ export function StepSchedule({
           </div>
 
           <div className="space-y-2">
-            <div className="relative">
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full justify-center gap-2 rounded-xl border-2 border-[var(--ring)] bg-[var(--card)] px-4 py-6 text-sm hover:bg-[var(--card)]/80"
-                onClick={() => {
-                  const el = pollRef.current;
-                  if (!el) return;
+            <DatePickerISO
+              value={pollPickerValue}
+              onChange={(iso) => {
+                const v = iso ?? "";
+                setPollPickerValue(v);
+                if (!v) return;
 
-                  const seed =
-                    lastPollDate ||
-                    pollDates[pollDates.length - 1] || // latest added (you sort ascending, so this is latest)
-                    todayISO();
-
-                  setPollInput(seed);
-                  el.value = seed;
-
-                  if (typeof el.showPicker === "function") {
-                    try {
-                      el.showPicker();
-                    } catch {}
-                  }
-                  el.focus();
-                }}
-              >
-                <span className="bg-[var(--card)]] inline-flex items-center justify-center rounded-full">
-                  <Plus className="h-4 w-4" aria-hidden />
-                </span>
-                <span className="font-medium">Ajouter une date</span>
-              </Button>
-
-              {/* Anchor element for the native picker */}
-              <input
-                ref={pollRef}
-                type="date"
-                min={todayISO()}
-                value={pollInput}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setPollInput(v);
-                  if (!v) return;
-
-                  addPollDate(v);
-                  setLastPollDate(v); // NEW: remember month anchor
-                  setPollInput(""); // clear visible state
-                  e.currentTarget.value = "";
-                }}
-                aria-hidden
-                tabIndex={-1}
-                className="absolute top-1/2 left-3 h-[1px] w-[1px] -translate-y-1/2 opacity-0"
-              />
-            </div>
+                addPollDate(v);
+                setPollPickerValue("");
+              }}
+              placeholder="Ajouter une date"
+              disablePast
+              autoOpen={false}
+            />
 
             <p className="text-muted-foreground text-xs">Conseil: 2 à 5 dates max.</p>
           </div>

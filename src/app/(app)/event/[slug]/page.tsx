@@ -13,6 +13,7 @@ import {
   EventPollStatus,
   EventPollType,
   EventRsvpStatus,
+  EventTimelineMomentKind,
   ReservationStatus,
 } from "@prisma/client";
 import { notFound, redirect } from "next/navigation";
@@ -35,6 +36,40 @@ type PageProps = {
   params: { slug?: string };
   searchParams?: { tab?: string | string[] };
 };
+
+type ProgrammeLiveMoment = {
+  id: string;
+  title: string;
+  kind: EventTimelineMomentKind;
+  startsAt: string;
+  endsAt: string | null;
+  locationName: string | null;
+  locationAddress: string | null;
+  note: string | null;
+  position: number;
+};
+
+type ProgrammeStatus = "empty" | "upcoming" | "current" | "completed";
+
+function formatLocalDateTimeValue(value: Date) {
+  const pad = (part: number) => String(part).padStart(2, "0");
+
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`;
+}
+
+function isSameCalendarDay(left: Date, right: Date) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
+function getEndOfDay(date: Date) {
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
+  return end;
+}
 
 const ROLE = ER;
 const MODE = EGM;
@@ -82,6 +117,7 @@ export default async function EventPage({ params, searchParams }: PageProps) {
 
   const hasPotluck = moduleByKey.get(EventModuleKey.POTLUCK)?.enabled ?? false;
   const giftsModuleEnabled = moduleByKey.get(EventModuleKey.GIFTS)?.enabled ?? false;
+  const timelineModuleEnabled = moduleByKey.get(EventModuleKey.TIMELINE)?.enabled ?? false;
   const rsvpRequired = overviewSettings.rsvpRequired ?? true;
 
   const pollsCount = await prisma.eventPoll.count({ where: { eventId: event.id } });
@@ -92,6 +128,8 @@ export default async function EventPage({ params, searchParams }: PageProps) {
   );
 
   const userMembership = event.memberships.find((m) => m.userId === meId);
+  const canManageProgramme =
+    userMembership?.role === ROLE.ADMIN || userMembership?.role === ROLE.OWNER;
   const userRole = userMembership?.role || "MEMBER";
   const userRsvpStatus = userMembership?.rsvpStatus ?? EventRsvpStatus.PENDING;
 
@@ -293,6 +331,117 @@ export default async function EventPage({ params, searchParams }: PageProps) {
     potluckStats = { totalItems, myClaims };
   }
 
+  let timelineMoments: ProgrammeLiveMoment[] = [];
+  let currentMoment: ProgrammeLiveMoment | null = null;
+  let nextMoment: ProgrammeLiveMoment | null = null;
+  let hasPastMoments = false;
+  let programmeStatus: ProgrammeStatus = "empty";
+  let programmeSummary:
+    | {
+        status: "En cours" | "À venir";
+        title: string;
+        startsAt: string;
+        endsAt: string | null;
+        locationName: string | null;
+        note: string | null;
+        next:
+          | {
+              title: string;
+              startsAt: string;
+              endsAt: string | null;
+            }
+          | null;
+      }
+    | null = null;
+
+  if (timelineModuleEnabled) {
+    const rows = await prisma.eventTimelineMoment.findMany({
+      where: { eventId: event.id },
+      orderBy: [{ startsAt: "asc" }, { position: "asc" }],
+      select: {
+        id: true,
+        title: true,
+        kind: true,
+        startsAt: true,
+        endsAt: true,
+        locationName: true,
+        locationAddress: true,
+        note: true,
+        position: true,
+      },
+    });
+
+    const toProgrammeMoment = (row: (typeof rows)[number]): ProgrammeLiveMoment => ({
+      ...row,
+      startsAt: formatLocalDateTimeValue(row.startsAt),
+      endsAt: row.endsAt ? formatLocalDateTimeValue(row.endsAt) : null,
+    });
+
+    const getImplicitEnd = (index: number) => {
+      const row = rows[index];
+      if (!row) return null;
+
+      if (row.endsAt) {
+        return row.endsAt;
+      }
+
+      const nextSameDay = rows.find((candidate, candidateIndex) => {
+        if (candidateIndex <= index) return false;
+        return isSameCalendarDay(row.startsAt, candidate.startsAt);
+      });
+
+      if (nextSameDay) {
+        return nextSameDay.startsAt;
+      }
+
+      return getEndOfDay(row.startsAt);
+    };
+
+    timelineMoments = rows.map(toProgrammeMoment);
+
+    const now = new Date();
+    const current =
+      rows.find((row, index) => {
+        const effectiveEnd = getImplicitEnd(index);
+        return effectiveEnd ? row.startsAt <= now && now < effectiveEnd : row.startsAt <= now;
+      }) ?? null;
+    const upcoming = rows.find((row) => row.startsAt > now) ?? null;
+
+    currentMoment = current ? toProgrammeMoment(current) : null;
+    nextMoment = upcoming ? toProgrammeMoment(upcoming) : null;
+    hasPastMoments = rows.some((row, index) => {
+      const effectiveEnd = getImplicitEnd(index);
+      return effectiveEnd ? effectiveEnd <= now : false;
+    });
+    programmeStatus = current
+      ? "current"
+      : upcoming
+        ? "upcoming"
+        : rows.length > 0 && hasPastMoments
+          ? "completed"
+          : "empty";
+
+    const target = current ?? upcoming;
+
+    if (target) {
+      programmeSummary = {
+        status: current ? "En cours" : "À venir",
+        title: target.title,
+        startsAt: formatLocalDateTimeValue(target.startsAt),
+        endsAt: target.endsAt ? formatLocalDateTimeValue(target.endsAt) : null,
+        locationName: target.locationName,
+        note: target.note,
+        next: current && nextMoment
+          ? {
+              title: nextMoment.title,
+              startsAt: nextMoment.startsAt,
+              endsAt: nextMoment.endsAt,
+            }
+          : null,
+      };
+    }
+  }
+
   const pollsVmPromise =
     pollsCount > 0 ? getEventPollsVM(event.id, meId) : Promise.resolve([] as EventPollVM[]);
   let canonicalPolls: EventPollVM[] = [];
@@ -324,6 +473,13 @@ export default async function EventPage({ params, searchParams }: PageProps) {
       giftMode: event.giftMode,
       giftsStats: giftStats ?? undefined,
       potluckStats: potluckStats ?? undefined,
+      programmeSummary: programmeSummary ?? undefined,
+      programmeLive: {
+        currentMoment,
+        nextMoment,
+        hasPastMoments,
+        programmeStatus,
+      },
     },
   };
 
@@ -460,11 +616,20 @@ export default async function EventPage({ params, searchParams }: PageProps) {
 
   if (activeTab === "timeline" && enabledKeys.includes("timeline")) {
     moduleProps.timeline = {
-      eventOn: event.eventOn ? event.eventOn.toISOString() : null,
-      eventTime: event.eventTime,
-      location: event.location,
-      scheduleMode: event.scheduleMode,
-      locationMode: event.locationMode,
+      eventId: event.id,
+      slug: event.slug,
+      canEdit: canManageProgramme,
+      meId,
+      eventDate: event.eventOn ? event.eventOn.toISOString() : null,
+      eventTitle: event.title,
+      schedulePoll: schedulePollOpen,
+      moments: timelineMoments,
+      programmeLive: {
+        currentMoment,
+        nextMoment,
+        hasPastMoments,
+        programmeStatus,
+      },
     };
   }
 

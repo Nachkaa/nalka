@@ -95,12 +95,32 @@ model Event {
   memberships  EventMember[]
   modules      EventModule[]
   polls        EventPoll[]
+  timelineMoments EventTimelineMoment[]
   relatives    EventRelative[]
   lists        GiftList[]
   inviteTokens InviteToken[]     @relation("Event_InviteTokens")
 
   @@index([ownerId, status])
   @@index([ownerId, eventOn])
+}
+
+model EventTimelineMoment {
+  id              String                  @id @default(cuid())
+  eventId         String
+  title           String
+  kind            EventTimelineMomentKind @default(other)
+  startsAt        DateTime
+  endsAt          DateTime?
+  locationName    String?
+  locationAddress String?
+  note            String?
+  position        Int
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  event           Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, startsAt])
+  @@index([eventId, position])
 }
 
 model EventModule {
@@ -519,4 +539,13 @@ enum EventModuleKey {
   EXPENSES
   POLLS
   CHAT
+}
+
+enum EventTimelineMomentKind {
+  ceremony
+  reception
+  meal
+  party
+  transport
+  other
 }

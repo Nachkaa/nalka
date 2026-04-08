@@ -76,8 +76,10 @@ export const EventCreateSchema = z
     schedule: scheduleSchema.and(z.object({ time: TimeHHmm })),
 
     giftMode: giftModeSchema,
+    giftsEnabled: checkboxFromForm.optional(),
 
     bringEnabled: checkboxFromForm.optional(),
+    timelineEnabled: checkboxFromForm.optional(),
 
     isNoSpoil: checkboxFromForm,
     isAnonReservations: checkboxFromForm,

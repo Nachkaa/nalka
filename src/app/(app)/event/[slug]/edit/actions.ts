@@ -29,6 +29,47 @@ function toPrismaGiftMode(mode: "host-list" | "personal-lists"): EventGiftMode {
   }
 }
 
+function getUtcDateKey(date: Date) {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function getCalendarDayDelta(from: Date, to: Date) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.round((getUtcDateKey(to) - getUtcDateKey(from)) / msPerDay);
+}
+
+function shiftUtcDateByDays(value: Date, dayDelta: number) {
+  const next = new Date(value);
+  next.setUTCDate(next.getUTCDate() + dayDelta);
+  return next;
+}
+
+async function shiftTimelineMomentsForEventDateChange(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], eventId: string, previousEventOn: Date | null, nextEventOn: Date | null) {
+  if (!previousEventOn || !nextEventOn) return;
+
+  const dayDelta = getCalendarDayDelta(previousEventOn, nextEventOn);
+  if (dayDelta === 0) return;
+
+  const moments = await tx.eventTimelineMoment.findMany({
+    where: { eventId },
+    select: { id: true, startsAt: true, endsAt: true },
+  });
+
+  if (moments.length === 0) return;
+
+  await Promise.all(
+    moments.map((moment) =>
+      tx.eventTimelineMoment.update({
+        where: { id: moment.id },
+        data: {
+          startsAt: shiftUtcDateByDays(moment.startsAt, dayDelta),
+          endsAt: moment.endsAt ? shiftUtcDateByDays(moment.endsAt, dayDelta) : null,
+        },
+      }),
+    ),
+  );
+}
+
 export async function updateEvent(eventId: string, slug: string, formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) throw new Error("Non autorisé");
@@ -43,6 +84,8 @@ export async function updateEvent(eventId: string, slug: string, formData: FormD
     : undefined;
 
   if (!title || !date) throw new Error("Champs requis manquants");
+  const eventOn = new Date(`${date}T12:00:00.000Z`);
+  if (Number.isNaN(eventOn.getTime())) throw new Error("Date invalide");
 
   const giftModeRaw = String(formData.get("rules.mode") ?? "");
   const giftMode =
@@ -75,12 +118,17 @@ export async function updateEvent(eventId: string, slug: string, formData: FormD
   };
 
   await prisma.$transaction(async (tx) => {
+    const currentEvent = await tx.event.findUnique({
+      where: { id: eventId },
+      select: { eventOn: true },
+    });
+
     const event = await tx.event.update({
       where: { id: eventId },
       data: {
         title,
         description,
-        eventOn: new Date(date),
+        eventOn,
         location,
         giftMode: nextGiftMode,
         ...(eventTime !== undefined ? { eventTime } : {}),
@@ -121,6 +169,8 @@ export async function updateEvent(eventId: string, slug: string, formData: FormD
     if (giftsModule.enabled && event.giftMode === EventGiftMode.PERSONAL_LISTS) {
       await syncGiftListsForEvent(tx, event.id);
     }
+
+    await shiftTimelineMomentsForEventDateChange(tx, eventId, currentEvent?.eventOn ?? null, eventOn);
   });
 
   revalidatePath(`/event/${slug}`);
@@ -145,15 +195,24 @@ export async function updateBasicInfo(eventId: string, slug: string, formData: F
 
   const eventOn = dateStr ? new Date(dateStr + "T12:00:00.000Z") : null;
 
-  await prisma.event.update({
-    where: { id: eventId },
-    data: {
-      title: title.trim(),
-      description,
-      eventOn,
-      eventTime,
-      location,
-    },
+  await prisma.$transaction(async (tx) => {
+    const currentEvent = await tx.event.findUnique({
+      where: { id: eventId },
+      select: { eventOn: true },
+    });
+
+    await tx.event.update({
+      where: { id: eventId },
+      data: {
+        title: title.trim(),
+        description,
+        eventOn,
+        eventTime,
+        location,
+      },
+    });
+
+    await shiftTimelineMomentsForEventDateChange(tx, eventId, currentEvent?.eventOn ?? null, eventOn);
   });
 
   revalidatePath(`/event/${slug}`);

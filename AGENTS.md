@@ -1,224 +1,73 @@
-# Nalka / Gift — Repository Instructions
+# Nalka Repo Contract
 
-## Product and codebase intent
-
-Nalka is a minimal, secure event and gifting product.
-The goal is not to become a generic “event platform”.
-The goal is to make event coordination, gifting, and related flows simpler, clearer, and more reliable.
-
-This repository uses:
+## Stack
 - Next.js App Router
-- TypeScript
+- TypeScript strict
 - Prisma + PostgreSQL
-- Auth.js / NextAuth v5-style auth
-- Tailwind CSS
-- shadcn/ui
+- Auth.js / NextAuth
+- Tailwind CSS + shadcn/ui
 
-When making changes, optimize for:
-1. clarity
-2. reliability
-3. minimal surface area
-4. maintainability
-5. good UX without feature bloat
+## Important Paths
+- `src/app/`: routes and route-local server actions
+- `src/features/`: feature-local UI, domain logic, and helpers
+- `src/app/(app)/event/[slug]/`: event-scoped flows, permissions, and gift interactions
+- `src/app/login/` and auth-related route groups: session and sign-in flows
+- `src/components/ui/`: shared shadcn/ui primitives
+- `src/lib/`: shared technical helpers only
+- `prisma/schema.prisma`: source of truth for the data model
+- `prisma/migrations/`: append-only migration history
+- `docs/PLANS.md`: lightweight planning template for risky or ambiguous work
 
----
+## Repo Constraints
+- Keep diffs small, local, and reviewable.
+- Use App Router patterns only. No Pages Router.
+- Prefer Server Components. Use client components only for real interactivity.
+- Keep server and client boundaries explicit.
+- Keep actions close to the owning route or feature. No generic global `actions/` folder.
+- Favor simple secure paths over abstraction.
+- Auth, invites, permissions, and event membership are critical risk areas.
+- Never expose who reserved what in UI, API responses, logs, analytics payloads, or derived states.
 
-## Working style
+## Workflow
+- For ambiguous, cross-cutting, or risky tasks, start from `docs/PLANS.md` before implementation.
+- Change the smallest layer that restores the invariant instead of patching symptoms in multiple places.
+- When touching auth, membership, invites, or reservations, inspect both server enforcement and user-visible states.
+- Keep server actions, loaders, and mutations close to the route or feature that owns them.
+- Update a skill only when the rule is reusable across future tasks.
+- For repeated mistakes, update this file or the relevant skill instead of repeating prompt instructions manually.
 
-- Prefer small, focused diffs over broad rewrites.
-- Do not rewrite large areas “for cleanliness” unless explicitly asked.
-- Do not introduce abstractions before they are clearly needed in at least 2 real places.
-- Do not add generic catch-all folders or frameworks inside the app.
-- Preserve existing feature structure when possible.
-- When a fix is possible with a local refactor, do not expand the scope.
+## Coding Conventions
+- Use current repo patterns, not deprecated Next.js or Auth.js APIs.
+- Keep strict typing. Avoid `any`, broad assertions, and dead code.
+- Prefer feature-local types and helpers unless reuse is real.
+- Enforce authorization server-side. Never trust client-provided role or ownership data.
+- Keep business rules out of presentational components once logic starts to grow.
+- Include explicit empty, loading, error, disabled, and success states for user-facing flows.
 
-If a task reveals broader structural issues:
-- fix the requested issue first
-- then note the structural issue separately
-- do not silently refactor unrelated areas
-
----
-
-## Architecture guardrails
-
-- Use App Router patterns only.
-- Do not introduce Pages Router patterns.
-- Prefer Server Components by default.
-- Use Client Components only for real interactivity, browser APIs, or local UI state.
-- Keep server-only code out of client bundles.
-- Keep the server/client boundary explicit and minimal.
-- In `"use server"` files, export async server actions only.
-- Shared constants, helpers, and types used by both client and server must live outside `"use server"` files.
-- Do not create a generic global `actions/` folder. Keep actions close to the route or feature that owns them.
-- Prefer colocated feature folders over horizontal utility sprawl.
-
----
-
-## TypeScript rules
-
-- Keep strict TypeScript.
-- Do not use `any` unless absolutely unavoidable.
-- Prefer explicit local types over broad shared types when the scope is small.
-- Prefer narrowing and derived types over type assertions.
-- Avoid `as unknown as ...`.
-- If a type is painful, first check whether the code structure is wrong.
-- Remove dead props, dead state, dead variables, and dead branches instead of typing around them.
-
----
-
-## React and state rules
-
-- Do not use `useEffect` to mirror props into state unless there is no better option.
-- Prefer derived values over duplicated state.
-- Avoid synchronous `setState` inside effects when the value can be computed directly.
-- Do not create components during render.
-- Avoid unnecessary `useMemo` / `useCallback`.
-- Keep forms predictable and local.
-- Prefer controlled flows when validation and mutation matter.
-- Avoid cascading renders caused by state synchronization patterns.
-
----
-
-## Next.js rules
-
-- Use the latest stable Next.js patterns already adopted by the repo.
-- Prefer route-local loading, error, and action handling.
-- Use `revalidatePath` or cache invalidation only where it is actually needed.
-- Do not move logic client-side if it can safely stay server-side.
-- Do not expose server internals to the client for convenience.
-- Use `next/image` when appropriate for user-facing images unless there is a deliberate reason not to.
-
----
-
-## Prisma and database rules
-
-- Treat migration history as append-only once shared.
-- Never edit old applied migration SQL unless explicitly doing a controlled recovery.
-- Schema change = Prisma migration.
-- Do not “fix” drift by hand-editing `_prisma_migrations`.
-- Do not delete migration folders casually.
-- Prefer clear migration names that describe business intent.
-- Keep `schema.prisma` aligned with actual product rules, not temporary hacks.
-- If a data model change weakens or removes uniqueness, revisit all `upsert` logic that depended on the old unique key.
-- When changing Prisma relations or constraints, verify both the generated client API and the application logic.
-
----
-
-## Auth and permissions rules
-
-- Authorization must be enforced server-side.
-- Do not trust client-provided role or ownership information.
-- Check event membership / role on the server before mutating protected resources.
-- Prefer explicit permission helpers when the same rule repeats.
-- Do not weaken authorization to simplify UI flows.
-
----
-
-## UX and product rules
-
-- Prefer fewer, clearer actions over crowded UI.
-- Default to accessibility-safe behavior and semantic HTML.
-- Do not add friction unless it protects data integrity or avoids user confusion.
-- Make empty states, disabled states, and pending states explicit.
-- Preserve current product direction: lightweight event coordination with modular capabilities.
-- Do not expand features into a generic event-enterprise product unless explicitly asked.
-- Challenge UX complexity when a simpler flow would solve the same problem.
-
----
-
-## Styling and UI rules
-
-- Use existing design tokens, spacing, and component patterns.
-- Prefer shadcn/ui primitives already present in the repo.
-- Do not introduce a second design system.
-- Keep UI visually calm and compact.
-- Avoid over-animating.
-- Maintain responsive behavior without building separate desktop/mobile codepaths unless necessary.
-
----
-
-## File and module organization
-
-- Keep feature logic close to the feature.
-- Shared helpers should be genuinely shared, not prematurely centralized.
-- Keep domain logic out of presentational components when it starts to grow.
-- Avoid “utils” dumping grounds.
-- Name files by responsibility, not vague convenience.
-
----
-
-## Fixing bugs
-
-When fixing a bug:
-1. identify the real invariant that is being violated
-2. fix the smallest layer that correctly restores that invariant
-3. avoid patching symptoms in multiple places unless necessary
-4. run the relevant checks after the change
-
-Do not silence lint or type errors unless the rule is genuinely wrong for this case.
-
----
-
-## Verification commands
-
-After meaningful code changes, run the smallest relevant checks first.
-
-Preferred order:
+## Verification
+Run the smallest relevant checks after meaningful changes:
 1. `pnpm exec tsc --noEmit`
 2. `pnpm lint`
 3. `pnpm build`
 
 For Prisma changes:
-1. verify `schema.prisma`
-2. run the appropriate Prisma migration command
+1. update `prisma/schema.prisma`
+2. create a migration
 3. regenerate Prisma client if needed
-4. re-run typecheck/build
+4. rerun relevant verification
 
-Do not claim a fix is complete without running checks when the environment allows it.
+## Definition Of Done
+- The invariant behind the change is clear and preserved.
+- The diff is minimal and fits current architecture.
+- Auth, permission, and spoiler risks were checked.
+- Relevant verification ran, or the missing verification is stated explicitly.
+- Remaining risk or follow-up is brief and concrete.
 
----
-
-## Output expectations for code changes
-
-When making changes:
-- state the intent briefly
-- change only the necessary files
-- keep naming precise
-- summarize what changed and why
-- mention any remaining risk or follow-up only if it is real
-
-Do not produce long essays when a precise patch is enough.
-
----
-
-## Escalation rule
-
-Stop and ask before:
-- adding a new dependency
-- changing authentication/session behavior
-- changing database semantics in a destructive way
-- introducing a new cross-cutting pattern
-- performing a migration/history rewrite that affects shared environments
-
-For local-only cleanup or obvious lint/type/build fixes, proceed directly.
-
----
-
-## What to optimize for
-
-Good changes in this repo usually look like this:
-- smaller
-- clearer
-- safer
-- more local
-- more typed
-- easier to review
-- aligned with current product direction
-
-Bad changes usually look like this:
-- bigger than needed
-- abstract for no reason
-- client-heavy without benefit
-- hidden behavior changes
-- migration/history hacks
-- generic architecture for imaginary future needs
+## Anti-Patterns
+- Broad cleanup unrelated to the task
+- Generic abstractions for imagined future reuse
+- Client-side permission checks as source of truth
+- Global helpers that should stay event-local or feature-local
+- Hidden behavior changes inside refactors
+- Migration history edits
+- UI or analytics that can reveal reservation ownership

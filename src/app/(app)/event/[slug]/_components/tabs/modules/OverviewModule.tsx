@@ -10,6 +10,7 @@ import {
   EventPollStatus,
   EventRsvpStatus,
   EventScheduleMode,
+  EventTimelineMomentKind,
 } from "@prisma/client";
 import {
   BarChart3,
@@ -56,6 +57,41 @@ type PotluckStats = {
   myClaims: number;
 };
 
+type ProgrammeSummary = {
+  status: "En cours" | "À venir";
+  title: string;
+  startsAt: string;
+  endsAt: string | null;
+  locationName?: string | null;
+  note?: string | null;
+  next?:
+    | {
+        title: string;
+        startsAt: string;
+        endsAt: string | null;
+      }
+    | null;
+};
+
+type ProgrammeLiveMoment = {
+  id: string;
+  title: string;
+  kind: EventTimelineMomentKind;
+  startsAt: string;
+  endsAt: string | null;
+  locationName: string | null;
+  locationAddress: string | null;
+  note: string | null;
+  position: number;
+};
+
+type ProgrammeLiveData = {
+  currentMoment: ProgrammeLiveMoment | null;
+  nextMoment: ProgrammeLiveMoment | null;
+  hasPastMoments: boolean;
+  programmeStatus: "empty" | "upcoming" | "current" | "completed";
+};
+
 export type OverviewModuleProps = {
   eventTitle: string;
   eventDate: string | null;
@@ -78,6 +114,8 @@ export type OverviewModuleProps = {
   giftMode: EventGiftMode;
   giftsStats?: GiftsStats;
   potluckStats?: PotluckStats;
+  programmeSummary?: ProgrammeSummary | null;
+  programmeLive?: ProgrammeLiveData;
 };
 
 const isAdminRole = (role: EventMemberRole) => role === "ADMIN" || role === "OWNER";
@@ -100,6 +138,7 @@ export function OverviewModule({  eventDate,
   giftMode,
   giftsStats,
   potluckStats,
+  programmeSummary,
 }: OverviewModuleProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -174,6 +213,19 @@ export function OverviewModule({  eventDate,
     }
   };
 
+  const formatProgrammeTimeRange = (startsAt: string, endsAt: string | null) =>
+    `${new Intl.DateTimeFormat("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(startsAt))}${
+      endsAt
+        ? ` · ${new Intl.DateTimeFormat("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }).format(new Date(endsAt))}`
+        : ""
+    }`;
+
   return (
     <div className="space-y-6">
       {shouldShowRsvp ? (
@@ -235,6 +287,58 @@ export function OverviewModule({  eventDate,
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {programmeSummary ? (
+          <section className="sm:col-span-2 xl:col-span-2">
+            <button
+              type="button"
+              onClick={() => setTab("timeline")}
+              className="flex h-full w-full flex-col items-start gap-3 rounded-2xl border border-(--primary-200) bg-linear-to-br from-(--primary-50) to-white p-4 text-left shadow-sm transition hover:-translate-y-px hover:shadow-md focus-visible:ring-2 focus-visible:ring-(--primary) focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+              <div className="flex w-full items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold tracking-wide uppercase text-(--primary-700)">
+                    Programme
+                  </p>
+                  <p className="text-foreground mt-1 text-base font-semibold leading-snug">
+                    {programmeSummary.title}
+                  </p>
+                </div>
+                <Badge className="border-0 bg-(--primary-600) text-white" variant="secondary">
+                  {programmeSummary.status}
+                </Badge>
+              </div>
+
+              <div className="space-y-1.5 text-sm">
+                <p className="text-foreground/90">
+                  {formatProgrammeTimeRange(programmeSummary.startsAt, programmeSummary.endsAt)}
+                </p>
+                {programmeSummary.locationName ? (
+                  <p className="text-muted-foreground">{programmeSummary.locationName}</p>
+                ) : null}
+                {programmeSummary.note ? (
+                  <p className="text-muted-foreground line-clamp-2">{programmeSummary.note}</p>
+                ) : null}
+              </div>
+
+              {programmeSummary.next ? (
+                <div className="text-muted-foreground rounded-xl border border-white/80 bg-white/70 px-3 py-2 text-sm">
+                  <span className="font-medium">Ensuite :</span>{" "}
+                  {programmeSummary.next.title} ·{" "}
+                  {formatProgrammeTimeRange(
+                    programmeSummary.next.startsAt,
+                    programmeSummary.next.endsAt,
+                  )}
+                </div>
+              ) : null}
+
+              <div className="mt-auto inline-flex items-center gap-2 text-sm font-medium text-(--primary-700)">
+                <CalendarClock className="h-4 w-4" aria-hidden />
+                <span>Voir le programme</span>
+              </div>
+            </button>
+          </section>
+        ) : null}
+
         {hasPolls ? (
           <section className="space-y-2 sm:col-span-2 xl:col-span-4">
             <p className="text-muted-foreground text-xs tracking-wide uppercase">

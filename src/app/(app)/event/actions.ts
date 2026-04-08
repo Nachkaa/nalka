@@ -105,6 +105,7 @@ export async function createEvent(formData: FormData) {
     },
 
     giftMode,
+    giftsEnabled: formData.get("modules.giftsEnabled"),
 
     isNoSpoil: formData.get("rules.isNoSpoil"),
     isAnonReservations: formData.get("rules.isAnonReservations"),
@@ -113,6 +114,7 @@ export async function createEvent(formData: FormData) {
     budgetCap: formData.get("rules.budgetCap"),
 
     bringEnabled: formData.get("modules.bringEnabled"),
+    timelineEnabled: formData.get("modules.timelineEnabled"),
   });
 
   if (!parsed.success) {
@@ -171,14 +173,18 @@ export async function createEvent(formData: FormData) {
 
     const modulesToCreate: { key: EventModuleKey; enabled: boolean; position: number }[] = [
       { key: EventModuleKey.OVERVIEW, enabled: true, position: MODULE_POSITIONS.OVERVIEW },
-      { key: EventModuleKey.GIFTS, enabled: true, position: MODULE_POSITIONS.GIFTS },
+      { key: EventModuleKey.GIFTS, enabled: !!data.giftsEnabled, position: MODULE_POSITIONS.GIFTS },
       { key: EventModuleKey.SECRET_SANTA, enabled: false, position: MODULE_POSITIONS.SECRET_SANTA },
       {
         key: EventModuleKey.POTLUCK,
         enabled: !!data.bringEnabled,
         position: MODULE_POSITIONS.POTLUCK,
       },
-      { key: EventModuleKey.TIMELINE, enabled: false, position: MODULE_POSITIONS.TIMELINE },
+      {
+        key: EventModuleKey.TIMELINE,
+        enabled: !!data.timelineEnabled,
+        position: MODULE_POSITIONS.TIMELINE,
+      },
       { key: EventModuleKey.EXPENSES, enabled: false, position: MODULE_POSITIONS.EXPENSES },
       {
         key: EventModuleKey.POLLS,
@@ -278,7 +284,9 @@ export async function createEvent(formData: FormData) {
 
     await Promise.all(settingsJobs.filter((j) => isEnabled(j.key)).map((j) => j.run()));
 
-    await syncGiftListsForEvent(tx, event.id);
+    if (isEnabled(EventModuleKey.GIFTS)) {
+      await syncGiftListsForEvent(tx, event.id);
+    }
 
     if (data.schedule.mode === EventScheduleMode.POLL) {
       const poll = await tx.eventPoll.create({
