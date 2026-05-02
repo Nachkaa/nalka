@@ -75,7 +75,7 @@ SELECT gen_random_uuid()::text, now(), now(), e."id", k.key, TRUE, k.pos
 FROM "Event" e
 CROSS JOIN (VALUES
   ('TIMELINE'::"EventModuleKey", 4),
-  ('EXPENSES'::"EventModuleKey", 5),
+  ('BUDGET'::"EventModuleKey", 5),
   ('CHAT'::"EventModuleKey", 7)
 ) AS k(key, pos)
 WHERE NOT EXISTS (
@@ -134,7 +134,7 @@ AND NOT EXISTS (SELECT 1 FROM "EventTimelineSettings" s WHERE s."eventModuleId"=
 INSERT INTO "EventExpensesSettings" ("id","eventModuleId")
 SELECT gen_random_uuid()::text, em."id"
 FROM "EventModule" em
-WHERE em."key"='EXPENSES'
+WHERE em."key"='BUDGET'
 AND NOT EXISTS (SELECT 1 FROM "EventExpensesSettings" s WHERE s."eventModuleId"=em."id");
 
 INSERT INTO "EventPollsSettings" ("id","eventModuleId")

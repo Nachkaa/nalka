@@ -2,6 +2,7 @@ import {
   serializeMoneyValue,
   serializeNullableMoneyValue,
 } from "@/features/budget/lib/serializers";
+import { BUDGET_DEFAULT_CURRENCY } from "@/features/budget/lib/constants";
 import type { BudgetQuotesOverviewData, QuoteStatus } from "@/features/budget/lib/types";
 import { requireBudgetAccess } from "@/features/budget/server/queries/_shared";
 import { prisma } from "@/lib/prisma";
@@ -17,7 +18,6 @@ export async function getBudgetQuotesOverview(eventSlug: string): Promise<Budget
       id: true,
       eventId: true,
       totalBudget: true,
-      currency: true,
       event: {
         select: {
           vendors: {
@@ -67,7 +67,7 @@ export async function getBudgetQuotesOverview(eventSlug: string): Promise<Budget
       id: budget.id,
       eventId: budget.eventId,
       totalBudget: serializeMoneyValue(budget.totalBudget),
-      currency: budget.currency,
+      currency: BUDGET_DEFAULT_CURRENCY,
     },
     vendors: budget.event.vendors,
     totalQuotesCount: budget.lines.reduce((total, line) => total + line.quotes.length, 0),

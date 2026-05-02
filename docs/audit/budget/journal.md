@@ -1,5 +1,23 @@
 # Journal d'exécution — Module Budget
 
+## 2026-05-02 - PR-04 en cours
+
+**PR-04 - Migration DB currency + EventModuleKey.BUDGET**
+- Branche : `budget/sprint-1-pr-04-db-rename`
+- Statut : migrations preparees; deploiement prod manuel en fin de Sprint 1
+- Procedure de deploiement prod apres merge Sprint 1 uniquement :
+
+```bash
+# Sur le VPS
+cd /path/to/nalka
+git pull origin main
+pnpm install
+pnpm prisma migrate deploy
+pm2 restart nalka
+```
+
+- Ne pas deployer prod tant que toutes les PR suivantes du Sprint 1 ne sont pas mergees. Deploiement unique en fin de Sprint 1.
+
 ## 2026-05-02 — Sprint 0 démarré, PR-01 mergée
 
 **PR-01 — constants + labels** ✅
