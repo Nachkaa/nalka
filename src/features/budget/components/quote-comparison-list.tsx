@@ -36,9 +36,9 @@ export function QuoteComparisonList(props: {
                   {quote.amount ? <Badge variant="outline">{formatMoney(quote.amount, props.currency)}</Badge> : null}
                 </div>
                 <div className="text-muted-foreground mt-2 space-y-1 text-sm">
-                  <p>Demande le : {formatDateTime(quote.requestedAt)}</p>
-                  <p>Recu le : {formatDateTime(quote.receivedAt)}</p>
-                  <p>Valable jusqu&apos;au : {formatDateTime(quote.validUntil)}</p>
+                  {quote.requestedAt && <p>Demandé le : {formatDateTime(quote.requestedAt)}</p>}
+                  {quote.receivedAt && <p>Reçu le : {formatDateTime(quote.receivedAt)}</p>}
+                  {quote.validUntil && <p>Valable jusqu&apos;au : {formatDateTime(quote.validUntil)}</p>}
                 </div>
                 {quote.scope ? <p className="mt-3 text-sm">{quote.scope}</p> : null}
                 {quote.decisionNote ? (

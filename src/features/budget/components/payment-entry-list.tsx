@@ -49,7 +49,7 @@ export function PaymentEntryList(props: Props) {
                     <div className="text-muted-foreground space-y-1 text-sm">
                       <p>Montant : {formatMoney(payment.amount, props.currency)}</p>
                       <p>Echeance : {formatDateTime(payment.dueDate)}</p>
-                      <p>Regle le : {payment.paidAt ? formatDateTime(payment.paidAt) : "Pas encore regle"}</p>
+                      {isPaid && <p>Réglé le : {formatDateTime(payment.paidAt)}</p>}
                     </div>
                     {payment.note ? <p className="text-sm">{payment.note}</p> : null}
                   </div>

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddBudgetLineDialog } from "@/features/budget/components/add-budget-line-dialog";
-import { BudgetLinesTable } from "@/features/budget/components/budget-lines-table";
+import { BudgetLinesView } from "@/features/budget/components/budget-lines-view";
 import type { BudgetLinesData } from "@/features/budget/lib/types";
 
 export function BudgetLinesScreen(props: { data: BudgetLinesData }) {
@@ -33,7 +33,7 @@ export function BudgetLinesScreen(props: { data: BudgetLinesData }) {
               <AddBudgetLineDialog eventSlug={props.data.event.slug} />
             </div>
           ) : (
-            <BudgetLinesTable
+            <BudgetLinesView
               lines={props.data.lines}
               currency={props.data.budget.currency}
               eventSlug={props.data.event.slug}
