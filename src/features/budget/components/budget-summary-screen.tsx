@@ -3,6 +3,7 @@ import { BudgetTotalSetupCard } from "@/features/budget/components/budget-total-
 import { FinancialOverviewCard } from "@/features/budget/components/financial-overview-card";
 import { NeedsAttentionList } from "@/features/budget/components/needs-attention-list";
 import { UpcomingPaymentsList } from "@/features/budget/components/upcoming-payments-list";
+import { BUDGET_METRIC_LABELS } from "@/features/budget/lib/constants";
 import type { BudgetSummaryData } from "@/features/budget/lib/types";
 
 export function BudgetSummaryScreen(props: { data: BudgetSummaryData }) {
@@ -22,7 +23,7 @@ export function BudgetSummaryScreen(props: { data: BudgetSummaryData }) {
       value: data.totals.estimated,
       helper: "Estimation actuelle sur l'ensemble des postes.",
     },
-    { label: "Retenu", value: data.totals.committed, helper: "Montants des devis retenus." },
+    { label: BUDGET_METRIC_LABELS.committed, value: data.totals.committed, helper: "Montants des devis engagés." },
     { label: "Regle", value: data.totals.paid },
     data.hasDefinedTotal
       ? {
