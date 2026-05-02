@@ -1,5 +1,6 @@
 import { requireCurrentUser } from "@/lib/session";
 import { requireEnabledModule } from "@/features/events/access";
+import { BUDGET_DEFAULT_CURRENCY } from "@/features/budget/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { EventModuleKey } from "@prisma/client";
 import { notFound } from "next/navigation";
@@ -12,7 +13,7 @@ async function findBudgetAccess(eventSlug: string) {
     access = await requireEnabledModule({
       slug: eventSlug,
       userId,
-      key: EventModuleKey.EXPENSES,
+      key: EventModuleKey.BUDGET,
       requireOrganizer: true,
     });
   } catch {
@@ -30,7 +31,6 @@ async function findBudgetAccess(eventSlug: string) {
           id: true,
           eventId: true,
           totalBudget: true,
-          currency: true,
         },
       },
     },
@@ -48,7 +48,10 @@ async function findBudgetAccess(eventSlug: string) {
       title: event.title,
     },
     budgetModuleEnabled: true,
-    budget: event.budget,
+    budget: {
+      ...event.budget,
+      currency: BUDGET_DEFAULT_CURRENCY,
+    },
   };
 }
 

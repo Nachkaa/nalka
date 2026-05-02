@@ -81,7 +81,7 @@ export const EVENT_MODULE_REGISTRY: readonly EventModuleDefinition[] = [
     defaultEnabledOnCreate: false,
   },
   {
-    key: EventModuleKey.EXPENSES,
+    key: EventModuleKey.BUDGET,
     navigationKey: "budget",
     label: "Budget",
     description: "Budget, lignes et devis",

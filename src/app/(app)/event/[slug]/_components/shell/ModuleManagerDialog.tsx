@@ -84,7 +84,7 @@ const MODULE_ICONS: Record<
   SECRET_SANTA: Sparkles,
   POTLUCK: UtensilsCrossed,
   TIMELINE: CalendarClock,
-  EXPENSES: PiggyBank,
+  BUDGET: PiggyBank,
   POLLS: BarChart3,
   CHAT: MessageSquare,
 };

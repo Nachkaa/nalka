@@ -37,7 +37,7 @@ const MODULE_POSITIONS = {
   SECRET_SANTA: 2,
   POTLUCK: 3,
   TIMELINE: 4,
-  EXPENSES: 5,
+  BUDGET: 5,
   POLLS: 6,
   CHAT: 7,
 } as const;
@@ -173,7 +173,7 @@ async function main() {
         { key: EventModuleKey.SECRET_SANTA, enabled: secretSantaEnabled },
         { key: EventModuleKey.POTLUCK, enabled: false },
         { key: EventModuleKey.TIMELINE, enabled: true },
-        { key: EventModuleKey.EXPENSES, enabled: true },
+        { key: EventModuleKey.BUDGET, enabled: true },
         { key: EventModuleKey.POLLS, enabled: false },
         { key: EventModuleKey.CHAT, enabled: true },
       ];
@@ -209,7 +209,7 @@ async function main() {
         data: { eventModuleId: moduleByKey.get(EventModuleKey.TIMELINE)!.id },
       });
       await prisma.eventExpensesSettings.create({
-        data: { eventModuleId: moduleByKey.get(EventModuleKey.EXPENSES)!.id },
+        data: { eventModuleId: moduleByKey.get(EventModuleKey.BUDGET)!.id },
       });
       await prisma.eventPollsSettings.create({
         data: { eventModuleId: moduleByKey.get(EventModuleKey.POLLS)!.id },
@@ -330,7 +330,7 @@ async function main() {
           { key: EventModuleKey.SECRET_SANTA, enabled: false, position: MODULE_POSITIONS.SECRET_SANTA },
           { key: EventModuleKey.POTLUCK, enabled: false, position: MODULE_POSITIONS.POTLUCK },
           { key: EventModuleKey.TIMELINE, enabled: true, position: MODULE_POSITIONS.TIMELINE },
-          { key: EventModuleKey.EXPENSES, enabled: true, position: MODULE_POSITIONS.EXPENSES },
+          { key: EventModuleKey.BUDGET, enabled: true, position: MODULE_POSITIONS.BUDGET },
           { key: EventModuleKey.POLLS, enabled: false, position: MODULE_POSITIONS.POLLS },
           { key: EventModuleKey.CHAT, enabled: false, position: MODULE_POSITIONS.CHAT },
         ],
@@ -368,7 +368,7 @@ async function main() {
       data: { eventModuleId: budgetModuleByKey.get(EventModuleKey.TIMELINE)! },
     }),
     prisma.eventExpensesSettings.create({
-      data: { eventModuleId: budgetModuleByKey.get(EventModuleKey.EXPENSES)! },
+      data: { eventModuleId: budgetModuleByKey.get(EventModuleKey.BUDGET)! },
     }),
     prisma.eventPollsSettings.create({
       data: { eventModuleId: budgetModuleByKey.get(EventModuleKey.POLLS)! },
@@ -382,7 +382,6 @@ async function main() {
     data: {
       eventId: budgetEvent.id,
       totalBudget: "150000.00",
-      currency: "EUR",
     },
   });
 

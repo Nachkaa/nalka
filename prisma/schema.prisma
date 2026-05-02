@@ -189,7 +189,6 @@ model Budget {
   eventId      String       @unique
   totalBudget  Decimal      @db.Decimal(12, 2)
   setupStatus  BudgetSetupStatus @default(NOT_STARTED)
-  currency     String       @default("EUR")
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -644,7 +643,7 @@ enum EventModuleKey {
   SECRET_SANTA
   POTLUCK
   TIMELINE
-  EXPENSES
+  BUDGET
   POLLS
   CHAT
 }

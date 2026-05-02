@@ -237,7 +237,7 @@ export async function enableEventModuleFromManager(params: {
             create: { eventModuleId: eventModule.id },
           });
           break;
-        case EventModuleKey.EXPENSES: {
+        case EventModuleKey.BUDGET: {
           await tx.eventExpensesSettings.upsert({
             where: { eventModuleId: eventModule.id },
             update: {},
@@ -263,7 +263,6 @@ export async function enableEventModuleFromManager(params: {
                   typeof currentEvent?.budgetCents === "number" && currentEvent.budgetCents > 0
                     ? "STARTED"
                     : "NOT_STARTED",
-                currency: "EUR",
               },
             });
           }

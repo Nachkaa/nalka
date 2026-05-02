@@ -9,6 +9,7 @@ import {
   serializeMoneyValue,
   serializeNullableMoneyValue,
 } from "@/features/budget/lib/serializers";
+import { BUDGET_DEFAULT_CURRENCY } from "@/features/budget/lib/constants";
 import type {
   BudgetLineQuotesData,
   PaymentEntrySnapshot,
@@ -194,7 +195,6 @@ export async function getBudgetLineQuotes(eventSlug: string, lineId: string): Pr
           id: true,
           eventId: true,
           totalBudget: true,
-          currency: true,
           event: {
             select: {
               vendors: {
@@ -233,7 +233,7 @@ export async function getBudgetLineQuotes(eventSlug: string, lineId: string): Pr
       id: line.budget.id,
       eventId: line.budget.eventId,
       totalBudget: serializeMoneyValue(line.budget.totalBudget),
-      currency: line.budget.currency,
+      currency: BUDGET_DEFAULT_CURRENCY,
     },
     vendors: line.budget.event.vendors,
     line: {

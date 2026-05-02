@@ -10,6 +10,7 @@ import {
   serializeMoneyValue,
   serializeNullableMoneyValue,
 } from "@/features/budget/lib/serializers";
+import { BUDGET_DEFAULT_CURRENCY } from "@/features/budget/lib/constants";
 import type { BudgetSummaryData, PaymentEntrySnapshot } from "@/features/budget/lib/types";
 import { requireBudgetAccess } from "@/features/budget/server/queries/_shared";
 import { prisma } from "@/lib/prisma";
@@ -47,7 +48,6 @@ export async function getBudgetSummary(eventSlug: string): Promise<BudgetSummary
       id: true,
       eventId: true,
       totalBudget: true,
-      currency: true,
       lines: {
         orderBy: { createdAt: "asc" },
         select: {
@@ -204,7 +204,7 @@ export async function getBudgetSummary(eventSlug: string): Promise<BudgetSummary
       id: budget.id,
       eventId: budget.eventId,
       totalBudget: serializeMoneyValue(budget.totalBudget),
-      currency: budget.currency,
+      currency: BUDGET_DEFAULT_CURRENCY,
     },
     totals: {
       ...totals,

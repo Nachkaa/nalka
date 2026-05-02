@@ -246,10 +246,10 @@ export async function createEvent(formData: FormData) {
           }),
       },
       {
-        key: EventModuleKey.EXPENSES,
+        key: EventModuleKey.BUDGET,
         run: () =>
           tx.eventExpensesSettings.create({
-            data: { eventModuleId: idOf(EventModuleKey.EXPENSES) },
+            data: { eventModuleId: idOf(EventModuleKey.BUDGET) },
           }),
       },
       {
