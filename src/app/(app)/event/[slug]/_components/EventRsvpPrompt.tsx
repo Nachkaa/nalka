@@ -10,7 +10,7 @@ import { EventRsvpStatus } from "@prisma/client";
 import { Check, HelpCircle, Pencil } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { updateRsvp } from "../actions";
+import { updateRsvp } from "../actions/rsvp";
 
 type Props = {
   eventId: string;
@@ -65,7 +65,7 @@ export function EventRsvpPrompt({
       });
 
       if (!result.ok) {
-        toast.error("Impossible d'enregistrer. Réessayer.");
+        toast.error("Impossible d'enregistrer. Rï¿½essayer.");
         return;
       }
 
@@ -81,11 +81,11 @@ export function EventRsvpPrompt({
       <div
         className="bg-muted/40 grid w-full grid-cols-3 overflow-hidden rounded-full border p-1"
         role="radiogroup"
-        aria-label="Réponse présence"
+        aria-label="Rï¿½ponse prï¿½sence"
       >
         {[
           { value: EventRsvpStatus.GOING, label: "Je viens" },
-          { value: EventRsvpStatus.MAYBE, label: "Peut-être" },
+          { value: EventRsvpStatus.MAYBE, label: "Peut-ï¿½tre" },
           { value: EventRsvpStatus.NOT_GOING, label: "Je ne viens pas" },
         ].map((option) => {
           const isActive = status === option.value;
@@ -119,14 +119,14 @@ export function EventRsvpPrompt({
     if (status === "PENDING" && !isEditing) {
       return (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground text-sm">Présence : Pas encore répondu</span>
+          <span className="text-muted-foreground text-sm">Prï¿½sence : Pas encore rï¿½pondu</span>
           <Button
             variant="ghost"
             size="sm"
             className="h-8 px-2 text-xs"
             onClick={() => setIsEditing(true)}
           >
-            Répondre
+            Rï¿½pondre
             <StatusBadge status={status} />
           </Button>
         </div>
@@ -135,7 +135,7 @@ export function EventRsvpPrompt({
 
     return (
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-muted-foreground text-sm">Présence :</span>
+        <span className="text-muted-foreground text-sm">Prï¿½sence :</span>
         <button
           type="button"
           onClick={() => setIsEditing(true)}
@@ -159,7 +159,7 @@ export function EventRsvpPrompt({
   const body = (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-foreground text-base font-semibold">Ta présence</p>
+        <p className="text-foreground text-base font-semibold">Ta prï¿½sence</p>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <button
@@ -171,7 +171,7 @@ export function EventRsvpPrompt({
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-72 text-sm leading-relaxed">
-            Tu ne vois jamais les réponses des autres participants. L&apos;organisateur voit seulement un
+            Tu ne vois jamais les rï¿½ponses des autres participants. L&apos;organisateur voit seulement un
             total pour s&apos;organiser.
           </PopoverContent>
         </Popover>
@@ -180,7 +180,7 @@ export function EventRsvpPrompt({
       {renderBadgeRow()}
 
       {respondedAtLabel && status !== EventRsvpStatus.PENDING && (
-        <p className="text-muted-foreground text-xs">Répondu le {respondedAtLabel}</p>
+        <p className="text-muted-foreground text-xs">Rï¿½pondu le {respondedAtLabel}</p>
       )}
 
       {(isEditing || status === "PENDING") && <div className="pt-1">{renderControl()}</div>}

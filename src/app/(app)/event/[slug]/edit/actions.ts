@@ -2,11 +2,11 @@
 
 import "server-only";
 import { auth } from "@/auth";
+import { syncGiftListsIfEnabled } from "@/features/gifts/server/lifecycle";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { EventGiftMode, EventMemberRole } from "@prisma/client";
-import { syncGiftListsForEvent } from "@/domain/gift-lists";
 import { MODULE_POSITIONS } from "@/features/events/module-positions";
 
 const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -167,7 +167,7 @@ export async function updateEvent(eventId: string, slug: string, formData: FormD
     });
 
     if (giftsModule.enabled && event.giftMode === EventGiftMode.PERSONAL_LISTS) {
-      await syncGiftListsForEvent(tx, event.id);
+      await syncGiftListsIfEnabled(tx, event.id);
     }
 
     await shiftTimelineMomentsForEventDateChange(tx, eventId, currentEvent?.eventOn ?? null, eventOn);

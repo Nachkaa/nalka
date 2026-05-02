@@ -3,6 +3,11 @@
 "use server";
 
 import { auth, signIn } from "@/auth";
+import {
+  deleteGiftListsForMember,
+  deleteGiftListsForRelative,
+  ensureGiftListForJoinedMember,
+} from "@/features/gifts/server/lifecycle";
 import { prisma } from "@/lib/prisma";
 import { limit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/req";
@@ -82,16 +87,12 @@ export async function inviteMember(formData: FormData) {
 
   const giftsEnabled = event.modules[0]?.enabled === true;
   if (giftsEnabled && event.giftMode === EventGiftMode.PERSONAL_LISTS) {
-    const existingList = await prisma.giftList.findFirst({
-      where: { eventId: event.id, ownerId: user.id, eventRelativeId: null },
-      select: { id: true },
-    });
-
-    if (!existingList) {
-      await prisma.giftList.create({
-        data: { eventId: event.id, ownerId: user.id, title: "Ma liste" },
+    await prisma.$transaction(async (tx) => {
+      await ensureGiftListForJoinedMember(tx, {
+        eventId: event.id,
+        userId: user.id,
       });
-    }
+    });
   }
 
   const qp = new URLSearchParams({
@@ -198,7 +199,7 @@ export async function removeMember(
       where: { byUserId: userIdToRemove, status: { not: "RELEASED" }, item: { list: { eventId } } },
       data: { status: "RELEASED" },
     });
-    await tx.giftList.deleteMany({ where: { ownerId: userIdToRemove, eventId } });
+    await deleteGiftListsForMember(tx, { eventId, userId: userIdToRemove });
     await tx.eventMember.delete({ where: { userId_eventId: { userId: userIdToRemove, eventId } } });
   });
 
@@ -262,9 +263,7 @@ export async function removeRelative(fd: FormData): Promise<void> {
     });
 
     // Supprime la/les listes du proche
-    await tx.giftList.deleteMany({
-      where: { eventId, eventRelativeId: relativeId },
-    });
+    await deleteGiftListsForRelative(tx, { eventId, relativeId });
 
     // Supprime le proche de lâ€™Ã©vÃ©nement
     await tx.eventRelative.delete({

@@ -1,6 +1,6 @@
 "use client";
 
-import { updateRsvp } from "@/app/(app)/event/[slug]/actions";
+import { updateRsvp } from "@/app/(app)/event/[slug]/actions/rsvp";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

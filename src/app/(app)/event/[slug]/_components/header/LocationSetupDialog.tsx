@@ -20,9 +20,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { setEventLocationBySlug } from "@/features/events/server/event-details";
+import { ensureLocationPoll } from "@/features/polls/server/mutations";
 import { MapPin, Vote } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
-import { ensureLocationPoll, setEventLocationBySlug } from "../../actions";
 
 type Props = {
   open: boolean;

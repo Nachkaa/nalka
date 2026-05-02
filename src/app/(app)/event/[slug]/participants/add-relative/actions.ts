@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
-import { syncGiftListsForEvent } from "@/domain/gift-lists";
+import { syncGiftListsIfEnabled } from "@/features/gifts/server/lifecycle";
 import { prisma } from "@/lib/prisma";
 import { EventGiftMode } from "@prisma/client";
 import { redirect } from "next/navigation";
@@ -150,7 +150,7 @@ export async function createEventRelativeAction(formData: FormData) {
 
     // Sync lists only when the mode implies per-person lists
     if (giftsEnabled && event.giftMode === EventGiftMode.PERSONAL_LISTS) {
-      await syncGiftListsForEvent(tx, event.id);
+      await syncGiftListsIfEnabled(tx, event.id);
     }
   });
 

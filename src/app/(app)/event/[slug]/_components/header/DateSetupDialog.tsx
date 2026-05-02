@@ -20,9 +20,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { setEventDateBySlug } from "@/features/events/server/event-details";
+import { ensureSchedulePoll } from "@/features/polls/server/mutations";
 import { Calendar, Vote } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
-import { ensureSchedulePoll, setEventDateBySlug } from "../../actions";
 
 type Props = {
   open: boolean;
@@ -144,4 +145,3 @@ export function DateSetupDialog({ open, onOpenChange, slug, initialDate }: Props
     </>
   );
 }
-

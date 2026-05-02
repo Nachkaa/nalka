@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, CheckCircle2, Loader2, UserPlus } from "lucide-react";
 import { ReactNode, useEffect, useRef, useState, useTransition } from "react";
-import { inviteMember } from "../../actions";
+import { inviteMember } from "../../actions/participants";
 
 type DialogProps = {
   eventId: string;

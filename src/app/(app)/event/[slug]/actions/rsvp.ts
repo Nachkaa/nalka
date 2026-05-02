@@ -3,8 +3,10 @@
 "use server";
 
 import { auth } from "@/auth";
+import { requireEventOrganizer } from "@/features/events/access";
+import { getEventModulePosition } from "@/features/events/module-registry";
 import { prisma } from "@/lib/prisma";
-import { EventMemberRole, EventRsvpStatus } from "@prisma/client";
+import { EventRsvpStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -12,22 +14,6 @@ const rsvpSchema = z.object({
   eventId: z.string().min(1),
   status: z.nativeEnum(EventRsvpStatus),
 });
-
-async function getCurrentUserId() {
-  const session = await auth();
-  if (!session?.user) return null;
-
-  return (
-    session.user.id ??
-    (
-      await prisma.user.findUnique({
-        where: { email: session.user.email ?? "" },
-        select: { id: true },
-      })
-    )?.id ??
-    null
-  );
-}
 
 export async function updateRsvp(input: { eventId: string; status: EventRsvpStatus }) {
   const parsed = rsvpSchema.safeParse(input);
@@ -73,27 +59,20 @@ export async function updateRsvp(input: { eventId: string; status: EventRsvpStat
 }
 
 export async function enableRsvpRequirement(params: { eventId: string; slug: string }) {
-  const userId = await getCurrentUserId();
-  if (!userId) return { ok: false, error: "Unauthorized" };
-
-  const membership = await prisma.eventMember.findUnique({
-    where: { userId_eventId: { userId, eventId: params.eventId } },
-    select: { role: true },
-  });
-
-  const adminRoles: EventMemberRole[] = [EventMemberRole.ADMIN, EventMemberRole.OWNER];
-  if (!membership || !adminRoles.includes(membership.role)) {
+  try {
+    await requireEventOrganizer({ eventId: params.eventId });
+  } catch {
     return { ok: false, error: "Accès refusé" };
   }
 
   const overviewModule = await prisma.eventModule.upsert({
     where: { eventId_key: { eventId: params.eventId, key: "OVERVIEW" } },
-    update: { enabled: true, position: 0 },
+    update: { enabled: true, position: getEventModulePosition("OVERVIEW") },
     create: {
       eventId: params.eventId,
       key: "OVERVIEW",
       enabled: true,
-      position: 0,
+      position: getEventModulePosition("OVERVIEW"),
     },
   });
 

@@ -1,8 +1,6 @@
-// extend payload with receiverItems (safe: only if caller is assigned giver)
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { EventModuleKey } from "@prisma/client";
+
+import { getSecretSantaMeView } from "@/features/secret-santa/server/queries/get-secret-santa-me-view";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -10,50 +8,30 @@ export const revalidate = 0;
 type Params = { eventId: string };
 
 export async function GET(_req: Request, ctx: { params: Promise<Params> }) {
-  const session = await auth();
-  if (!session?.user?.email) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  try {
+    const { eventId } = await ctx.params;
+    const data = await getSecretSantaMeView(eventId);
 
-  const me = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
-  if (!me) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
+    if (!data) {
+      return NextResponse.json({ error: "Aucun tirage" }, { status: 404 });
+    }
 
-  const { eventId } = await ctx.params;
-  const secretSantaModule = await prisma.eventModule.findUnique({
-    where: { eventId_key: { eventId, key: EventModuleKey.SECRET_SANTA } },
-    select: { enabled: true },
-  });
-  if (!secretSantaModule?.enabled) {
-    return NextResponse.json({ error: "Module Secret Santa inactif" }, { status: 403 });
+    return NextResponse.json(data);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erreur inconnue";
+
+    if (message === "Non authentifié") {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    if (message === "Forbidden") {
+      return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+    }
+
+    if (message === "Not found") {
+      return NextResponse.json({ error: "Module Secret Santa inactif" }, { status: 403 });
+    }
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const assign = await prisma.secretSantaAssignment.findUnique({
-    where: { eventId_giverId: { eventId, giverId: me.id } },
-    select: { receiverId: true },
-  });
-  if (!assign) return NextResponse.json({ error: "Aucun tirage" }, { status: 404 });
-
-  const receiver = await prisma.user.findUnique({
-    where: { id: assign.receiverId },
-    select: { id: true, name: true, email: true },
-  });
-
-  const list = await prisma.giftList.findFirst({
-    where: { eventId, ownerId: assign.receiverId },
-    select: {
-      id: true,
-      items: {
-        select: { id: true, title: true, url: true, note: true },
-        orderBy: { createdAt: "desc" },
-        take: 8, // cap to keep banner compact
-      },
-    },
-  });
-
-  return NextResponse.json({
-    receiver: receiver ?? { id: assign.receiverId, name: null, email: null },
-    listId: list?.id ?? null,
-    receiverItems: list?.items ?? [],
-  });
 }

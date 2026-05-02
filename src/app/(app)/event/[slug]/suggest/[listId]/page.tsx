@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { SuggestGiftAction } from "./actions";
 import { Button } from "@/components/ui/button";
-import { GiftForm } from "@/components/forms/GiftForm";
+import { GiftForm } from "@/features/gifts/components/GiftForm";
 
 export default async function SuggestGiftPage({
   params,

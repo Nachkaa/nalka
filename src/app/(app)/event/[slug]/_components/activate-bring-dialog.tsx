@@ -14,7 +14,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { activateBring } from "../actions";
+import { activateBring } from "../actions/modules";
 
 type ActivateBringDialogProps = {
   open: boolean;

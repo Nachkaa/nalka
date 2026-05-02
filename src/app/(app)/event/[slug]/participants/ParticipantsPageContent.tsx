@@ -20,8 +20,7 @@ import { Search, UserMinus, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AddParticipantLauncher } from "../_components/participants/AddParticipantLauncher";
-import { removeRelative } from "../actions";
-import { removeMemberAction } from "../actions/participants";
+import { removeMemberAction, removeRelative } from "../actions/participants";
 
 export type MemberForClient = {
   id: string;

@@ -1,5 +1,5 @@
-import { getEventPollsVM } from "@/domain/polls/getEventPollsVM";
-import { PollCard } from "./poll/PollCard";
+import { PollCard } from "@/features/polls/components/PollCard";
+import { getEventPollsVM } from "@/features/polls/server/queries/get-event-polls-vm";
 
 export async function EventPollsSection({
   eventId,
