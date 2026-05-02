@@ -44,3 +44,4 @@ next-env.d.ts
 
 # Gift images uploaded by users
 public/gift-images/
+.env.local
