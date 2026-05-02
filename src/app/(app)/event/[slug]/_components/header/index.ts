@@ -5,4 +5,3 @@ export * from "./DateSetupDialog";
 export * from "./DateSetupEntryPoint";
 export * from "./LocationSetupDialog";
 export * from "./ParticipantsSummary";
-export * from "./RsvpBar";

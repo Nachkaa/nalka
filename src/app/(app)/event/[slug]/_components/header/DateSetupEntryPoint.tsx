@@ -1,16 +1,14 @@
-// src/app/(app)/event/[slug]/_components/header/DateSetupEntryPoint.tsx
 "use client";
 
-import type { EventPollVM } from "@/domain/polls/getEventPollsVM";
+import { setEventDateBySlug } from "@/features/events/server/event-details";
+import { applyPollOptionToEvent, closePollById } from "@/features/polls/server/mutations";
+import { DecidePollOptionDialog } from "@/features/polls/components/DecidePollOptionDialog";
+import { getRecommendedOptionId, isRecommendationStrong } from "@/features/polls/lib/poll-utils";
+import type { EventPollVM } from "@/features/polls/types";
 import { formatEventDateTime } from "@/lib/dates/format-date";
 import { EventPollStatus, EventPollType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-
-import { setEventDateBySlug } from "../../actions/event"; // ✅ à adapter au vrai chemin/nom
-import { applyPollOptionToEvent, closePollById } from "../../actions/polls";
-import { DecidePollOptionDialog } from "../poll/DecidePollOptionDialog";
-import { getRecommendedOptionId, isRecommendationStrong } from "../poll/pollUtils";
 import { DateSetupDialog } from "./DateSetupDialog";
 
 type Props = {

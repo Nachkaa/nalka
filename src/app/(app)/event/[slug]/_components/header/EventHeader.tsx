@@ -2,7 +2,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import type { EventPollVM } from "@/domain/polls/getEventPollsVM";
+import type { EventPollVM } from "@/features/polls/types";
 import { formatEventDateTime } from "@/lib/dates/format-date";
 import type {
   EventGiftMode,

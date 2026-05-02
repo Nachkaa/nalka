@@ -2,8 +2,8 @@
 
 import { auth } from "@/auth";
 import { EventCreateSchema } from "@/domain/events";
-import { syncGiftListsForEvent } from "@/domain/gift-lists";
-import { MODULE_POSITIONS } from "@/features/events/module-positions";
+import { buildEventModuleSeeds } from "@/features/events/module-registry";
+import { syncGiftListsIfEnabled } from "@/features/gifts/server/lifecycle";
 import { prisma } from "@/lib/prisma";
 import { limit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/req";
@@ -172,34 +172,15 @@ export async function createEvent(formData: FormData) {
       },
     });
 
-    const modulesToCreate: { key: EventModuleKey; enabled: boolean; position: number }[] = [
-      { key: EventModuleKey.OVERVIEW, enabled: true, position: MODULE_POSITIONS.OVERVIEW },
-      { key: EventModuleKey.GIFTS, enabled: !!data.giftsEnabled, position: MODULE_POSITIONS.GIFTS },
-      {
-        key: EventModuleKey.SECRET_SANTA,
-        enabled: !!data.secretSantaEnabled,
-        position: MODULE_POSITIONS.SECRET_SANTA,
-      },
-      {
-        key: EventModuleKey.POTLUCK,
-        enabled: !!data.bringEnabled,
-        position: MODULE_POSITIONS.POTLUCK,
-      },
-      {
-        key: EventModuleKey.TIMELINE,
-        enabled: !!data.timelineEnabled,
-        position: MODULE_POSITIONS.TIMELINE,
-      },
-      { key: EventModuleKey.EXPENSES, enabled: false, position: MODULE_POSITIONS.EXPENSES },
-      {
-        key: EventModuleKey.POLLS,
-        enabled:
-          data.schedule.mode === EventScheduleMode.POLL ||
-          data.location.mode === EventLocationMode.POLL,
-        position: MODULE_POSITIONS.POLLS,
-      },
-      { key: EventModuleKey.CHAT, enabled: false, position: MODULE_POSITIONS.CHAT },
-    ];
+    const modulesToCreate = buildEventModuleSeeds({
+      [EventModuleKey.GIFTS]: !!data.giftsEnabled,
+      [EventModuleKey.SECRET_SANTA]: !!data.secretSantaEnabled,
+      [EventModuleKey.POTLUCK]: !!data.bringEnabled,
+      [EventModuleKey.TIMELINE]: !!data.timelineEnabled,
+      [EventModuleKey.POLLS]:
+        data.schedule.mode === EventScheduleMode.POLL ||
+        data.location.mode === EventLocationMode.POLL,
+    });
 
     const createdModules = await Promise.all(
       modulesToCreate.map((mod) =>
@@ -290,7 +271,7 @@ export async function createEvent(formData: FormData) {
     await Promise.all(settingsJobs.filter((j) => isEnabled(j.key)).map((j) => j.run()));
 
     if (isEnabled(EventModuleKey.GIFTS)) {
-      await syncGiftListsForEvent(tx, event.id);
+      await syncGiftListsIfEnabled(tx, event.id);
     }
 
     if (data.schedule.mode === EventScheduleMode.POLL) {

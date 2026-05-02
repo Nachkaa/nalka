@@ -1,15 +1,13 @@
-// src/app/(app)/event/[slug]/_components/header/LocationSetupEntryPoint.tsx
 "use client";
 
-import type { EventPollVM } from "@/domain/polls/getEventPollsVM";
+import { setEventLocationBySlug } from "@/features/events/server/event-details";
+import { applyPollOptionToEvent, closePollById } from "@/features/polls/server/mutations";
+import { DecidePollOptionDialog } from "@/features/polls/components/DecidePollOptionDialog";
+import { getRecommendedOptionId, isRecommendationStrong } from "@/features/polls/lib/poll-utils";
+import type { EventPollVM } from "@/features/polls/types";
 import { EventPollStatus, EventPollType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-
-import { setEventLocationBySlug } from "../../actions/event";
-import { applyPollOptionToEvent, closePollById } from "../../actions/polls";
-import { DecidePollOptionDialog } from "../poll/DecidePollOptionDialog";
-import { getRecommendedOptionId, isRecommendationStrong } from "../poll/pollUtils";
 import { LocationSetupDialog } from "./LocationSetupDialog";
 
 type Props = {
@@ -102,7 +100,7 @@ export function LocationSetupEntryPoint({
       await setEventLocationBySlug(slug, v);
 
       if (openPoll) {
-        await closePollById(openPoll.id, slug); // ✅ ferme sans appliquer une option
+        await closePollById(openPoll.id, slug);
       }
 
       onOpenChange(false);

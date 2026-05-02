@@ -1,4 +1,12 @@
-import { EventGiftMode, EventModuleKey, PrismaClient } from "@prisma/client";
+import {
+  BudgetLineCategory,
+  BudgetLineSourcingStatus,
+  EventGiftMode,
+  EventModuleKey,
+  PaymentEntryType,
+  PrismaClient,
+  QuoteStatus,
+} from "@prisma/client";
 import crypto from "node:crypto";
 
 const prisma = new PrismaClient();
@@ -20,6 +28,8 @@ function slugify(s: string) {
   return `${base}-${Math.random().toString(36).slice(2, 8)}`;
 }
 const dateOnly = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+const dateTimeUtc = (y: number, m: number, d: number, hh = 12, mm = 0) =>
+  new Date(Date.UTC(y, m - 1, d, hh, mm, 0));
 
 const MODULE_POSITIONS = {
   OVERVIEW: 0,
@@ -65,6 +75,12 @@ const ITEM_BANK = [
 async function main() {
   console.log("Reset...");
   await prisma.$transaction([
+    prisma.quoteAttachment.deleteMany(),
+    prisma.paymentEntry.deleteMany(),
+    prisma.quote.deleteMany(),
+    prisma.budgetLine.deleteMany(),
+    prisma.budget.deleteMany(),
+    prisma.vendor.deleteMany(),
     prisma.reservation.deleteMany(),
     prisma.idea.deleteMany(),
     prisma.giftItem.deleteMany(),
@@ -278,6 +294,470 @@ async function main() {
       count++;
     }
   }
+
+  console.log("Budget scenario");
+  const organizer = users[0]!;
+  const adminMember = users[1]!;
+  const regularMember = users[2]!;
+
+  const budgetEvent = await prisma.event.create({
+    data: {
+      ownerId: organizer.id,
+      title: "Mariage Juliette & Maxime",
+      description: "Scenario seed for the Nalka budget module.",
+      eventOn: dateOnly(2026, 7, 18),
+      location: "Provence",
+      slug: "mariage-juliette-maxime-budget",
+      linkEnabled: true,
+      colorHex: "#0ea5e9",
+      budgetMode: "FIXED",
+      budgetCents: 15000000,
+      giftMode: EventGiftMode.HOST_LIST,
+      scheduleMode: "EXACT",
+      locationMode: "EXACT",
+      eventTime: "16:00",
+      memberships: {
+        create: [
+          { userId: organizer.id, role: "OWNER" },
+          { userId: adminMember.id, role: "ADMIN" },
+          { userId: regularMember.id, role: "MEMBER" },
+        ],
+      },
+      modules: {
+        create: [
+          { key: EventModuleKey.OVERVIEW, enabled: true, position: MODULE_POSITIONS.OVERVIEW },
+          { key: EventModuleKey.GIFTS, enabled: false, position: MODULE_POSITIONS.GIFTS },
+          { key: EventModuleKey.SECRET_SANTA, enabled: false, position: MODULE_POSITIONS.SECRET_SANTA },
+          { key: EventModuleKey.POTLUCK, enabled: false, position: MODULE_POSITIONS.POTLUCK },
+          { key: EventModuleKey.TIMELINE, enabled: true, position: MODULE_POSITIONS.TIMELINE },
+          { key: EventModuleKey.EXPENSES, enabled: true, position: MODULE_POSITIONS.EXPENSES },
+          { key: EventModuleKey.POLLS, enabled: false, position: MODULE_POSITIONS.POLLS },
+          { key: EventModuleKey.CHAT, enabled: false, position: MODULE_POSITIONS.CHAT },
+        ],
+      },
+    },
+    select: { id: true },
+  });
+
+  const budgetModules = await prisma.eventModule.findMany({
+    where: { eventId: budgetEvent.id },
+    select: { id: true, key: true },
+  });
+  const budgetModuleByKey = new Map(budgetModules.map((module) => [module.key, module.id]));
+
+  await prisma.$transaction([
+    prisma.eventOverviewSettings.create({
+      data: { eventModuleId: budgetModuleByKey.get(EventModuleKey.OVERVIEW)! },
+    }),
+    prisma.eventGiftsSettings.create({
+      data: {
+        eventModuleId: budgetModuleByKey.get(EventModuleKey.GIFTS)!,
+        isNoSpoil: true,
+        isAnonReservations: true,
+        isSecondHandOk: false,
+        isHandmadeOk: false,
+      },
+    }),
+    prisma.eventSecretSantaSettings.create({
+      data: { eventModuleId: budgetModuleByKey.get(EventModuleKey.SECRET_SANTA)! },
+    }),
+    prisma.eventPotluckSettings.create({
+      data: { eventModuleId: budgetModuleByKey.get(EventModuleKey.POTLUCK)! },
+    }),
+    prisma.eventTimelineSettings.create({
+      data: { eventModuleId: budgetModuleByKey.get(EventModuleKey.TIMELINE)! },
+    }),
+    prisma.eventExpensesSettings.create({
+      data: { eventModuleId: budgetModuleByKey.get(EventModuleKey.EXPENSES)! },
+    }),
+    prisma.eventPollsSettings.create({
+      data: { eventModuleId: budgetModuleByKey.get(EventModuleKey.POLLS)! },
+    }),
+    prisma.eventChatSettings.create({
+      data: { eventModuleId: budgetModuleByKey.get(EventModuleKey.CHAT)! },
+    }),
+  ]);
+
+  const budget = await prisma.budget.create({
+    data: {
+      eventId: budgetEvent.id,
+      totalBudget: "150000.00",
+      currency: "EUR",
+    },
+  });
+
+  const vendors = await prisma.$transaction([
+    prisma.vendor.create({
+      data: {
+        eventId: budgetEvent.id,
+        name: "Chateau des Rives",
+        vendorType: "Venue",
+        contactName: "Claire Dubois",
+        email: "claire@chateaudesrives.example",
+        phone: "+33 4 90 00 10 10",
+      },
+    }),
+    prisma.vendor.create({
+      data: {
+        eventId: budgetEvent.id,
+        name: "Domaine des Oliviers",
+        vendorType: "Venue",
+        contactName: "Marc Reynaud",
+        email: "sales@domainedesoliviers.example",
+        phone: "+33 4 90 12 34 56",
+      },
+    }),
+    prisma.vendor.create({
+      data: {
+        eventId: budgetEvent.id,
+        name: "Maison Bellanger Traiteur",
+        vendorType: "Catering",
+        contactName: "Thomas Bellanger",
+        email: "contact@bellanger-traiteur.example",
+        phone: "+33 1 44 10 52 00",
+      },
+    }),
+    prisma.vendor.create({
+      data: {
+        eventId: budgetEvent.id,
+        name: "The Midnight Parade",
+        vendorType: "Live band",
+        contactName: "Sarah Klein",
+        email: "booking@midnightparade.example",
+        phone: "+33 6 10 20 30 40",
+      },
+    }),
+    prisma.vendor.create({
+      data: {
+        eventId: budgetEvent.id,
+        name: "Studio Lumiere",
+        vendorType: "Photo & video",
+        contactName: "Nora Martin",
+        email: "hello@studio-lumiere.example",
+        phone: "+33 6 22 44 66 88",
+      },
+    }),
+    prisma.vendor.create({
+      data: {
+        eventId: budgetEvent.id,
+        name: "Atelier Camera",
+        vendorType: "Photo & video",
+        contactName: "Leo Bernard",
+        email: "quotes@atelier-camera.example",
+        phone: "+33 6 98 11 22 33",
+      },
+    }),
+    prisma.vendor.create({
+      data: {
+        eventId: budgetEvent.id,
+        name: "Azur Chauffeurs",
+        vendorType: "Transportation",
+        contactName: "Sofia Rossi",
+        email: "events@azur-chauffeurs.example",
+        phone: "+33 4 91 77 55 00",
+      },
+    }),
+    prisma.vendor.create({
+      data: {
+        eventId: budgetEvent.id,
+        name: "Maison Dahlia",
+        vendorType: "Floral design",
+        contactName: "Eva Morel",
+        email: "bonjour@maisondahlia.example",
+        phone: "+33 4 93 20 20 20",
+      },
+    }),
+  ]);
+
+  const vendorByName = new Map(vendors.map((vendor) => [vendor.name, vendor]));
+
+  const lines = await prisma.$transaction([
+    prisma.budgetLine.create({
+      data: {
+        budgetId: budget.id,
+        category: BudgetLineCategory.VENUE,
+        label: "Main event space",
+        targetAmount: "40000.00",
+        estimatedAmount: "39500.00",
+        sourcingStatus: BudgetLineSourcingStatus.BOOKED,
+        internalNote: "Preferred option because it includes ceremony garden access.",
+      },
+    }),
+    prisma.budgetLine.create({
+      data: {
+        budgetId: budget.id,
+        category: BudgetLineCategory.FOOD_BEVERAGE,
+        label: "Catering service",
+        targetAmount: "52000.00",
+        estimatedAmount: "54800.00",
+        sourcingStatus: BudgetLineSourcingStatus.BOOKED,
+        internalNote: "Premium late-night service pushes this line above target.",
+      },
+    }),
+    prisma.budgetLine.create({
+      data: {
+        budgetId: budget.id,
+        category: BudgetLineCategory.ENTERTAINMENT,
+        label: "Live band",
+        targetAmount: "9000.00",
+        estimatedAmount: "8800.00",
+        sourcingStatus: BudgetLineSourcingStatus.BOOKED,
+      },
+    }),
+    prisma.budgetLine.create({
+      data: {
+        budgetId: budget.id,
+        category: BudgetLineCategory.GUEST_EXPERIENCE,
+        label: "Photography & videography",
+        targetAmount: "12000.00",
+        estimatedAmount: "11800.00",
+        sourcingStatus: BudgetLineSourcingStatus.QUOTES_RECEIVED,
+        internalNote: "Need to decide between documentary style and cinematic edit.",
+      },
+    }),
+    prisma.budgetLine.create({
+      data: {
+        budgetId: budget.id,
+        category: BudgetLineCategory.LOGISTICS,
+        label: "Transportation service",
+        targetAmount: "7000.00",
+        sourcingStatus: BudgetLineSourcingStatus.SOURCING,
+        internalNote: "Guest shuttle routes still being confirmed.",
+      },
+    }),
+    prisma.budgetLine.create({
+      data: {
+        budgetId: budget.id,
+        category: BudgetLineCategory.DESIGN_DECORATION,
+        label: "Floral arrangements",
+        targetAmount: "8500.00",
+        estimatedAmount: "9200.00",
+        sourcingStatus: BudgetLineSourcingStatus.SELECTED,
+        internalNote: "Proposal selected pending final stem count confirmation.",
+      },
+    }),
+  ]);
+
+  const lineByLabel = new Map(lines.map((line) => [line.label, line]));
+
+  const quotes = await prisma.$transaction([
+    prisma.quote.create({
+      data: {
+        budgetLineId: lineByLabel.get("Main event space")!.id,
+        vendorId: vendorByName.get("Chateau des Rives")!.id,
+        status: QuoteStatus.SELECTED,
+        amount: "39500.00",
+        scope: "Exclusive venue hire from Friday noon to Sunday 10am with ceremony garden access.",
+        requestedAt: dateTimeUtc(2026, 1, 12, 10, 0),
+        receivedAt: dateTimeUtc(2026, 1, 18, 15, 30),
+        validUntil: dateTimeUtc(2026, 2, 15, 18, 0),
+        decisionNote: "Selected after site visit and contract review.",
+      },
+    }),
+    prisma.quote.create({
+      data: {
+        budgetLineId: lineByLabel.get("Main event space")!.id,
+        vendorId: vendorByName.get("Domaine des Oliviers")!.id,
+        status: QuoteStatus.REJECTED,
+        amount: "42800.00",
+        scope: "Alternate private estate rental without accommodation.",
+        requestedAt: dateTimeUtc(2026, 1, 10, 9, 0),
+        receivedAt: dateTimeUtc(2026, 1, 19, 11, 0),
+        validUntil: dateTimeUtc(2026, 2, 10, 18, 0),
+        decisionNote: "Rejected because accommodation and logistics were weaker.",
+      },
+    }),
+    prisma.quote.create({
+      data: {
+        budgetLineId: lineByLabel.get("Catering service")!.id,
+        vendorId: vendorByName.get("Maison Bellanger Traiteur")!.id,
+        status: QuoteStatus.SELECTED,
+        amount: "54800.00",
+        scope: "Cocktail hour, seated dinner for 160 guests, dessert buffet, and late-night snacks.",
+        requestedAt: dateTimeUtc(2026, 1, 20, 14, 0),
+        receivedAt: dateTimeUtc(2026, 1, 27, 16, 45),
+        validUntil: dateTimeUtc(2026, 2, 28, 18, 0),
+        decisionNote: "Selected for menu quality and staffing plan.",
+      },
+    }),
+    prisma.quote.create({
+      data: {
+        budgetLineId: lineByLabel.get("Live band")!.id,
+        vendorId: vendorByName.get("The Midnight Parade")!.id,
+        status: QuoteStatus.SELECTED,
+        amount: "8800.00",
+        scope: "Six-piece band, cocktail trio set, main party set, and sound engineer.",
+        requestedAt: dateTimeUtc(2026, 2, 3, 10, 0),
+        receivedAt: dateTimeUtc(2026, 2, 6, 13, 15),
+        validUntil: dateTimeUtc(2026, 3, 1, 18, 0),
+      },
+    }),
+    prisma.quote.create({
+      data: {
+        budgetLineId: lineByLabel.get("Photography & videography")!.id,
+        vendorId: vendorByName.get("Studio Lumiere")!.id,
+        status: QuoteStatus.RECEIVED,
+        amount: "11800.00",
+        scope: "Two photographers, one videographer, 12-hour coverage, highlight film, and gallery delivery.",
+        requestedAt: dateTimeUtc(2026, 2, 14, 9, 30),
+        receivedAt: dateTimeUtc(2026, 2, 18, 17, 10),
+        validUntil: dateTimeUtc(2026, 3, 18, 18, 0),
+        internalNote: "Strong editorial style, slightly higher post-production timeline.",
+      },
+    }),
+    prisma.quote.create({
+      data: {
+        budgetLineId: lineByLabel.get("Photography & videography")!.id,
+        vendorId: vendorByName.get("Atelier Camera")!.id,
+        status: QuoteStatus.RECEIVED,
+        amount: "10900.00",
+        scope: "One photographer, one videographer, 10-hour coverage, teaser reel, and online gallery.",
+        requestedAt: dateTimeUtc(2026, 2, 14, 10, 0),
+        receivedAt: dateTimeUtc(2026, 2, 20, 14, 20),
+        validUntil: dateTimeUtc(2026, 3, 25, 18, 0),
+        internalNote: "Still under consideration pending portfolio review.",
+      },
+    }),
+    prisma.quote.create({
+      data: {
+        budgetLineId: lineByLabel.get("Transportation service")!.id,
+        vendorId: vendorByName.get("Azur Chauffeurs")!.id,
+        status: QuoteStatus.AWAITING_RESPONSE,
+        requestedAt: dateTimeUtc(2026, 3, 1, 11, 0),
+        internalNote: "Vendor contacted for shuttle loops between hotel blocks and venue.",
+      },
+    }),
+    prisma.quote.create({
+      data: {
+        budgetLineId: lineByLabel.get("Floral arrangements")!.id,
+        vendorId: vendorByName.get("Maison Dahlia")!.id,
+        status: QuoteStatus.SELECTED,
+        amount: "9200.00",
+        scope: "Ceremony arch, reception centerpieces, bridal party bouquets, and table greenery.",
+        requestedAt: dateTimeUtc(2026, 2, 10, 10, 30),
+        receivedAt: dateTimeUtc(2026, 2, 16, 12, 0),
+        validUntil: dateTimeUtc(2026, 3, 10, 18, 0),
+        decisionNote: "Creative direction approved, awaiting final stem count.",
+      },
+    }),
+  ]);
+
+  const venueSelectedQuote = quotes.find(
+    (quote) =>
+      quote.budgetLineId === lineByLabel.get("Main event space")!.id && quote.status === QuoteStatus.SELECTED,
+  )!;
+  const cateringSelectedQuote = quotes.find(
+    (quote) =>
+      quote.budgetLineId === lineByLabel.get("Catering service")!.id && quote.status === QuoteStatus.SELECTED,
+  )!;
+  const bandSelectedQuote = quotes.find(
+    (quote) => quote.budgetLineId === lineByLabel.get("Live band")!.id && quote.status === QuoteStatus.SELECTED,
+  )!;
+  const floralSelectedQuote = quotes.find(
+    (quote) =>
+      quote.budgetLineId === lineByLabel.get("Floral arrangements")!.id && quote.status === QuoteStatus.SELECTED,
+  )!;
+
+  await prisma.$transaction([
+    prisma.budgetLine.update({
+      where: { id: lineByLabel.get("Main event space")!.id },
+      data: { selectedQuoteId: venueSelectedQuote.id },
+    }),
+    prisma.budgetLine.update({
+      where: { id: lineByLabel.get("Catering service")!.id },
+      data: { selectedQuoteId: cateringSelectedQuote.id },
+    }),
+    prisma.budgetLine.update({
+      where: { id: lineByLabel.get("Live band")!.id },
+      data: { selectedQuoteId: bandSelectedQuote.id },
+    }),
+    prisma.budgetLine.update({
+      where: { id: lineByLabel.get("Floral arrangements")!.id },
+      data: { selectedQuoteId: floralSelectedQuote.id },
+    }),
+  ]);
+
+  await prisma.quoteAttachment.createMany({
+    data: [
+      {
+        quoteId: venueSelectedQuote.id,
+        fileName: "chateau-des-rives-proposal.pdf",
+        fileUrl: "https://files.example.com/budget/chateau-des-rives-proposal.pdf",
+        mimeType: "application/pdf",
+        fileSizeBytes: 2_481_120,
+      },
+      {
+        quoteId: cateringSelectedQuote.id,
+        fileName: "bellanger-sample-menu.pdf",
+        fileUrl: "https://files.example.com/budget/bellanger-sample-menu.pdf",
+        mimeType: "application/pdf",
+        fileSizeBytes: 1_124_005,
+      },
+      {
+        quoteId: floralSelectedQuote.id,
+        fileName: "maison-dahlia-moodboard.jpg",
+        fileUrl: "https://files.example.com/budget/maison-dahlia-moodboard.jpg",
+        mimeType: "image/jpeg",
+        fileSizeBytes: 845_221,
+      },
+      {
+        quoteId: quotes.find(
+          (quote) =>
+            quote.budgetLineId === lineByLabel.get("Photography & videography")!.id &&
+            quote.status === QuoteStatus.RECEIVED,
+        )!.id,
+        fileName: "studio-lumiere-packages.pdf",
+        fileUrl: "https://files.example.com/budget/studio-lumiere-packages.pdf",
+        mimeType: "application/pdf",
+        fileSizeBytes: 1_936_442,
+      },
+    ],
+  });
+
+  await prisma.paymentEntry.createMany({
+    data: [
+      {
+        budgetLineId: lineByLabel.get("Catering service")!.id,
+        quoteId: cateringSelectedQuote.id,
+        label: "Catering deposit",
+        entryType: PaymentEntryType.DEPOSIT,
+        amount: "15000.00",
+        dueDate: dateTimeUtc(2026, 3, 15),
+        paidAt: dateTimeUtc(2026, 3, 14, 9, 15),
+        note: "Deposit wired after contract signature.",
+      },
+      {
+        budgetLineId: lineByLabel.get("Catering service")!.id,
+        quoteId: cateringSelectedQuote.id,
+        label: "Catering final balance",
+        entryType: PaymentEntryType.BALANCE,
+        amount: "39800.00",
+        dueDate: dateTimeUtc(2026, 7, 10),
+        note: "Due one week before the event.",
+      },
+      {
+        budgetLineId: lineByLabel.get("Live band")!.id,
+        quoteId: bandSelectedQuote.id,
+        label: "Band deposit",
+        entryType: PaymentEntryType.DEPOSIT,
+        amount: "4400.00",
+        dueDate: dateTimeUtc(2026, 3, 5),
+        paidAt: dateTimeUtc(2026, 3, 5, 11, 45),
+      },
+      {
+        budgetLineId: lineByLabel.get("Live band")!.id,
+        quoteId: bandSelectedQuote.id,
+        label: "Band final balance",
+        entryType: PaymentEntryType.BALANCE,
+        amount: "4400.00",
+        dueDate: dateTimeUtc(2026, 7, 1),
+        paidAt: dateTimeUtc(2026, 7, 1, 8, 30),
+        note: "Fully paid ahead of final rehearsal confirmation.",
+      },
+    ],
+  });
+
+  count++;
 
   console.log(`Seeded ${count} events (${users.length} users).`);
 }

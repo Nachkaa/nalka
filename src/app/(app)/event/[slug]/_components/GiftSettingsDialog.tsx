@@ -10,9 +10,9 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { updateGiftSettingsAction } from "@/features/gifts/actions";
 import { Gift, Users, Eye, EyeOff, Recycle, Hammer, Sparkles, X } from "lucide-react";
 import { CheckboxCard } from "@/components/ui/checkbox-card";
-import { updateGiftSettings } from "../actions";
 
 type Props = {
   open: boolean;
@@ -48,7 +48,7 @@ export function GiftSettingsDialog({ open, onOpenChange, event }: Props) {
 
   async function handleSave() {
     startTransition(async () => {
-      const result = await updateGiftSettings({
+      const result = await updateGiftSettingsAction({
         eventId: event.id,
         slug: event.slug,
         giftMode,

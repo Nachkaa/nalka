@@ -90,6 +90,7 @@ model Event {
   scheduleMode EventScheduleMode @default(TBD)
   eventTime    String?           @db.VarChar(5)
   owner        User              @relation("OwnedEvents", fields: [ownerId], references: [id], onDelete: Cascade)
+  budget       Budget?
   bringItems   EventBringItem[]
   invites      EventInvite[]
   memberships  EventMember[]
@@ -99,6 +100,7 @@ model Event {
   relatives    EventRelative[]
   lists        GiftList[]
   inviteTokens InviteToken[]     @relation("Event_InviteTokens")
+  vendors      Vendor[]
 
   @@index([ownerId, status])
   @@index([ownerId, eventOn])
@@ -180,6 +182,112 @@ model EventExpensesSettings {
   id            String      @id @default(cuid())
   eventModuleId String      @unique
   eventModule   EventModule @relation(fields: [eventModuleId], references: [id], onDelete: Cascade)
+}
+
+model Budget {
+  id          String       @id @default(cuid())
+  eventId      String       @unique
+  totalBudget  Decimal      @db.Decimal(12, 2)
+  setupStatus  BudgetSetupStatus @default(NOT_STARTED)
+  currency     String       @default("EUR")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  lines        BudgetLine[]
+}
+
+model BudgetLine {
+  id              String                   @id @default(cuid())
+  budgetId        String
+  category        BudgetLineCategory
+  label           String
+  targetAmount    Decimal                  @db.Decimal(12, 2)
+  estimatedAmount Decimal?                 @db.Decimal(12, 2)
+  sourcingStatus  BudgetLineSourcingStatus @default(DRAFT)
+  internalNote    String?
+  selectedQuoteId String?                  @unique
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  budget          Budget                   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  selectedQuote   Quote?                   @relation("SelectedBudgetLineQuote", fields: [selectedQuoteId], references: [id], onDelete: SetNull)
+  quotes          Quote[]                  @relation("BudgetLineQuotes")
+  payments        PaymentEntry[]
+
+  @@index([budgetId, category])
+  @@index([budgetId, sourcingStatus])
+}
+
+model Vendor {
+  id          String   @id @default(cuid())
+  eventId      String
+  name         String
+  vendorType   String?
+  contactName  String?
+  email        String?
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  event        Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  quotes       Quote[]
+
+  @@index([eventId, name])
+}
+
+model Quote {
+  id            String      @id @default(cuid())
+  budgetLineId  String
+  vendorId      String
+  status        QuoteStatus @default(AWAITING_RESPONSE)
+  amount        Decimal?    @db.Decimal(12, 2)
+  scope         String?
+  requestedAt   DateTime?
+  receivedAt    DateTime?
+  validUntil    DateTime?
+  internalNote  String?
+  decisionNote  String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  budgetLine    BudgetLine  @relation("BudgetLineQuotes", fields: [budgetLineId], references: [id], onDelete: Cascade)
+  vendor        Vendor      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  attachments   QuoteAttachment[]
+  paymentEntries PaymentEntry[]
+  selectedByLine BudgetLine? @relation("SelectedBudgetLineQuote")
+
+  @@index([budgetLineId, status])
+  @@index([vendorId, status])
+}
+
+model QuoteAttachment {
+  id            String   @id @default(cuid())
+  quoteId       String
+  fileName      String
+  fileUrl       String
+  mimeType      String?
+  fileSizeBytes Int?
+  createdAt     DateTime @default(now())
+  quote         Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+}
+
+model PaymentEntry {
+  id           String           @id @default(cuid())
+  budgetLineId String
+  quoteId      String?
+  label        String
+  entryType    PaymentEntryType
+  amount       Decimal          @db.Decimal(12, 2)
+  dueDate      DateTime
+  paidAt       DateTime?
+  note         String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  budgetLine   BudgetLine       @relation(fields: [budgetLineId], references: [id], onDelete: Cascade)
+  quote        Quote?           @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+
+  @@index([budgetLineId, dueDate])
+  @@index([quoteId])
+  @@index([paidAt])
 }
 
 model EventPollsSettings {
@@ -548,4 +656,41 @@ enum EventTimelineMomentKind {
   party
   transport
   other
+}
+
+enum BudgetLineCategory {
+  VENUE
+  FOOD_BEVERAGE
+  DESIGN_DECORATION
+  ENTERTAINMENT
+  LOGISTICS
+  GUEST_EXPERIENCE
+  COMMUNICATION
+  MISCELLANEOUS
+}
+
+enum BudgetLineSourcingStatus {
+  DRAFT
+  SOURCING
+  QUOTES_RECEIVED
+  SELECTED
+  BOOKED
+}
+
+enum QuoteStatus {
+  AWAITING_RESPONSE
+  RECEIVED
+  SELECTED
+  REJECTED
+}
+
+enum PaymentEntryType {
+  DEPOSIT
+  BALANCE
+  OTHER
+}
+
+enum BudgetSetupStatus {
+  NOT_STARTED
+  STARTED
 }

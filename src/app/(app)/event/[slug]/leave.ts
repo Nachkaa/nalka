@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
+import { deleteGiftListsForMember } from "@/features/gifts/server/lifecycle";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -61,7 +62,7 @@ export async function leaveEvent(formData: FormData) {
     }
 
     // Delete user data in this event
-    await tx.giftList.deleteMany({ where: { ownerId: me.id, eventId } });
+    await deleteGiftListsForMember(tx, { eventId, userId: me.id });
     await tx.reservation.deleteMany({
       where: { byUserId: me.id, item: { list: { eventId } } },
     });

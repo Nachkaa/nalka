@@ -4,7 +4,6 @@ import { createInviteToken } from "@/features/events/actions/invite";
 
 type PostBody = {
   eventRef?: string;
-  eventId?: string;
   uses?: number;
   ttlMinutes?: number;
 };
@@ -25,12 +24,11 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as PostBody;
 
-    const ref = body.eventRef ?? body.eventId; // support both for now
-    if (!ref) {
+    if (!body.eventRef) {
       return NextResponse.json({ error: "eventRef required" }, { status: 400 });
     }
 
-    const token = await createInviteToken(ref, {
+    const token = await createInviteToken(body.eventRef, {
       uses: body.uses,
       ttlMinutes: body.ttlMinutes,
     });

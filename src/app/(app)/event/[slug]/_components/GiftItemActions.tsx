@@ -1,5 +1,5 @@
 // FILE: src/app/(app)/event/[slug]/_components/GiftItemActions.tsx
-// @deprecated Legacy gift actions. Use gifts/_components/shared/gift-item-actions instead.
+// @deprecated Legacy gift actions. Use @/features/gifts/components/GiftItemActions instead.
 "use client";
 
 import Link from "next/link";

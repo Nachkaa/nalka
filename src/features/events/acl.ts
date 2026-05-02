@@ -18,12 +18,6 @@ const PERM_MIN_ROLE: Record<Permission, Role> = {
   "gift:reserve": "MEMBER",
 };
 
-// kept for future /admin page, not used in access decisions yet
-export async function isPlatformAdmin(userId: string) {
-  const u = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
-  return !!u?.isAdmin;
-}
-
 export async function getMyRole(eventId: string, userId: string) {
   const m = await prisma.eventMember.findUnique({
     where: { userId_eventId: { userId, eventId } },
@@ -42,17 +36,6 @@ export async function can(userId: string, eventId: string, perm: Permission) {
     (role === "ADMIN" && need !== "OWNER") ||
     (role === "MEMBER" && need === "MEMBER")
   );
-}
-
-/** Read access requires membership only. No platform bypass yet. */
-export async function requireEventAccess(userId: string, eventId: string) {
-  const role = await getMyRole(eventId, userId);
-  if (!role) {
-    const e = new Error("Interdit");
-    // @ts-expect-error status for Next.js error handler
-    e.status = 403;
-    throw e;
-  }
 }
 
 /** Throws 403 on failure */
