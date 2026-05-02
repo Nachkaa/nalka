@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import { EventCreateSchema } from "@/domain/events";
+import { ensureBudgetForEvent } from "@/features/budget/server/ensure-budget-exists";
 import { buildEventModuleSeeds } from "@/features/events/module-registry";
 import { syncGiftListsIfEnabled } from "@/features/gifts/server/lifecycle";
 import { prisma } from "@/lib/prisma";
@@ -247,10 +248,12 @@ export async function createEvent(formData: FormData) {
       },
       {
         key: EventModuleKey.BUDGET,
-        run: () =>
-          tx.eventExpensesSettings.create({
+        run: async () => {
+          await tx.eventExpensesSettings.create({
             data: { eventModuleId: idOf(EventModuleKey.BUDGET) },
-          }),
+          });
+          await ensureBudgetForEvent(tx, event.id);
+        },
       },
       {
         key: EventModuleKey.POLLS,

@@ -3,6 +3,7 @@
 import { EventGiftMode, EventModuleKey } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
+import { ensureBudgetForEvent } from "@/features/budget/server/ensure-budget-exists";
 import { requireEventOrganizer } from "@/features/events/access";
 import { MODULE_POSITIONS } from "@/features/events/module-positions";
 import {
@@ -243,29 +244,13 @@ export async function enableEventModuleFromManager(params: {
             update: {},
             create: { eventModuleId: eventModule.id },
           });
-
           const currentEvent = await tx.event.findUnique({
             where: { id: params.eventId },
-            select: {
-              budgetCents: true,
-              budget: {
-                select: { id: true },
-              },
-            },
+            select: { budgetCents: true },
           });
-
-          if (!currentEvent?.budget) {
-            await tx.budget.create({
-              data: {
-                eventId: params.eventId,
-                totalBudget: ((currentEvent?.budgetCents ?? 0) / 100).toFixed(2),
-                setupStatus:
-                  typeof currentEvent?.budgetCents === "number" && currentEvent.budgetCents > 0
-                    ? "STARTED"
-                    : "NOT_STARTED",
-              },
-            });
-          }
+          await ensureBudgetForEvent(tx, params.eventId, {
+            totalBudgetCents: currentEvent?.budgetCents ?? null,
+          });
           break;
         }
         case EventModuleKey.POLLS:

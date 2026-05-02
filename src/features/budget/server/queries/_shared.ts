@@ -37,6 +37,13 @@ async function findBudgetAccess(eventSlug: string) {
   });
 
   if (!event || !event.budget) {
+    if (event && !event.budget) {
+      console.error("[BUDGET_INTEGRITY]", {
+        message: "Budget record missing for active BUDGET module",
+        eventId: event.id,
+        eventSlug,
+      });
+    }
     return null;
   }
 

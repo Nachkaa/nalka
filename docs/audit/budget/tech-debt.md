@@ -19,3 +19,24 @@ a saisi 4 500.
 **Fix proposé :** passer à `type="text" inputMode="decimal"` + normalisation
 virgule→point côté client dans `normalizeMoneyInput`, dans une PR dédiée à la
 robustesse mobile.
+
+---
+
+## TD-02 — Warning Prisma 6.18 → 7.x
+
+**Sévérité :** Faible  
+**Découvert dans :** PR-04  
+
+Prisma émet un warning lors du build indiquant une deprecation prévue pour la
+version 7.x. Aucun impact fonctionnel à court terme.  
+**Fix proposé :** traiter lors d'une mise à jour de dépendances dédiée, hors sprint
+budget, après vérification du changelog Prisma 7.x.
+
+## TD-03 Budget.totalBudget non nullable
+
+Le champ est `Decimal NOT NULL`. La distinction "budget pas défini" 
+vs "budget de 0 €" passe par `setupStatus`, ce qui est correct mais 
+non explicite côté schema. Soit migration vers `Decimal?` (nullable), 
+soit clarification documentaire dans le schema.
+
+**Sévérité :** Basse. Pas bloquant, mais source de confusion future.
