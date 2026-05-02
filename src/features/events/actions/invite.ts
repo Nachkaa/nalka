@@ -4,6 +4,7 @@
 "use server";
 
 import { auth } from "@/auth";
+import { ensureGiftListForJoinedMember } from "@/features/gifts/server/lifecycle";
 import { prisma } from "@/lib/prisma";
 import { EventGiftMode, EventModuleKey } from "@prisma/client";
 import { randomBytes } from "crypto";
@@ -152,8 +153,6 @@ export async function acceptInvite(code: string) {
     throw Object.assign(new Error("Link already used"), { status: 409 });
   }
 
-  const giftsEnabled = token.event.modules[0]?.enabled === true;
-
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
   });
@@ -206,25 +205,15 @@ export async function acceptInvite(code: string) {
 
     // 4) Si l’event a des cadeaux en mode listes perso / secret santa,
     //    on garantit la GiftList perso du user (ownerId = user.id)
-    if (joinedNow && giftsEnabled && token.event.giftMode === EventGiftMode.PERSONAL_LISTS) {
-      const existingList = await tx.giftList.findFirst({
-        where: {
-          eventId: token.eventId,
-          ownerId: user.id,
-          eventRelativeId: null,
-        },
-        select: { id: true },
+    if (
+      joinedNow &&
+      token.event.modules[0]?.enabled === true &&
+      token.event.giftMode === EventGiftMode.PERSONAL_LISTS
+    ) {
+      await ensureGiftListForJoinedMember(tx, {
+        eventId: token.eventId,
+        userId: user.id,
       });
-
-      if (!existingList) {
-        await tx.giftList.create({
-          data: {
-            eventId: token.eventId,
-            ownerId: user.id,
-            title: "Ma liste",
-          },
-        });
-      }
     }
 
     return { joinedNow };
