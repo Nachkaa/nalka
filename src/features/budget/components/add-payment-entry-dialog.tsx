@@ -85,17 +85,21 @@ export function AddPaymentEntryDialog(props: Props) {
           <DialogHeader>
             <DialogTitle>Ajouter un paiement</DialogTitle>
             <DialogDescription>
-              Enregistrez un paiement prevu pour {props.lineLabel}.
+              Enregistrez un paiement prévu pour {props.lineLabel}.
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor={`payment-label-${props.budgetLineId}`}>Libelle</Label>
+              <Label htmlFor={`payment-label-${props.budgetLineId}`}>
+                Libellé{" "}
+                <span className="text-destructive" aria-hidden="true">*</span>
+              </Label>
               <Input
                 id={`payment-label-${props.budgetLineId}`}
                 value={label}
                 onChange={(event) => setLabel(event.target.value)}
+                aria-required="true"
               />
               {result?.fieldErrors?.label ? (
                 <p className="text-sm text-red-600">{result.fieldErrors.label}</p>
@@ -123,14 +127,19 @@ export function AddPaymentEntryDialog(props: Props) {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor={`payment-amount-${props.budgetLineId}`}>Montant</Label>
+                <Label htmlFor={`payment-amount-${props.budgetLineId}`}>
+                  Montant{" "}
+                  <span className="text-destructive" aria-hidden="true">*</span>
+                </Label>
                 <Input
                   id={`payment-amount-${props.budgetLineId}`}
                   type="number"
+                  inputMode="decimal"
                   min="0.01"
                   step="0.01"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
+                  aria-required="true"
                 />
                 {result?.fieldErrors?.amount ? (
                   <p className="text-sm text-red-600">{result.fieldErrors.amount}</p>
@@ -139,12 +148,16 @@ export function AddPaymentEntryDialog(props: Props) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor={`payment-due-date-${props.budgetLineId}`}>Date d&apos;echeance</Label>
+              <Label htmlFor={`payment-due-date-${props.budgetLineId}`}>
+                Date d&apos;échéance{" "}
+                <span className="text-destructive" aria-hidden="true">*</span>
+              </Label>
               <Input
                 id={`payment-due-date-${props.budgetLineId}`}
-                type="datetime-local"
+                type="date"
                 value={dueDate}
                 onChange={(event) => setDueDate(event.target.value)}
+                aria-required="true"
               />
               {result?.fieldErrors?.dueDate ? (
                 <p className="text-sm text-red-600">{result.fieldErrors.dueDate}</p>
@@ -164,13 +177,18 @@ export function AddPaymentEntryDialog(props: Props) {
             {result?.formError ? <p className="text-sm text-red-600">{result.formError}</p> : null}
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-              Annuler
-            </Button>
-            <Button type="button" onClick={handleSubmit} disabled={pending}>
-              {pending ? "Enregistrement..." : "Ajouter le paiement"}
-            </Button>
+          <DialogFooter className="flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-muted-foreground text-xs">
+              <span className="text-destructive">*</span> Champs obligatoires
+            </p>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>
+                Annuler
+              </Button>
+              <Button type="button" onClick={handleSubmit} disabled={pending}>
+                {pending ? "Enregistrement…" : "Ajouter le paiement"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
