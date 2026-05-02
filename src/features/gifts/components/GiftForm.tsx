@@ -1,15 +1,20 @@
-// FILE: src/components/forms/GiftForm.tsx
 "use client";
 
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import SubmitButton from "@/components/forms/SubmitButton";
 import FieldCharCount from "@/components/forms/FieldCharCount";
 import FetchFromLink from "@/components/forms/FetchFromLink";
+import SubmitButton from "@/components/forms/SubmitButton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  getGiftImageFile,
+  MAX_GIFT_IMAGE_SIZE_LABEL,
+  validateGiftImageFileSize,
+} from "@/features/gifts/lib/image-upload";
+import { getExternalGiftImageUrlValue } from "@/features/gifts/lib/image-source";
+import { X } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 
 type GiftFormValues = {
   title?: string;
@@ -25,18 +30,15 @@ type GiftFormProps = {
   footerClassName?: string;
 };
 
-const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024; // 3 Mo
-
 export function GiftForm({ action, defaultValues, submitLabel, footerClassName }: GiftFormProps) {
   const title = defaultValues?.title ?? "";
   const url = defaultValues?.url ?? "";
   const note = defaultValues?.note ?? "";
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [preview, setPreview] = useState<string | null>(defaultValues?.imagePath ?? null);
-  const [fileError, setFileError] = useState<string | null>(null);
-
   const initialImage = defaultValues?.imagePath ?? null;
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [preview, setPreview] = useState<string | null>(initialImage);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -46,17 +48,19 @@ export function GiftForm({ action, defaultValues, submitLabel, footerClassName }
     };
   }, [preview, initialImage]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
 
     if (!file) {
       setPreview(initialImage);
       setFileError(null);
+      setRemoveImage(false);
       return;
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setFileError("Image trop lourde (max 3 Mo).");
+    const fileErrorMessage = validateGiftImageFileSize(file);
+    if (fileErrorMessage) {
+      setFileError(fileErrorMessage);
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (preview && preview !== initialImage && preview.startsWith("blob:")) {
         URL.revokeObjectURL(preview);
@@ -66,6 +70,7 @@ export function GiftForm({ action, defaultValues, submitLabel, footerClassName }
     }
 
     setFileError(null);
+    setRemoveImage(false);
     const objectUrl = URL.createObjectURL(file);
     if (preview && preview !== initialImage && preview.startsWith("blob:")) {
       URL.revokeObjectURL(preview);
@@ -79,21 +84,34 @@ export function GiftForm({ action, defaultValues, submitLabel, footerClassName }
     }
     setPreview(null);
     setFileError(null);
+    setRemoveImage(true);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const formData = new FormData(event.currentTarget);
+    const fileErrorMessage = validateGiftImageFileSize(getGiftImageFile(formData));
+
+    if (fileErrorMessage) {
+      event.preventDefault();
+      setFileError(fileErrorMessage);
+    }
+  };
+
   return (
-    <form action={action} className="space-y-6">
+    <form action={action} onSubmit={handleSubmit} className="space-y-6">
       <input
         id="imageUrl"
         name="imageUrl"
         type="hidden"
-        defaultValue={defaultValues?.imagePath ?? ""}
+        value={removeImage ? "" : getExternalGiftImageUrlValue(defaultValues?.imagePath)}
+        readOnly
       />
+      <input type="hidden" name="removeImage" value={removeImage ? "1" : ""} readOnly />
 
       <div className="space-y-2">
         <Label htmlFor="title">
-          Nom de l’idée <span className="text-red-600">*</span>
+          Nom de l&apos;idee <span className="text-red-600">*</span>
         </Label>
         <Input id="title" name="title" required maxLength={120} defaultValue={title} />
         <div className="flex justify-end">
@@ -109,10 +127,11 @@ export function GiftForm({ action, defaultValues, submitLabel, footerClassName }
             titleInputId="title"
             noteInputId="note"
             imageInputId="imageUrl"
-            onImageUrlChange={(url) => {
+            onImageUrlChange={(nextUrl) => {
               if (fileInputRef.current) fileInputRef.current.value = "";
               setFileError(null);
-              setPreview(url);
+              setRemoveImage(false);
+              setPreview(nextUrl);
             }}
           />
         </div>
@@ -124,11 +143,10 @@ export function GiftForm({ action, defaultValues, submitLabel, footerClassName }
           defaultValue={url ?? ""}
         />
         <p className="text-muted-foreground text-xs">
-          Collez un lien. On complètera le nom et le commentaire si possible.
+          Collez un lien. On completera le nom et le commentaire si possible.
         </p>
       </div>
 
-      {/* Image + preview */}
       <div className="space-y-2">
         <Label htmlFor="image">Image</Label>
 
@@ -159,7 +177,7 @@ export function GiftForm({ action, defaultValues, submitLabel, footerClassName }
               type="button"
               onClick={handleClearImage}
               className="absolute top-1 right-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-[var(--primary-foreground)] shadow focus:ring-2 focus:ring-[var(--primary)] focus:outline-none"
-              aria-label="Retirer l’image"
+              aria-label="Retirer l'image"
             >
               <X className="h-3 w-3" aria-hidden="true" />
             </button>
@@ -175,14 +193,15 @@ export function GiftForm({ action, defaultValues, submitLabel, footerClassName }
           onChange={handleFileChange}
         />
 
-        {fileError && (
+        {fileError ? (
           <p className="text-xs text-red-600" role="alert" aria-live="polite">
             {fileError}
           </p>
-        )}
+        ) : null}
 
         <p className="text-muted-foreground text-xs">
-          Une seule image, max 3 Mo. Recadrée automatiquement en carré dans la liste.
+          Une seule image, max {MAX_GIFT_IMAGE_SIZE_LABEL}. Recadree automatiquement en carre dans
+          la liste.
         </p>
       </div>
 
@@ -193,7 +212,7 @@ export function GiftForm({ action, defaultValues, submitLabel, footerClassName }
           name="note"
           rows={3}
           maxLength={500}
-          placeholder="Ex. couleur, taille, variante…"
+          placeholder="Ex. couleur, taille, variante..."
           defaultValue={note ?? ""}
         />
         <div className="flex justify-end">
