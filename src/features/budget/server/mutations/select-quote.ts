@@ -72,7 +72,7 @@ export async function selectQuote(input: unknown): Promise<QuoteDecisionResult> 
       where: transaction.updateLineWhere,
       data: transaction.updateLineData,
     });
-  });
+  }, { isolationLevel: "Serializable" });
 
   revalidatePath(`/event/${eventSlug}/budget`);
   revalidatePath(`/event/${eventSlug}/budget/lines`);

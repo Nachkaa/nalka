@@ -1,5 +1,7 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+
 import {
   addReceivedQuoteSchema,
   normalizeAttachmentDrafts,
@@ -13,67 +15,6 @@ import { requireWritableBudgetAccess } from "@/features/budget/server/queries/_s
 import { resolveWritableBudgetAccess } from "@/features/budget/server/write-access";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-
-async function resolveVendorId(args: {
-  eventId: string;
-  vendorId: string;
-  vendorName: string;
-  vendorType: string;
-  contactName: string;
-  email: string;
-  phone: string;
-}) {
-  if (args.vendorId) {
-    const vendor = await prisma.vendor.findFirst({
-      where: {
-        id: args.vendorId,
-        eventId: args.eventId,
-      },
-      select: { id: true },
-    });
-
-    if (!vendor) {
-      throw new Error("Vendor not found");
-    }
-
-    return vendor.id;
-  }
-
-  const existingVendor = await prisma.vendor.findFirst({
-    where: {
-      eventId: args.eventId,
-      name: args.vendorName,
-    },
-    select: { id: true },
-  });
-
-  if (existingVendor) {
-    await prisma.vendor.update({
-      where: { id: existingVendor.id },
-      data: {
-        vendorType: normalizeOptionalString(args.vendorType),
-        contactName: normalizeOptionalString(args.contactName),
-        email: normalizeOptionalString(args.email),
-        phone: normalizeOptionalString(args.phone),
-      },
-    });
-    return existingVendor.id;
-  }
-
-  const vendor = await prisma.vendor.create({
-    data: {
-      eventId: args.eventId,
-      name: args.vendorName,
-      vendorType: normalizeOptionalString(args.vendorType),
-      contactName: normalizeOptionalString(args.contactName),
-      email: normalizeOptionalString(args.email),
-      phone: normalizeOptionalString(args.phone),
-    },
-    select: { id: true },
-  });
-
-  return vendor.id;
-}
 
 export async function addReceivedQuote(input: unknown): Promise<QuoteMutationResult> {
   const parsed = addReceivedQuoteSchema.safeParse(input);
@@ -133,21 +74,38 @@ export async function addReceivedQuote(input: unknown): Promise<QuoteMutationRes
 
   let resolvedVendorId: string;
 
-  try {
-    resolvedVendorId = await resolveVendorId({
-      eventId: access.event.id,
-      vendorId,
-      vendorName,
-      vendorType,
-      contactName,
-      email,
-      phone,
+  if (vendorId) {
+    const existingVendor = await prisma.vendor.findFirst({
+      where: { id: vendorId, eventId: access.event.id },
+      select: { id: true },
     });
-  } catch (error) {
-    return {
-      ok: false,
-      formError: error instanceof Error ? error.message : "Impossible de retrouver le fournisseur.",
-    };
+    if (!existingVendor) {
+      return { ok: false, formError: "Prestataire introuvable." };
+    }
+    resolvedVendorId = existingVendor.id;
+  } else {
+    try {
+      const vendor = await prisma.vendor.create({
+        data: {
+          eventId: access.event.id,
+          name: vendorName,
+          vendorType: normalizeOptionalString(vendorType),
+          contactName: normalizeOptionalString(contactName),
+          email: normalizeOptionalString(email),
+          phone: normalizeOptionalString(phone),
+        },
+        select: { id: true },
+      });
+      resolvedVendorId = vendor.id;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        return {
+          ok: false,
+          formError: `Un prestataire nommé «${vendorName}» existe déjà sur cet événement. Sélectionnez-le dans la liste ou choisissez un autre nom.`,
+        };
+      }
+      throw error;
+    }
   }
 
   const quote = await prisma.quote.create({

@@ -1,4 +1,4 @@
-import { fromCents, toCents } from "../lib/calculations.ts";
+import { fromCents, toCents } from "@/features/budget/lib/calculations";
 import type {
   BudgetLineSourcingStatus,
   BudgetMoneyValue,

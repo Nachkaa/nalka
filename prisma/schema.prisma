@@ -229,7 +229,7 @@ model Vendor {
   event        Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   quotes       Quote[]
 
-  @@index([eventId, name])
+  @@unique([eventId, name])
 }
 
 model Quote {
