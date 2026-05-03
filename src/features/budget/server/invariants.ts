@@ -1,10 +1,15 @@
+import type { Prisma } from "@prisma/client";
+
+import { sumMoney } from "@/features/budget/lib/calculations";
 import { prisma } from "@/lib/prisma";
 import {
+  checkPaymentAmountVsCommitted,
   ensureBudgetLineAllowsPayments,
   ensureBudgetLineCanBeBooked,
   ensureBudgetLineCanBeReopened,
   ensureQuoteCanBeRejected,
   ensureQuoteCanBeSelected,
+  type PaymentAmountCheckResult,
 } from "@/features/budget/server/workflow";
 
 export async function assertBudgetLineWritableInEvent(args: {
@@ -254,4 +259,26 @@ export async function assertBudgetLineReopenableInEvent(args: {
   ensureBudgetLineCanBeReopened(budgetLine);
 
   return budgetLine;
+}
+
+export async function checkPaymentAmountWithinCommitted(
+  tx: Prisma.TransactionClient,
+  args: { budgetLineId: string; newAmountDecimal: string },
+): Promise<PaymentAmountCheckResult> {
+  const line = await tx.budgetLine.findFirst({
+    where: { id: args.budgetLineId },
+    select: {
+      selectedQuote: { select: { amount: true } },
+      payments: { select: { amount: true } },
+    },
+  });
+  if (!line?.selectedQuote?.amount) {
+    return { ok: true };
+  }
+  const existingDecimal = sumMoney(line.payments.map((p) => p.amount.toString()));
+  return checkPaymentAmountVsCommitted({
+    committedDecimal: line.selectedQuote.amount.toString(),
+    existingDecimal,
+    newDecimal: args.newAmountDecimal,
+  });
 }

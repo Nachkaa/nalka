@@ -6,15 +6,27 @@ import {
   normalizeOptionalString,
   type BudgetPaymentMutationResult,
 } from "@/features/budget/lib/payment-entry-form";
+import { BUDGET_DEFAULT_CURRENCY } from "@/features/budget/lib/constants";
+import { formatMoney } from "@/features/budget/lib/serializers";
 import {
   assertBudgetLineAllowsPayments,
   assertQuoteInEventChain,
+  checkPaymentAmountWithinCommitted,
 } from "@/features/budget/server/invariants";
 import { requireWritableBudgetAccess } from "@/features/budget/server/queries/_shared";
 import { buildPaymentEntryCreateData } from "@/features/budget/server/workflow";
 import { resolveWritableBudgetAccess } from "@/features/budget/server/write-access";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+
+class OverPaymentError extends Error {
+  constructor(
+    readonly committed: string,
+    readonly projected: string,
+  ) {
+    super("OVER_PAYMENT");
+  }
+}
 
 export async function createPaymentEntry(input: unknown): Promise<BudgetPaymentMutationResult> {
   const parsed = createPaymentEntrySchema.safeParse(input);
@@ -75,17 +87,43 @@ export async function createPaymentEntry(input: unknown): Promise<BudgetPaymentM
     }
   }
 
-  await prisma.paymentEntry.create({
-    data: buildPaymentEntryCreateData({
-      budgetLineId,
-      quoteId: resolvedQuoteId || null,
-      label,
-      entryType,
-      amount: normalizeMoneyInput(amount),
-      dueDate: new Date(dueDate),
-      note: normalizeOptionalString(note),
-    }),
-  });
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const amountCheck = await checkPaymentAmountWithinCommitted(tx, {
+          budgetLineId,
+          newAmountDecimal: normalizeMoneyInput(amount),
+        });
+        if (!amountCheck.ok) {
+          throw new OverPaymentError(amountCheck.committed, amountCheck.projected);
+        }
+        await tx.paymentEntry.create({
+          data: buildPaymentEntryCreateData({
+            budgetLineId,
+            quoteId: resolvedQuoteId || null,
+            label,
+            entryType,
+            amount: normalizeMoneyInput(amount),
+            dueDate: new Date(dueDate),
+            note: normalizeOptionalString(note),
+          }),
+        });
+      },
+      { isolationLevel: "Serializable" },
+    );
+  } catch (error) {
+    if (error instanceof OverPaymentError) {
+      const projected = formatMoney(error.projected, BUDGET_DEFAULT_CURRENCY);
+      const committed = formatMoney(error.committed, BUDGET_DEFAULT_CURRENCY);
+      return {
+        ok: false,
+        fieldErrors: {
+          amount: `Le montant cumulé (${projected}) dépasserait le montant engagé (${committed})`,
+        },
+      };
+    }
+    throw error;
+  }
 
   revalidatePath(`/event/${eventSlug}/budget`);
   revalidatePath(`/event/${eventSlug}/budget/lines`);

@@ -7,6 +7,7 @@ import {
   buildReopenSelectedLineTransaction,
   buildRejectQuoteUpdate,
   buildSelectQuoteTransaction,
+  checkPaymentAmountVsCommitted,
   ensureBudgetLineAllowsPayments,
   ensureBudgetLineCanBeBooked,
   ensureBudgetLineCanBeReopened,
@@ -45,14 +46,14 @@ async function run(name, fn) {
 await run("cannot select a quote in AWAITING_RESPONSE", () => {
   assert.throws(
     () => ensureQuoteCanBeSelected({ status: "AWAITING_RESPONSE", amount: { toString: () => "100.00" } }),
-    /Only received quotes can be selected/,
+    /Seuls les devis recus peuvent etre retenus/,
   );
 });
 
 await run("cannot select a quote with null amount", () => {
   assert.throws(
     () => ensureQuoteCanBeSelected({ status: "RECEIVED", amount: null }),
-    /A quote amount is required before selection/,
+    /Un montant de devis est requis avant la selection/,
   );
 });
 
@@ -91,7 +92,7 @@ await run("selecting a different quote demotes the previous selected quote back 
 await run("cannot reject the currently selected quote", () => {
   assert.throws(
     () => ensureQuoteCanBeRejected({ id: "quote-1", budgetLine: { selectedQuoteId: "quote-1" } }),
-    /Change the selected quote before rejecting it/,
+    /Changez le devis retenu avant de le refuser/,
   );
 });
 
@@ -110,7 +111,7 @@ await run("cannot mark a line BOOKED without selectedQuoteId", () => {
         selectedQuoteId: null,
         selectedQuote: null,
       }),
-    /A selected quote is required before booking/,
+    /Un devis retenu est requis avant la reservation/,
   );
 });
 
@@ -122,7 +123,7 @@ await run("cannot mark a line BOOKED if selected quote has no amount", () => {
         selectedQuoteId: "quote-1",
         selectedQuote: { id: "quote-1", amount: null },
       }),
-    /The selected quote must have an amount before booking/,
+    /Le devis retenu doit avoir un montant avant la reservation/,
   );
 });
 
@@ -134,7 +135,7 @@ await run("can mark a line BOOKED only from SELECTED state", () => {
         selectedQuoteId: "quote-1",
         selectedQuote: { id: "quote-1", amount: { toString: () => "500.00" } },
       }),
-    /Only selected lines can be marked as booked/,
+    /Seules les lignes retenues peuvent etre marquees comme reservees/,
   );
 
   assert.doesNotThrow(() =>
@@ -150,21 +151,21 @@ await run("can mark a line BOOKED only from SELECTED state", () => {
 await run("cannot create payment entry on a non-BOOKED line", () => {
   assert.throws(
     () => ensureBudgetLineAllowsPayments({ sourcingStatus: "SELECTED", selectedQuoteId: "quote-1" }),
-    /Payment entries can only be added to booked lines/,
+    /Les echeances de paiement ne peuvent etre ajoutees/,
   );
 });
 
 await run("cannot reopen a BOOKED line", () => {
   assert.throws(
     () => ensureBudgetLineCanBeReopened({ sourcingStatus: "BOOKED", selectedQuoteId: "quote-1" }),
-    /Booked lines cannot be reopened in this batch/,
+    /Les lignes reservees ne peuvent pas etre rouvertes/,
   );
 });
 
 await run("cannot reopen without selected quote", () => {
   assert.throws(
     () => ensureBudgetLineCanBeReopened({ sourcingStatus: "SELECTED", selectedQuoteId: null }),
-    /A selected quote is required before reopening evaluation/,
+    /Un devis retenu est requis avant la reouverture/,
   );
 });
 
@@ -299,6 +300,30 @@ await run("derived payment status logic stays consistent across paid and unpaid 
     }),
     "PAID",
   );
+});
+
+await run("over-payment direct is blocked", () => {
+  const result = checkPaymentAmountVsCommitted({
+    committedDecimal: "8000.00",
+    existingDecimal: "0.00",
+    newDecimal: "9000.00",
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "OVER_PAYMENT");
+  assert.equal(result.committed, "8000.00");
+  assert.equal(result.projected, "9000.00");
+});
+
+await run("cumulative over-payment is blocked", () => {
+  const result = checkPaymentAmountVsCommitted({
+    committedDecimal: "8000.00",
+    existingDecimal: "5000.00",
+    newDecimal: "4000.00",
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "OVER_PAYMENT");
+  assert.equal(result.committed, "8000.00");
+  assert.equal(result.projected, "9000.00");
 });
 
 await run("non-organizer access failures return controlled permission errors", async () => {
