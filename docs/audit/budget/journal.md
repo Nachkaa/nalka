@@ -7,19 +7,23 @@
 - Commit : `3e0e8db`
 - Statut : mergeable (build ✓, lint ✓ — 0 erreur) — code uniquement, aucune migration
 - Contenu livré :
-  - `calculations.ts` : `toCents`/`fromCents` exportés avec commentaire
-  - `workflow.ts` : `PaymentAmountCheckResult` type + `checkPaymentAmountVsCommitted` pure function ; import relatif `.ts` pour compatibilité Node.js test runner
-  - `tsconfig.json` : `allowImportingTsExtensions: true` ajouté (safe — `noEmit: true` déjà présent)
+  - `calculations.ts` : `toCents`/`fromCents` exportés
+  - `workflow.ts` : `PaymentAmountCheckResult` type + `checkPaymentAmountVsCommitted` pure function
+  - `tsconfig.json` : `allowImportingTsExtensions: true` (safe — `noEmit: true` déjà présent)
   - `invariants.ts` : `checkPaymentAmountWithinCommitted(tx, args)` DB-backed, relation `payments` (pas `paymentEntries`)
-  - `create-payment-entry.ts` : transaction Serializable, `OverPaymentError` class, field error `amount` en français
-  - `workflow.test.mjs` : 2 nouveaux tests (over-payment direct + cumulatif) ; mismatches English/French pre-existantes corrigées au passage — 23 tests passent
-- Durée réelle : ~1h Phase 1 + Phase 2 (estimé 0.5j — 2x plus rapide)
+  - `create-payment-entry.ts` : transaction Serializable, `OverPaymentError` class, field error `amount` en français avec montants formatés
+- Validation : build ✓, lint ✓, 4 scénarios manuels en dev local
+- Durée utile : ~1h (estimé 0.5j) — ~1h supplémentaire perdue sur tooling test
 - Bug A8 : closed
 
-**Trouvailles annexes :**
-- Champ relation Prisma : `payments` (pas `paymentEntries`) — vérifié sur schema, pas supposé ✓
-- Tests workflow pre-existants : assertions English/French mismatches silencieuses (tests ne tournaient probablement pas en CI). À investiguer si pattern répété ailleurs.
-- Pattern Serializable appliqué sur `create-payment-entry`. PR-08 : vérifier si `select-quote` en a besoin aussi.
+**Décision tooling :**
+Tentative d'automatisation Node native échouée sur interop CJS/ESM (friction `@/` path alias → Node.js). Décision : pas de tests automatisés pendant Sprint 1. Sprint Tooling dédié post-Sprint-1 couvrira Budget + autres modules avec Vitest + CI.
+
+**Leçon :**
+Tests manuels uniquement pour le reste du Sprint 1. Ne pas simuler une infrastructure qu'on n'a pas encore.
+
+**Trouvaille :**
+Champ relation Prisma : `payments` (pas `paymentEntries`) — à vérifier systématiquement sur schema avant d'écrire les queries.
 
 ## 2026-05-02 — PR-05 mergée
 
