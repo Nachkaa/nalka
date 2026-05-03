@@ -5,12 +5,14 @@ import type {
   PaymentEntrySnapshot,
 } from "@/features/budget/lib/types";
 
-function toCents(value: BudgetMoneyValue | null | undefined) {
+// Exported for use in invariants and tests. Do not inline these in
+// new code — keeps cents math centralized.
+export function toCents(value: BudgetMoneyValue | null | undefined) {
   if (!value) return 0;
   return Math.round(Number(value) * 100);
 }
 
-function fromCents(value: number) {
+export function fromCents(value: number) {
   return (value / 100).toFixed(2);
 }
 

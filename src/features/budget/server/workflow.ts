@@ -1,8 +1,32 @@
+import { fromCents, toCents } from "../lib/calculations.ts";
 import type {
   BudgetLineSourcingStatus,
   BudgetMoneyValue,
   PaymentEntrySnapshot,
 } from "@/features/budget/lib/types";
+
+export type PaymentAmountCheckResult =
+  | { ok: true }
+  | { ok: false; reason: "OVER_PAYMENT"; committed: string; projected: string };
+
+export function checkPaymentAmountVsCommitted(args: {
+  committedDecimal: string;
+  existingDecimal: string;
+  newDecimal: string;
+}): PaymentAmountCheckResult {
+  const committedCents = toCents(args.committedDecimal);
+  const existingCents = toCents(args.existingDecimal);
+  const newCents = toCents(args.newDecimal);
+  if (existingCents + newCents > committedCents) {
+    return {
+      ok: false,
+      reason: "OVER_PAYMENT",
+      committed: fromCents(committedCents),
+      projected: fromCents(existingCents + newCents),
+    };
+  }
+  return { ok: true };
+}
 
 type QuoteForSelectionRule = {
   status: string;
