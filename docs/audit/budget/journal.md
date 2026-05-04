@@ -1,5 +1,45 @@
 # Journal d'exécution — Module Budget
 
+## 2026-05-04 — PR-10 vérifiée (no-op)
+
+**PR-10 — Passer l'étape budget total (allowSkip)** ✅ no-op
+
+### Constat
+Lors de la vérification empirique, la fonctionnalité "passer l'étape budget total" est déjà disponible — probablement intégrée dans le travail B2B du collaborateur ou présente depuis une PR antérieure.
+
+### Décision
+PR-10 marquée no-op. Sprint 1 effectif : PR-04, PR-05, PR-07, PR-08 + travail B2B = 4 PR fonctionnelles + 1 vérification.
+
+### Reste Sprint 1
+- PR-06 (PaymentLog + démarquage paiements) — gros morceau ~2-2.5j
+- PR-09 (cron email rappel paiements) — ~2j
+
+Sprint 1 à 5/7 vérifiées.
+
+## 2026-05-04 — Travail B2B externe mergé
+
+### Origine
+Passe externe par un collaborateur sur le PC en l'absence d'Aurèle.
+41 fichiers modifiés + nouveau dossier `docs/audit/b2b-transition/`.
+
+### Découpé en 4 commits logiques
+- c628a7b — docs B2B transition + cleanup
+- 348dc78 — marketing public (home, sections, SEO)
+- acce463 — tunnel création (Budget toggle ajouté + microcopy)
+- ff12d7d — module Budget + shell (microcopy + layouts)
+
+### Validation
+- Build OK, lint OK
+- 6 tests manuels passés (Test 1 critique : PR-05 cohabite avec l'ajout du Budget toggle dans le tunnel — pas de 404)
+- Régression-tests PR-07 (over-payment) et PR-08 (vendor unique) toujours OK
+
+### Note
+Journal Budget restauré à la version main avant commit (le collaborateur avait modifié le journal Sprint 1 ; gardé propre).
+
+### Sprint 1 à 4/8 mergé
+PR-04, PR-05, PR-07, PR-08 ✓
+Reste : PR-06 (PaymentLog), PR-09 (cron email), PR-10 (allowSkip)
+
 ## 2026-05-03 — PR-07 mergée
 
 **PR-07 — Validation amount ≤ committedAmount sur paiements** ✅
