@@ -1,8 +1,17 @@
 "use client";
 
+import {
+  BadgeCheck,
+  BriefcaseBusiness,
+  Building2,
+  Handshake,
+  Sparkles,
+  Users,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+
 import { StepHeading } from "./StepHeading";
-import { PartyPopper, Users, Dumbbell, Plane, Briefcase, Sparkles } from "lucide-react";
 
 export type ThemeValue = "social" | "family" | "sport" | "trip" | "group" | "custom";
 
@@ -21,33 +30,33 @@ const THEMES: Array<{
 }> = [
   {
     value: "social",
-    title: "Social",
-    description: "Anniversaire, soirée, fêtes…",
-    Icon: PartyPopper,
+    title: "Séminaire",
+    description: "Équipe, client, formation, conférence...",
+    Icon: BriefcaseBusiness,
   },
   {
     value: "family",
-    title: "Famille",
-    description: "Repas, week-end, cousinade…",
-    Icon: Users,
+    title: "Événement client",
+    description: "Réception, atelier, rendez-vous invité...",
+    Icon: Handshake,
   },
   {
     value: "sport",
-    title: "Sport / activité",
-    description: "Sortie, match, entraînement…",
-    Icon: Dumbbell,
+    title: "Soirée partenaire",
+    description: "Cocktail, networking, activation marque...",
+    Icon: Building2,
   },
   {
     value: "trip",
-    title: "Voyage",
-    description: "Week-end, vacances, road trip…",
-    Icon: Plane,
+    title: "Offsite interne",
+    description: "Déplacement, séjour, journée d'équipe...",
+    Icon: Users,
   },
   {
     value: "group",
-    title: "Groupe / asso",
-    description: "Club, communauté, équipe…",
-    Icon: Briefcase,
+    title: "Association / groupe",
+    description: "Club, communauté, équipe projet...",
+    Icon: BadgeCheck,
   },
   {
     value: "custom",
@@ -66,8 +75,8 @@ export function StepType({ value, onChange, onNext, autoAdvance = false }: Props
   return (
     <div className="space-y-4">
       <StepHeading
-        title="Pourquoi crées-tu cet événement ?"
-        subtitle="Ça sert uniquement à personnaliser les suggestions. Tu peux changer plus tard."
+        title="Quel type d'événement organisez-vous ?"
+        subtitle="Ce choix sert uniquement à personnaliser les suggestions. Vous pourrez ajuster les modules ensuite."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
@@ -76,7 +85,7 @@ export function StepType({ value, onChange, onNext, autoAdvance = false }: Props
 
           return (
             <Button
-              key={v}
+              key={`${v}-${title}`}
               type="button"
               variant="secondary"
               onClick={() => pick(v)}

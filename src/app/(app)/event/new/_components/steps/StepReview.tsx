@@ -1,16 +1,16 @@
 "use client";
 
-import type { Draft } from "../EventCreateStepper";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Gift, PackagePlus } from "lucide-react";
-import { StepHeading } from "./StepHeading";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatEventDateTime } from "@/lib/dates/format-date";
+import { Calendar, Gift, MapPin, PackagePlus } from "lucide-react";
+import type { Draft } from "../EventCreateStepper";
+import { StepHeading } from "./StepHeading";
 
 function giftLabel(mode: Draft["giftMode"]) {
   switch (mode) {
     case "HOST_LIST":
-      return "Seulement ma liste";
+      return "Liste organisateur";
     case "PERSONAL_LISTS":
       return "Une liste par personne";
     default:
@@ -20,7 +20,6 @@ function giftLabel(mode: Draft["giftMode"]) {
 
 function formatFrenchDate(iso?: string | null) {
   if (!iso) return null;
-  // supports "YYYY-MM-DD"
   const d = new Date(`${iso}T00:00:00`);
   if (Number.isNaN(d.getTime())) return iso;
 
@@ -28,7 +27,6 @@ function formatFrenchDate(iso?: string | null) {
     weekday: "long",
     day: "numeric",
     month: "long",
-    // omit year on purpose (your requirement)
   }).format(d);
 }
 
@@ -68,7 +66,7 @@ export function StepReview({ draft }: { draft: Draft }) {
         ? `Sondage (${draft.pollDates?.length ?? 0} proposition${(draft.pollDates?.length ?? 0) > 1 ? "s" : ""})`
         : "À définir";
   if (scheduleTime && draft.scheduleMode !== "EXACT") {
-    scheduleValue = `${scheduleValue} · ${scheduleTime}`;
+    scheduleValue = `${scheduleValue} - ${scheduleTime}`;
   }
 
   const locationValue =
@@ -83,14 +81,15 @@ export function StepReview({ draft }: { draft: Draft }) {
   const giftsValue = draft.giftMode ? giftLabel(draft.giftMode) : null;
 
   const modules: string[] = [];
+  if (draft.timelineEnabled) modules.push("Programme");
+  if (draft.budgetEnabled) modules.push("Budget");
+  if (draft.bringEnabled) modules.push("Contributions");
   if (giftsValue) modules.push("Cadeaux");
   if (draft.secretSantaEnabled) modules.push("Secret Santa");
-  if (draft.bringEnabled) modules.push("Qui ramène quoi");
-  if (draft.timelineEnabled) modules.push("Programme");
 
   return (
     <div className="space-y-3">
-      <StepHeading title="Résumé" subtitle="Vérifie, puis crée l’événement." />
+      <StepHeading title="Résumé" subtitle="Vérifiez, puis créez l'événement." />
       <Card>
         <CardContent className="space-y-3">
           <div className="space-y-1">
@@ -133,12 +132,14 @@ export function StepReview({ draft }: { draft: Draft }) {
       <Card>
         <CardHeader className="space-y-1">
           <CardTitle className="text-base">Après création</CardTitle>
-          <CardDescription>Tu pourras inviter les gens et compléter les détails.</CardDescription>
+          <CardDescription>
+            Vous pourrez inviter les participants et compléter les détails.
+          </CardDescription>
         </CardHeader>
         <CardContent className="text-muted-foreground space-y-2 text-sm">
-          <div>• Partager un lien</div>
-          <div>• Inviter par e-mail</div>
-          <div>• Régler les modules (cadeaux, qui ramène quoi, etc.)</div>
+          <div>- Partager un lien</div>
+          <div>- Inviter par e-mail</div>
+          <div>- Ajuster les modules de pilotage et les modules contextuels</div>
         </CardContent>
       </Card>
     </div>

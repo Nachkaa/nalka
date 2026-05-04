@@ -9,6 +9,7 @@ import {
   Check,
   Gift,
   Plus,
+  ReceiptEuro,
   Sparkles,
   Users,
   UtensilsCrossed,
@@ -19,7 +20,7 @@ import type { ModuleRecommendation } from "./moduleRecommendations";
 import { StepHeading } from "./StepHeading";
 
 type GiftChoice = EventGiftMode;
-type ModuleCardId = "gifts" | "secretSanta" | "bring" | "timeline";
+type ModuleCardId = "gifts" | "secretSanta" | "bring" | "timeline" | "budget";
 
 type ModuleCatalogCard = {
   id: ModuleCardId;
@@ -43,6 +44,7 @@ type Props = {
   secretSantaRecommendation: ModuleRecommendation | null;
   bringRecommendation: ModuleRecommendation | null;
   timelineRecommendation: ModuleRecommendation | null;
+  budgetEnabled: boolean;
   onChangeGiftMode: (giftMode: EventGiftMode) => void;
   onRemoveGifts: () => void;
   onChangeSecretSantaEnabled: (enabled: boolean) => void;
@@ -50,19 +52,20 @@ type Props = {
   onChangeBringEnabled: (enabled: boolean) => void;
   timelineEnabled: boolean;
   onChangeTimelineEnabled: (enabled: boolean) => void;
+  onChangeBudgetEnabled: (enabled: boolean) => void;
 };
 
 const giftChoices = [
   {
     value: "HOST_LIST",
-    title: "Seulement ma liste",
+    title: "Liste organisateur",
     desc: "Une seule liste pour l'organisateur.",
     Icon: Gift,
   },
   {
     value: "PERSONAL_LISTS",
     title: "Une liste par personne",
-    desc: "Chaque invite a sa propre liste.",
+    desc: "Chaque participant a sa propre liste.",
     Icon: Users,
   },
 ] satisfies ReadonlyArray<{
@@ -168,9 +171,11 @@ function SelectedModulesStrip({ modules }: { modules: SelectedModule[] }) {
 function ModuleDiscoveryList({
   modules,
   recommendedIds,
+  title,
 }: {
   modules: ModuleCatalogCard[];
   recommendedIds: Set<ModuleCardId>;
+  title: string;
 }) {
   if (modules.length === 0) return null;
 
@@ -178,7 +183,7 @@ function ModuleDiscoveryList({
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <div className="bg-border h-px flex-1" />
-        <span className="text-muted-foreground text-sm">Ajouter des modules</span>
+        <span className="text-muted-foreground text-sm">{title}</span>
         <div className="bg-border h-px flex-1" />
       </div>
 
@@ -231,6 +236,7 @@ export function StepModules({
   secretSantaRecommendation,
   bringRecommendation,
   timelineRecommendation,
+  budgetEnabled,
   onChangeGiftMode,
   onRemoveGifts,
   onChangeSecretSantaEnabled,
@@ -238,10 +244,41 @@ export function StepModules({
   onChangeBringEnabled,
   timelineEnabled,
   onChangeTimelineEnabled,
+  onChangeBudgetEnabled,
 }: Props) {
   const giftsEnabled = giftMode !== null;
 
   const selectedModules: SelectedModule[] = [
+    ...(timelineEnabled
+      ? [
+          {
+            id: "timeline",
+            title: "Programme",
+            icon: CalendarDays,
+            onRemove: () => onChangeTimelineEnabled(false),
+          } satisfies SelectedModule,
+        ]
+      : []),
+    ...(budgetEnabled
+      ? [
+          {
+            id: "budget",
+            title: "Budget",
+            icon: ReceiptEuro,
+            onRemove: () => onChangeBudgetEnabled(false),
+          } satisfies SelectedModule,
+        ]
+      : []),
+    ...(bringEnabled
+      ? [
+          {
+            id: "bring",
+            title: "Contributions",
+            icon: UtensilsCrossed,
+            onRemove: () => onChangeBringEnabled(false),
+          } satisfies SelectedModule,
+        ]
+      : []),
     ...(giftsEnabled
       ? [
           {
@@ -262,35 +299,51 @@ export function StepModules({
           } satisfies SelectedModule,
         ]
       : []),
-    ...(bringEnabled
-      ? [
-          {
-            id: "bring",
-            title: "Qui ramene quoi",
-            icon: UtensilsCrossed,
-            onRemove: () => onChangeBringEnabled(false),
-          } satisfies SelectedModule,
-        ]
-      : []),
-    ...(timelineEnabled
+  ];
+
+  const businessModules: ModuleCatalogCard[] = [
+    ...(!timelineEnabled
       ? [
           {
             id: "timeline",
             title: "Programme",
+            description: "Ajoutez les temps forts de la journée dans un module dédié.",
             icon: CalendarDays,
-            onRemove: () => onChangeTimelineEnabled(false),
-          } satisfies SelectedModule,
+            onClick: () => onChangeTimelineEnabled(true),
+          } satisfies ModuleCatalogCard,
+        ]
+      : []),
+    ...(!budgetEnabled
+      ? [
+          {
+            id: "budget",
+            title: "Budget",
+            description: "Suivre les postes, devis prestataires et paiements.",
+            icon: ReceiptEuro,
+            onClick: () => onChangeBudgetEnabled(true),
+          } satisfies ModuleCatalogCard,
         ]
       : []),
   ];
 
-  const inactiveModules: ModuleCatalogCard[] = [
+  const contextualModules: ModuleCatalogCard[] = [
+    ...(!bringEnabled
+      ? [
+          {
+            id: "bring",
+            title: "Contributions",
+            description: "Matériel, boissons ou éléments à répartir entre les participants.",
+            icon: UtensilsCrossed,
+            onClick: () => onChangeBringEnabled(true),
+          } satisfies ModuleCatalogCard,
+        ]
+      : []),
     ...(!giftsEnabled
       ? [
           {
             id: "gifts",
             title: "Cadeaux",
-            description: "Listes et reservations sans reveler qui reserve quoi.",
+            description: "Listes et réservations sans révéler qui réserve quoi.",
             icon: Gift,
             onClick: () => {
               onChangeGiftMode("HOST_LIST");
@@ -304,31 +357,9 @@ export function StepModules({
           {
             id: "secretSanta",
             title: "Secret Santa",
-            description: "Tirage au sort et attributions privees.",
+            description: "Tirage au sort et attributions privées.",
             icon: Sparkles,
             onClick: () => onChangeSecretSantaEnabled(true),
-          } satisfies ModuleCatalogCard,
-        ]
-      : []),
-    ...(!bringEnabled
-      ? [
-          {
-            id: "bring",
-            title: "Qui ramene quoi",
-            description: "Boissons, snacks et materiel repartis entre les participants.",
-            icon: UtensilsCrossed,
-            onClick: () => onChangeBringEnabled(true),
-          } satisfies ModuleCatalogCard,
-        ]
-      : []),
-    ...(!timelineEnabled
-      ? [
-          {
-            id: "timeline",
-            title: "Programme",
-            description: "Ajoute les temps forts de la journee dans un module dedie.",
-            icon: CalendarDays,
-            onClick: () => onChangeTimelineEnabled(true),
           } satisfies ModuleCatalogCard,
         ]
       : []),
@@ -341,29 +372,40 @@ export function StepModules({
       : []),
     ...(bringRecommendation && !bringEnabled ? (["bring"] as const) : []),
     ...(timelineRecommendation && !timelineEnabled ? (["timeline"] as const) : []),
+    ...(!budgetEnabled ? (["budget"] as const) : []),
   ]);
 
-  const rankedModules = [
-    ...inactiveModules.filter((module) => recommendedIds.has(module.id)),
-    ...inactiveModules.filter((module) => !recommendedIds.has(module.id)),
+  const rankModules = (modules: ModuleCatalogCard[]) => [
+    ...modules.filter((module) => recommendedIds.has(module.id)),
+    ...modules.filter((module) => !recommendedIds.has(module.id)),
   ];
 
   return (
     <div className="space-y-4">
       <StepHeading
-        title="Options"
-        subtitle="Ajoute seulement les modules utiles pour cet evenement."
+        title="Modules de pilotage"
+        subtitle="Ajoutez seulement les modules utiles pour coordonner cet événement."
       />
 
       <SelectedModulesStrip modules={selectedModules} />
 
-      <ModuleDiscoveryList modules={rankedModules} recommendedIds={recommendedIds} />
+      <ModuleDiscoveryList
+        modules={rankModules(businessModules)}
+        recommendedIds={recommendedIds}
+        title="Modules de pilotage"
+      />
+
+      <ModuleDiscoveryList
+        modules={rankModules(contextualModules)}
+        recommendedIds={recommendedIds}
+        title="Modules contextuels"
+      />
 
       {giftsEnabled ? (
         <Card id="module-gifts">
           <CardHeader className="space-y-1">
             <CardTitle className="text-base">Cadeaux</CardTitle>
-            <CardDescription>Choisis le mode adapté à cet événement.</CardDescription>
+            <CardDescription>Choisissez le mode adapté à cet événement.</CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-3">

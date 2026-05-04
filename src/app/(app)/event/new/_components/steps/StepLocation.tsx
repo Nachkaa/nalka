@@ -5,23 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { EventLocationMode } from "@prisma/client";
-import {
-  Beer,
-  Building2,
-  Dumbbell,
-  Globe,
-  Home,
-  Hotel,
-  Landmark,
-  MapPin,
-  Navigation,
-  Plus,
-  Sparkles,
-  Trees,
-  Users,
-  Utensils,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Building2, Globe, Hotel, Landmark, Plus, Utensils } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { StepHeading } from "./StepHeading";
 import type { ThemeValue } from "./StepType";
 
@@ -46,50 +31,23 @@ type Suggestion = {
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 };
 
-const BY_THEME: Record<ThemeValue, Suggestion[]> = {
-  social: [
-    { value: "Bar / apéro", label: "Bar / apéro", icon: Beer },
-    { value: "Restaurant", label: "Restaurant", icon: Utensils },
-    { value: "Activité", label: "Activité", icon: Sparkles },
-    { value: "En extérieur", label: "En extérieur", icon: Trees },
-    { value: "Chez quelqu’un", label: "Chez quelqu’un", icon: Home },
-  ],
-  family: [
-    { value: "Restaurant", label: "Restaurant", icon: Utensils },
-    { value: "Chez quelqu’un", label: "Chez quelqu’un", icon: Home },
-    { value: "Salle privée", label: "Salle privée", icon: Building2 },
-    { value: "En extérieur", label: "En extérieur", icon: Trees },
-  ],
-  sport: [
-    { value: "Parc / extérieur", label: "Parc / extérieur", icon: Trees },
-    { value: "Salle", label: "Salle", icon: Dumbbell },
-    { value: "Terrain / stade", label: "Terrain / stade", icon: Landmark },
-    { value: "Sortie nature", label: "Sortie nature", icon: Navigation },
-  ],
-  trip: [
-    { value: "Hébergement", label: "Hébergement", icon: Hotel },
-    { value: "Centre-ville", label: "Centre-ville", icon: MapPin },
-    { value: "Point de départ", label: "Point de départ", icon: Navigation },
-    { value: "Sur place", label: "Sur place", icon: Landmark },
-  ],
-  group: [
-    { value: "Afterwork", label: "Afterwork", icon: Users },
-    { value: "Salle / local", label: "Salle / local", icon: Building2 },
-    { value: "Lieu public", label: "Lieu public", icon: MapPin },
-    { value: "En ligne", label: "En ligne", icon: Globe },
-  ],
-  custom: [
-    { value: "Restaurant", label: "Restaurant", icon: Utensils },
-    { value: "Activité", label: "Activité", icon: Sparkles },
-    { value: "En extérieur", label: "En extérieur", icon: Trees },
-    { value: "En ligne", label: "En ligne", icon: Globe },
-  ],
-};
+const PROFESSIONAL_SUGGESTIONS: Suggestion[] = [
+  { value: "Chez le client", label: "Chez le client", icon: Building2 },
+  { value: "Salle interne", label: "Salle interne", icon: Landmark },
+  { value: "Hôtel", label: "Hôtel", icon: Hotel },
+  { value: "Restaurant privatisé", label: "Restaurant privatisé", icon: Utensils },
+  { value: "Centre de conférence", label: "Centre de conférence", icon: Building2 },
+  { value: "En ligne", label: "En ligne", icon: Globe },
+];
 
-function firstName(displayName?: string) {
-  const n = (displayName ?? "").trim();
-  return n ? n.split(/\s+/)[0] : null;
-}
+const BY_THEME: Record<ThemeValue, Suggestion[]> = {
+  social: PROFESSIONAL_SUGGESTIONS,
+  family: PROFESSIONAL_SUGGESTIONS,
+  sport: PROFESSIONAL_SUGGESTIONS,
+  trip: PROFESSIONAL_SUGGESTIONS,
+  group: PROFESSIONAL_SUGGESTIONS,
+  custom: PROFESSIONAL_SUGGESTIONS,
+};
 
 function normalize(s: string) {
   return s.replace(/\s+/g, " ").trim();
@@ -100,27 +58,13 @@ export function StepLocation({
   location,
   pollLocations,
   theme = "custom",
-  displayName,
   onChange,
   onNext,
   autoAdvance = false,
 }: Props) {
   const [adding, setAdding] = useState(false);
+  const suggestions = BY_THEME[theme] ?? PROFESSIONAL_SUGGESTIONS;
 
-  const host = firstName(displayName);
-
-  const suggestions = useMemo(() => {
-    const themed = BY_THEME[theme] ?? [];
-    const base: Suggestion[] = [
-      ...(host ? [{ value: `Chez ${host}`, label: `Chez ${host}`, icon: Home } as Suggestion] : []),
-    ];
-
-    const uniq = new Map<string, Suggestion>();
-    for (const s of [...base, ...themed]) uniq.set(s.value, s);
-    return Array.from(uniq.values()).slice(0, 10);
-  }, [theme, host]);
-
-  // Poll UX (same as dates)
   const [pollInput, setPollInput] = useState("");
   const pollRef = useRef<HTMLInputElement | null>(null);
   const chipsRef = useRef<HTMLDivElement | null>(null);
@@ -166,8 +110,8 @@ export function StepLocation({
   return (
     <div className="space-y-4">
       <StepHeading
-        title="Où ?"
-        subtitle="Choisis un lieu, propose un sondage, ou laisse à définir."
+        title="Lieu"
+        subtitle="Indiquez un lieu connu, proposez un sondage ou laissez ce point à définir."
       />
 
       <Tabs
@@ -191,20 +135,14 @@ export function StepLocation({
           <TabsTrigger value="TBD">À définir</TabsTrigger>
         </TabsList>
 
-        {/* EXACT */}
         <TabsContent value="EXACT" className="mt-4 space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="location">Lieu (optionnel)</Label>
-            <p className="text-muted-foreground text-xs">
-              Choisis un cadre. Tu pourras préciser plus tard.
-            </p>
-          </div>
+          <Label htmlFor="location">Lieu</Label>
 
           <Input
             id="location"
             value={location}
             onChange={(e) => onChange({ location: e.target.value })}
-            placeholder="Ex : Bar · Restaurant · Activité · À définir…"
+            placeholder="Ex. Salle interne, hôtel, lieu client..."
           />
 
           <div className="space-y-2">
@@ -230,10 +168,9 @@ export function StepLocation({
           </div>
         </TabsContent>
 
-        {/* POLL */}
         <TabsContent value="POLL" className="mt-4 space-y-3">
           <p className="text-muted-foreground text-sm">
-            Ajoute quelques options. Les participants voteront ensuite dans l’événement.
+            Ajoutez quelques options. Les participants voteront ensuite dans l&apos;événement.
           </p>
 
           <div ref={chipsRef} className="flex flex-wrap gap-2">
@@ -289,7 +226,6 @@ export function StepLocation({
                   value={pollInput}
                   onChange={(e) => setPollInput(e.target.value)}
                   onBlur={() => {
-                    // optional: auto-add on blur if valid
                     const v = pollInput.trim();
                     if (v) addPollLocation(v);
                     setPollInput("");
@@ -308,7 +244,7 @@ export function StepLocation({
                       setAdding(false);
                     }
                   }}
-                  placeholder="Ex : Restaurant, Bar, Chez quelqu’un…"
+                  placeholder="Ex. Salle interne, hôtel, lieu client..."
                 />
 
                 <p className="text-muted-foreground text-xs">Conseil : 2 à 5 options max.</p>
@@ -339,10 +275,9 @@ export function StepLocation({
           </div>
         </TabsContent>
 
-        {/* TBD */}
         <TabsContent value="TBD" className="text-muted-foreground mt-4 text-sm">
-          L’événement sera créé en mode planification. Tu pourras définir le lieu plus tard depuis
-          la page de l’événement (et lancer un sondage si besoin).
+          L&apos;événement sera créé en mode planification. Vous pourrez définir le lieu plus tard
+          depuis la page de l&apos;événement et lancer un sondage si besoin.
         </TabsContent>
       </Tabs>
     </div>

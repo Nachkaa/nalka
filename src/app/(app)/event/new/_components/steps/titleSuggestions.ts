@@ -2,65 +2,56 @@ import type { Draft } from "../EventCreateStepper";
 
 type Theme = Draft["theme"];
 
-type Suggestion = { emoji: string; title: string };
+type Suggestion = { prefix: string; title: string };
 
 const byTheme: Record<Exclude<Theme, undefined>, Suggestion[]> = {
   social: [
-    { emoji: "🎂", title: "Anniversaire — {name}" },
-    { emoji: "🥂", title: "Soirée chez {name}" },
-    { emoji: "🍷", title: "Apéro {city}" },
-    { emoji: "❤️", title: "Saint Valentin" },
-    { emoji: "🎉", title: "Fête à la maison" },
-    { emoji: "👋", title: "Pot de départ" },
-    { emoji: "🍽️", title: "Dîner entre amis" },
+    { prefix: "Séminaire", title: "Séminaire équipe" },
+    { prefix: "Formation", title: "Formation client" },
+    { prefix: "Conférence", title: "Conférence interne" },
+    { prefix: "Atelier", title: "Atelier de travail" },
   ],
   family: [
-    { emoji: "🏡", title: "Week-end famille" },
-    { emoji: "🍲", title: "Déjeuner chez {name}" },
-    { emoji: "🍽️", title: "Repas de famille" },
-    { emoji: "🧑‍🤝‍🧑", title: "Cousinade" },
-    { emoji: "🎄", title: "Noël en famille" },
-    { emoji: "📸", title: "Réunion familiale" },
+    { prefix: "Client", title: "Événement client" },
+    { prefix: "Réception", title: "Réception client" },
+    { prefix: "Atelier", title: "Atelier client" },
+    { prefix: "Brief", title: "Rendez-vous projet" },
   ],
   sport: [
-    { emoji: "🚴", title: "Sortie vélo" },
-    { emoji: "🏃", title: "Run du dimanche" },
-    { emoji: "⚽", title: "Match entre amis" },
-    { emoji: "🏋️", title: "Séance training" },
-    { emoji: "🏆", title: "Tournoi" },
-    { emoji: "🥾", title: "Rando" },
+    { prefix: "Partenaires", title: "Soirée partenaires" },
+    { prefix: "Networking", title: "Cocktail networking" },
+    { prefix: "Activation", title: "Activation partenaire" },
+    { prefix: "Relations", title: "Rencontre partenaires" },
   ],
   trip: [
-    { emoji: "🧳", title: "Week-end à {city}" },
-    { emoji: "🚗", title: "Road trip" },
-    { emoji: "🎿", title: "Séjour au ski" },
-    { emoji: "🏖️", title: "Vacances ensemble" },
-    { emoji: "🏙️", title: "City trip" },
-    { emoji: "🌅", title: "Escapade" },
+    { prefix: "Offsite", title: "Offsite interne" },
+    { prefix: "Équipe", title: "Journée équipe" },
+    { prefix: "Séjour", title: "Séjour d'équipe" },
+    { prefix: "Retraite", title: "Retraite projet" },
   ],
   group: [
-    { emoji: "🍻", title: "Afterwork" },
-    { emoji: "🍽️", title: "Team dinner" },
-    { emoji: "🗓️", title: "Meetup" },
-    { emoji: "🏛️", title: "Événement du club" },
-    { emoji: "🧠", title: "Réunion + apéro" },
-    { emoji: "🤝", title: "Sortie communauté" },
+    { prefix: "Association", title: "Événement association" },
+    { prefix: "Communauté", title: "Rencontre communauté" },
+    { prefix: "Club", title: "Événement du club" },
+    { prefix: "Équipe", title: "Session équipe projet" },
   ],
   custom: [
-    { emoji: "✨", title: "Mon événement" },
-    { emoji: "🧭", title: "Planification" },
-    { emoji: "📍", title: "Rendez-vous" },
-    { emoji: "💫", title: "Moment ensemble" },
+    { prefix: "Lancement", title: "Lancement produit" },
+    { prefix: "Pilotage", title: "Événement professionnel" },
+    { prefix: "Projet", title: "Comité événement" },
+    { prefix: "Opérations", title: "Espace opérations" },
   ],
 };
 
-function applyTemplate(t: string, name: string) {
-  const safeName = (name || "…").trim() || "…";
-  return t.replace("{name}", safeName).replace("{city}", "…");
+function applyTemplate(value: string, name: string) {
+  const safeName = (name || "").trim();
+  return safeName ? `${value} - ${safeName}` : value;
 }
 
 export function getTitleSuggestions(draft: Draft): string[] {
   const theme = draft.theme ?? "custom";
-  const raw = byTheme[theme].map((s) => `${s.emoji} ${applyTemplate(s.title, draft.displayName)}`);
+  const raw = byTheme[theme].map((suggestion) =>
+    applyTemplate(suggestion.title, suggestion.prefix === "Projet" ? draft.displayName : ""),
+  );
   return Array.from(new Set(raw)).slice(0, 10);
 }
