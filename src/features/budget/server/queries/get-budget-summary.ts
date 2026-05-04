@@ -160,7 +160,7 @@ export async function getBudgetSummary(eventSlug: string): Promise<BudgetSummary
       .map((line) => ({
         id: `over-target-${line.id}`,
         title: line.label,
-        detail: "L'estimation actuelle depasse le budget cible.",
+        detail: "Le cout estime depasse le budget prevu.",
         href: `/event/${access.event.slug}/budget/lines`,
       })),
     ...lines

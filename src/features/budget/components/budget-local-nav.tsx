@@ -20,24 +20,6 @@ export function BudgetLocalNav(props: { eventSlug: string; hasLines: boolean }) 
           const href = link.href(props.eventSlug);
           const isActive =
             pathname === href || (link.key === "quotes" && pathname.startsWith(`${href}/`));
-          const isDisabled = link.key === "quotes" && !props.hasLines && !isActive;
-
-          if (isDisabled) {
-            return (
-              <span
-                key={link.key}
-                className={cn(
-                  "inline-flex h-9 items-center rounded-full px-4 text-sm font-medium transition-colors",
-                  "cursor-not-allowed opacity-60",
-                  "text-muted-foreground bg-muted/60",
-                )}
-                aria-disabled="true"
-                title="Ajoute d'abord un poste budgetaire pour gerer des devis."
-              >
-                {link.label}
-              </span>
-            );
-          }
 
           return (
             <Link

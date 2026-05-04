@@ -24,8 +24,8 @@ export function EditBudgetLineDialog(props: {
       <BudgetLineFormDialog
         open={open}
         onOpenChange={setOpen}
-        title="Modifier la ligne budgetaire"
-        description="Mettez a jour les informations utiles pour cette ligne."
+        title="Modifier le poste budgétaire"
+        description="Mettez à jour les informations utiles pour ce poste."
         submitLabel="Enregistrer"
         includeStatusField
         values={{

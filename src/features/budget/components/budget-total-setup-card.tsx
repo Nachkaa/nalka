@@ -109,11 +109,11 @@ export function BudgetTotalSetupCard({
 
         <div className="flex flex-wrap gap-3">
           <Button type="button" onClick={handleDefine} disabled={pending}>
-            {pending ? "Enregistrement..." : "Continuer"}
+            {pending ? "Enregistrement..." : "Enregistrer le budget"}
           </Button>
           {allowSkip ? (
             <Button type="button" variant="ghost" onClick={handleSkip} disabled={pending}>
-              Je le definirai plus tard
+              Je le définirai plus tard
             </Button>
           ) : null}
         </div>

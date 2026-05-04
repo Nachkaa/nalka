@@ -25,11 +25,11 @@ export function BudgetLineExpandedRow(props: {
           <p className="mt-1 font-medium">{props.line.selectedVendorName ?? "Aucun fournisseur retenu"}</p>
         </div>
         <div>
-          <p className="text-muted-foreground text-xs uppercase tracking-[0.12em]">Devis recus</p>
+          <p className="text-muted-foreground text-xs uppercase tracking-[0.12em]">Devis reçus</p>
           <p className="mt-1 font-medium">{props.line.quotesReceivedCount}</p>
         </div>
         <div>
-          <p className="text-muted-foreground text-xs uppercase tracking-[0.12em]">Pieces jointes</p>
+          <p className="text-muted-foreground text-xs uppercase tracking-[0.12em]">Pièces jointes</p>
           <p className="mt-1 font-medium">{props.line.attachmentsCount}</p>
         </div>
         <div>
@@ -67,7 +67,7 @@ export function BudgetLineExpandedRow(props: {
             href={`/event/${props.eventSlug}/budget/quotes/${props.line.id}`}
             className="text-primary text-sm font-medium"
           >
-            Ouvrir le detail du devis
+            Ouvrir le détail du devis
           </Link>
         </div>
       </div>
@@ -80,7 +80,7 @@ export function BudgetLineExpandedRow(props: {
             currency={props.currency}
             payments={props.line.paymentEntries}
             title="Paiements"
-            emptyState="Aucune echeance de paiement enregistree pour le moment."
+            emptyState="Aucune échéance de paiement enregistrée pour le moment."
           />
         </div>
       ) : null}

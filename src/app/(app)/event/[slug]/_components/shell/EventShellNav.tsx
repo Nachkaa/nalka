@@ -166,6 +166,7 @@ export function EventShellNav({
           open={dialogOpen}
           onOpenChange={handleDialogOpenChange}
           modules={modules}
+          activeModule={activeModule}
           eventId={eventId}
           eventSlug={eventSlug}
           giftMode={giftMode}

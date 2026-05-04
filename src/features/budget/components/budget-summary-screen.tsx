@@ -14,29 +14,29 @@ export function BudgetSummaryScreen(props: { data: BudgetSummaryData }) {
       : {
           label: "Budget global",
           value: data.totals.totalBudget,
-          displayValue: "A definir",
-          helper: "Definis un budget global pour suivre le reste a allouer.",
+          displayValue: "À définir",
+          helper: "Définissez un budget global pour suivre le reste à allouer.",
           tone: "muted" as const,
         },
     {
-      label: "Estime",
+      label: "Coût estimé",
       value: data.totals.estimated,
-      helper: "Estimation actuelle sur l'ensemble des postes.",
+      helper: "Coût estimé actuel sur l'ensemble des postes.",
     },
     { label: BUDGET_METRIC_LABELS.committed, value: data.totals.committed, helper: "Montants des devis engagés." },
-    { label: "Regle", value: data.totals.paid },
+    { label: "Réglé", value: data.totals.paid },
     data.hasDefinedTotal
       ? {
-          label: "Reste a allouer",
+          label: "Reste à allouer",
           value: data.totals.remaining,
-          helper: "Budget restant apres les montants deja retenus.",
+          helper: "Budget restant après les montants déjà retenus.",
           tone: Number(data.totals.remaining) < 0 ? ("warning" as const) : undefined,
         }
       : {
-          label: "Reste a allouer",
+          label: "Reste à allouer",
           value: data.totals.remaining,
-          displayValue: "A definir",
-          helper: "Le restant sera calcule une fois le budget global defini.",
+          displayValue: "À définir",
+          helper: "Le restant sera calculé une fois le budget global défini.",
           tone: "muted" as const,
         },
   ];
@@ -44,8 +44,8 @@ export function BudgetSummaryScreen(props: { data: BudgetSummaryData }) {
   const stats = [
     { label: "Postes en consultation", value: data.counts.linesInSourcing },
     { label: "Devis en attente", value: data.counts.quotesAwaitingResponse },
-    { label: "Postes au-dessus de la cible", value: data.counts.overTargetLines },
-    { label: "Reservations non reglees", value: data.counts.unpaidBookings },
+    { label: "Postes au-dessus du budget prévu", value: data.counts.overTargetLines },
+    { label: "Réservations non réglées", value: data.counts.unpaidBookings },
     { label: "Paiements dus cette semaine", value: data.counts.paymentsDueThisWeek },
   ];
 
@@ -54,8 +54,8 @@ export function BudgetSummaryScreen(props: { data: BudgetSummaryData }) {
       {!data.hasDefinedTotal ? (
         <BudgetTotalSetupCard
           eventSlug={data.event.slug}
-          title="Definir le budget global"
-          intro="Ajoute un budget global pour suivre clairement le restant a depenser."
+          title="Définir le budget global"
+          intro="Définissez un budget global, puis créez vos premiers postes pour suivre les dépenses et comparer les devis."
           compact
         />
       ) : null}
@@ -64,7 +64,7 @@ export function BudgetSummaryScreen(props: { data: BudgetSummaryData }) {
         <div>
           <h2 className="text-2xl font-semibold">Vue d&apos;ensemble du budget</h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Une vue claire pour suivre le budget de votre evenement.
+            Une vue claire pour suivre le budget de votre événement.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">

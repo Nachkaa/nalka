@@ -23,12 +23,12 @@ export function BudgetLinesTable(props: {
       <table className="w-full min-w-[980px] border-separate border-spacing-y-3">
         <thead>
           <tr className="text-muted-foreground text-left text-xs uppercase tracking-[0.12em]">
-            <th className="px-3 py-2 font-medium">Poste budgetaire</th>
-            <th className="px-3 py-2 font-medium">Objectif</th>
-            <th className="px-3 py-2 font-medium">Estime</th>
-            <th className="px-3 py-2 font-medium">Engage</th>
-            <th className="px-3 py-2 font-medium">Paye</th>
-            <th className="px-3 py-2 font-medium">Ecart</th>
+            <th className="px-3 py-2 font-medium">Poste budgétaire</th>
+            <th className="px-3 py-2 font-medium">Budget prévu</th>
+            <th className="px-3 py-2 font-medium">Coût estimé</th>
+            <th className="px-3 py-2 font-medium">Engagé</th>
+            <th className="px-3 py-2 font-medium">Payé</th>
+            <th className="px-3 py-2 font-medium">Écart</th>
             <th className="px-3 py-2 font-medium">Statut</th>
             <th className="px-3 py-2 font-medium">Actions</th>
           </tr>
@@ -50,7 +50,7 @@ export function BudgetLinesTable(props: {
                 <td className="px-3 py-4 align-top">{formatMoney(line.committedAmount, props.currency)}</td>
                 <td className="px-3 py-4 align-top">{formatMoney(line.paidAmount, props.currency)}</td>
                 <td className="px-3 py-4 align-top">
-                  {line.varianceAmount ? formatMoney(line.varianceAmount, props.currency) : "Pas encore d'ecart"}
+                  {line.varianceAmount ? formatMoney(line.varianceAmount, props.currency) : "Pas encore d'écart"}
                 </td>
                 <td className="px-3 py-4 align-top">
                   <div className="space-y-2 text-sm">
