@@ -1,4 +1,4 @@
-import { Eye, Lock, Shield, UserX } from "lucide-react";
+import { EyeOff, Lock, Shield, UserCheck } from "lucide-react";
 
 import { Container } from "@/components/layout/Container";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,23 +6,23 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 const items = [
   {
     icon: Lock,
-    title: "Les réservations de cadeaux sont privées",
-    description: "Même l’hôte ne voit pas qui a réservé quoi. La surprise reste intacte.",
+    title: "Budget et devis restent côté organisateur",
+    description: "Les participants ne voient pas les montants, notes internes ou arbitrages.",
   },
   {
-    icon: Eye,
-    title: "Attributions Secret Santa privées",
-    description: "Vous seul voyez à qui vous offrez un cadeau. Personne d’autre ne peut regarder.",
+    icon: UserCheck,
+    title: "Accès événement contrôlé",
+    description: "Les invitations et modules actifs cadrent ce que chaque personne peut consulter.",
   },
   {
-    icon: UserX,
-    title: "Pas de fil d’activité qui révèle vos actions",
-    description: "On ne diffuse pas ce que vous faites. Vos interactions restent discrètes.",
+    icon: EyeOff,
+    title: "Pas d'activité inutilement exposée",
+    description: "Nalka évite les signaux qui pourraient révéler des informations sensibles.",
   },
   {
     icon: Shield,
-    title: "Vos données vous appartiennent",
-    description: "On ne revend pas vos informations. Vous gardez le contrôle.",
+    title: "Confidentialité des réservations préservée",
+    description: "Les flux cadeaux gardent leurs protections anti-spoiler et anonymes.",
   },
 ] as const;
 
@@ -33,7 +33,6 @@ export function MarketingPrivacySection() {
       className="relative isolate overflow-hidden bg-[#0b0b10] py-10 md:py-18"
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* top-left glow */}
         <div
           className="absolute -top-20 left-[25%] h-[520px] w-[720px] opacity-45"
           style={{
@@ -42,7 +41,6 @@ export function MarketingPrivacySection() {
           }}
         />
 
-        {/* mid-right / lower glow */}
         <div
           className="absolute -bottom-56 left-[55%] h-[560px] w-[760px] opacity-45"
           style={{
@@ -55,10 +53,11 @@ export function MarketingPrivacySection() {
       <Container className="relative flex flex-col gap-10 md:gap-12">
         <div className="space-y-3 text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
-            La confidentialité n’est pas une option. C’est la base.
+            Confidentialité opérationnelle par défaut.
           </h2>
           <p className="text-base text-white/75 md:text-lg">
-            Pensé pour des petits groupes privés où la confiance compte.
+            Un événement professionnel mélange participants, prestataires et décisions internes.
+            Nalka garde ces niveaux séparés.
           </p>
         </div>
 
@@ -99,8 +98,9 @@ export function MarketingPrivacySection() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-center text-sm text-white/90">
-          <span className="font-semibold text-white">Vos événements restent privés.</span> Nous
-          limitons l’exposition des informations et évitons tout spoiler.
+          <span className="font-semibold text-white">Les informations sensibles restent cadrées.</span>{" "}
+          Les modules publics et les modules organisateur ne racontent pas la même chose aux mêmes
+          personnes.
         </div>
       </Container>
     </section>

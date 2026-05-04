@@ -19,9 +19,19 @@ const AVAILABLE_MODULES = [
   EventModuleKey.POTLUCK,
   EventModuleKey.TIMELINE,
   EventModuleKey.POLLS,
+  EventModuleKey.BUDGET,
 ] as const;
 
-const GIFT_KEYWORDS = ["anniversaire", "birthday", "noel", "christmas", "secret santa"] as const;
+const GIFT_KEYWORDS = [
+  "anniversaire",
+  "birthday",
+  "noel",
+  "christmas",
+  "secret santa",
+  "cadeau",
+  "gift",
+] as const;
+
 const SECRET_SANTA_KEYWORDS = [
   "noel",
   "christmas",
@@ -29,45 +39,45 @@ const SECRET_SANTA_KEYWORDS = [
   "echange de cadeaux",
   "tirage au sort cadeau",
 ] as const;
-const BRING_KEYWORDS = [
-  "apero",
-  "repas",
-  "diner",
-  "dejeuner",
-  "barbecue",
-  "bbq",
-  "pique nique",
-  "pique-nique",
-  "chez",
-  "brunch",
-  "week end",
-  "week-end",
+
+const CONTRIBUTION_KEYWORDS = [
+  "materiel",
+  "logistique",
+  "boissons",
+  "collation",
+  "traiteur",
+  "equipement",
+  "stand",
+  "accueil",
 ] as const;
+
 const TIMELINE_KEYWORDS = [
-  "soiree",
-  "fete",
-  "anniversaire",
-  "famille",
-  "week end",
-  "week-end",
-  "road trip",
-  "trip",
+  "seminaire",
+  "client",
+  "partenaire",
+  "lancement",
+  "produit",
+  "offsite",
+  "programme",
+  "planning",
   "tournoi",
-  "sortie",
   "journee",
   "club",
   "communaute",
-  "rando",
+  "association",
 ] as const;
+
 const POLL_KEYWORDS = [
-  "trip",
-  "road trip",
-  "week end",
-  "week-end",
+  "decision",
+  "arbitrage",
+  "date",
+  "lieu",
+  "offsite",
+  "seminaire",
   "meetup",
   "communaute",
   "club",
-  "tournoi",
+  "association",
 ] as const;
 
 function normalize(value: string) {
@@ -106,66 +116,23 @@ export function inferModuleRecommendations(draft: Draft): ModuleRecommendationRe
   const theme = draft.theme;
   const recommended: ModuleRecommendation[] = [];
 
-  const isSocialTheme = isOneOf(theme, ["social"]);
-  const isFamilyTheme = isOneOf(theme, ["family"]);
-  const isTripTheme = isOneOf(theme, ["trip"]);
-  const isGroupTheme = isOneOf(theme, ["group"]);
-  const isSportTheme = isOneOf(theme, ["sport"]);
-
+  const isProfessionalTheme = isOneOf(theme, ["social", "family", "sport", "trip", "group"]);
   const hasGiftContext = containsAny(text, GIFT_KEYWORDS);
-  const hasSecretSantaKeyword = containsAny(text, SECRET_SANTA_KEYWORDS);
-  const hasSecretSantaContext =
-    hasSecretSantaKeyword || ((isFamilyTheme || isGroupTheme) && hasSecretSantaKeyword);
-  const hasBringContext = containsAny(text, BRING_KEYWORDS);
-  const hasTimelineContext =
-    containsAny(text, TIMELINE_KEYWORDS) ||
-    isSocialTheme ||
-    isFamilyTheme ||
-    isTripTheme ||
-    isGroupTheme ||
-    isSportTheme;
+  const hasSecretSantaContext = containsAny(text, SECRET_SANTA_KEYWORDS);
+  const hasContributionContext = containsAny(text, CONTRIBUTION_KEYWORDS);
+  const hasTimelineContext = containsAny(text, TIMELINE_KEYWORDS) || isProfessionalTheme;
   const needsPollCoordination =
     draft.scheduleMode !== EventScheduleMode.EXACT ||
     draft.locationMode !== EventLocationMode.EXACT ||
-    isTripTheme ||
-    isGroupTheme ||
+    isOneOf(theme, ["trip", "group"]) ||
     containsAny(text, POLL_KEYWORDS);
-
-  if (hasGiftContext) {
-    pushRecommendation(
-      recommended,
-      EventModuleKey.GIFTS,
-      "high",
-      "Recommandé car le contexte évoque un événement avec cadeaux.",
-    );
-  }
-
-  if (hasSecretSantaContext) {
-    pushRecommendation(
-      recommended,
-      EventModuleKey.SECRET_SANTA,
-      "high",
-      "Recommandé pour un échange de cadeaux privé, type Noël ou Secret Santa.",
-    );
-  }
-
-  if (hasBringContext || isTripTheme) {
-    pushRecommendation(
-      recommended,
-      EventModuleKey.POTLUCK,
-      hasBringContext ? "high" : "medium",
-      hasBringContext
-        ? "Recommandé car l’événement ressemble à un repas, un apéro ou un moment chez quelqu’un."
-        : "Recommandé car ce type de sortie demande souvent de répartir ce que chacun apporte.",
-    );
-  }
 
   if (hasTimelineContext) {
     pushRecommendation(
       recommended,
       EventModuleKey.TIMELINE,
-      isTripTheme || isGroupTheme ? "high" : "medium",
-      "Recommandé car cet événement a probablement plusieurs moments à coordonner.",
+      isProfessionalTheme ? "high" : "medium",
+      "Recommandé pour structurer le programme et les temps forts.",
     );
   }
 
@@ -176,7 +143,34 @@ export function inferModuleRecommendations(draft: Draft): ModuleRecommendationRe
       draft.scheduleMode !== EventScheduleMode.EXACT || draft.locationMode !== EventLocationMode.EXACT
         ? "high"
         : "medium",
-      "Recommandé car la date, le lieu ou l’organisation du groupe demandent encore de la coordination.",
+      "Recommandé pour trancher une date, un lieu ou une décision d'organisation.",
+    );
+  }
+
+  if (hasContributionContext) {
+    pushRecommendation(
+      recommended,
+      EventModuleKey.POTLUCK,
+      "medium",
+      "Utile si vous devez répartir du matériel, des boissons ou des apports.",
+    );
+  }
+
+  if (hasGiftContext) {
+    pushRecommendation(
+      recommended,
+      EventModuleKey.GIFTS,
+      "medium",
+      "Utile uniquement si cet événement inclut une liste de cadeaux ou de recommandations.",
+    );
+  }
+
+  if (hasSecretSantaContext) {
+    pushRecommendation(
+      recommended,
+      EventModuleKey.SECRET_SANTA,
+      "medium",
+      "Utile uniquement pour un rituel d'équipe de type Secret Santa.",
     );
   }
 

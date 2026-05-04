@@ -73,7 +73,6 @@ export function StepSchedule({
 
     const anchor = time && time.trim() ? time.trim() : DEFAULT_TIME_ANCHOR;
 
-    // wait for popover content to mount
     requestAnimationFrame(() => {
       const el = timeItemRefs.current[anchor];
       el?.scrollIntoView({ block: "center" });
@@ -111,7 +110,10 @@ export function StepSchedule({
 
   return (
     <div className="space-y-4">
-      <StepHeading title="Quand ?" subtitle="Date, sondage, ou à définir." />
+      <StepHeading
+        title="Date"
+        subtitle="Choisissez une date, proposez un sondage ou laissez ce point à définir."
+      />
 
       <Tabs value={mode} onValueChange={(v) => onChange({ scheduleMode: v as EventScheduleMode })}>
         <TabsList className="grid w-full grid-cols-3">
@@ -137,7 +139,7 @@ export function StepSchedule({
 
         <TabsContent value="POLL" className="mt-4 space-y-3">
           <p className="text-muted-foreground text-sm">
-            Ajoute quelques dates possibles. Les participants voteront ensuite dans l’événement.
+            Ajoutez quelques dates possibles. Les participants voteront ensuite dans l&apos;événement.
           </p>
 
           <div ref={chipsRef} className="flex flex-wrap gap-2">
@@ -192,8 +194,8 @@ export function StepSchedule({
         </TabsContent>
 
         <TabsContent value="TBD" className="text-muted-foreground mt-4 text-sm">
-          L’événement sera créé en mode planification. Tu pourras définir la date plus tard depuis
-          la page de l’événement.
+          L&apos;événement sera créé en mode planification. Vous pourrez définir la date plus tard depuis
+          la page de l&apos;événement.
         </TabsContent>
 
         <div className="space-y-2 pt-4">
@@ -218,7 +220,7 @@ export function StepSchedule({
 
               <PopoverContent className="w-[320px] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="Rechercher une heure…" />
+                  <CommandInput placeholder="Rechercher une heure..." />
                   <CommandList>
                     <CommandEmpty>Aucun horaire.</CommandEmpty>
                     <CommandGroup heading="Horaires">
@@ -256,7 +258,7 @@ export function StepSchedule({
                 variant="ghost"
                 size="icon"
                 onClick={() => onChange({ scheduleTime: "" })}
-                aria-label="Effacer l’heure"
+                aria-label="Effacer l'heure"
               >
                 <X className="h-4 w-4" aria-hidden />
               </Button>
@@ -264,7 +266,7 @@ export function StepSchedule({
           </div>
 
           <p className="text-muted-foreground text-xs">
-            Optionnel. Tu peux le renseigner même si la date est en sondage ou à définir.
+            Optionnel. Vous pouvez le renseigner même si la date est en sondage ou à définir.
           </p>
         </div>
       </Tabs>

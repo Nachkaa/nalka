@@ -26,7 +26,7 @@ export function PaymentEntryList(props: Props) {
       <CardContent>
         {props.payments.length === 0 ? (
           <p className="text-muted-foreground text-sm">
-            {props.emptyState ?? "Aucune echeance de paiement enregistree pour le moment."}
+            {props.emptyState ?? "Aucune échéance de paiement enregistrée pour le moment."}
           </p>
         ) : (
           <div className="space-y-3">
@@ -43,12 +43,12 @@ export function PaymentEntryList(props: Props) {
                       <p className="font-medium">{payment.label}</p>
                       <Badge variant="outline">{getPaymentEntryTypeLabel(payment.entryType)}</Badge>
                       <Badge variant={isPaid ? "secondary" : "outline"}>
-                        {isPaid ? "Regle" : "Non regle"}
+                        {isPaid ? "Réglé" : "Non réglé"}
                       </Badge>
                     </div>
                     <div className="text-muted-foreground space-y-1 text-sm">
                       <p>Montant : {formatMoney(payment.amount, props.currency)}</p>
-                      <p>Echeance : {formatDateTime(payment.dueDate)}</p>
+                      <p>Échéance : {formatDateTime(payment.dueDate)}</p>
                       {isPaid && <p>Réglé le : {formatDateTime(payment.paidAt)}</p>}
                     </div>
                     {payment.note ? <p className="text-sm">{payment.note}</p> : null}

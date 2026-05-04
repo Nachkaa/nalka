@@ -32,6 +32,7 @@ export type Draft = {
   secretSantaEnabled: boolean;
   bringEnabled: boolean;
   timelineEnabled: boolean;
+  budgetEnabled: boolean;
 };
 
 type Props = { displayName: string };
@@ -43,11 +44,11 @@ type StepDef = {
 };
 
 export const STEPS: readonly StepDef[] = [
-  { key: "type", chip: "Type", title: "Pourquoi crées-tu cet événement ?" },
+  { key: "type", chip: "Type", title: "Type d'événement" },
   { key: "title", chip: "Titre", title: "Nom de l’événement" },
   { key: "date", chip: "Date", title: "Quand ?" },
   { key: "place", chip: "Lieu", title: "Où ?" },
-  { key: "modules", chip: "Options", title: "Modules" },
+  { key: "modules", chip: "Pilotage", title: "Modules" },
   { key: "review", chip: "Récap", title: "Résumé" },
 ] as const;
 
@@ -68,6 +69,7 @@ export function EventCreateStepper({ displayName }: Props) {
     secretSantaEnabled: false,
     bringEnabled: false,
     timelineEnabled: false,
+    budgetEnabled: false,
   });
   const [step, setStep] = useState(0);
   const [isPending, startTransition] = useTransition();
@@ -147,6 +149,7 @@ export function EventCreateStepper({ displayName }: Props) {
     fd.set("modules.secretSantaEnabled", draft.secretSantaEnabled ? "on" : "");
     fd.set("modules.bringEnabled", draft.bringEnabled ? "on" : "");
     fd.set("modules.timelineEnabled", draft.timelineEnabled ? "on" : "");
+    fd.set("modules.budgetEnabled", draft.budgetEnabled ? "on" : "");
 
     // rules (for now you hard-force defaults)
     fd.set("rules.isNoSpoil", "on");
@@ -229,6 +232,7 @@ export function EventCreateStepper({ displayName }: Props) {
               secretSantaRecommendation={secretSantaRecommendation}
               bringRecommendation={bringRecommendation}
               timelineRecommendation={timelineRecommendation}
+              budgetEnabled={draft.budgetEnabled}
               onChangeGiftMode={(giftMode) => setDraft((d) => ({ ...d, giftMode }))}
               onRemoveGifts={() => setDraft((d) => ({ ...d, giftMode: null }))}
               onChangeSecretSantaEnabled={(secretSantaEnabled) =>
@@ -239,6 +243,9 @@ export function EventCreateStepper({ displayName }: Props) {
               timelineEnabled={draft.timelineEnabled}
               onChangeTimelineEnabled={(timelineEnabled) =>
                 setDraft((d) => ({ ...d, timelineEnabled }))
+              }
+              onChangeBudgetEnabled={(budgetEnabled) =>
+                setDraft((d) => ({ ...d, budgetEnabled }))
               }
             />
           )}
@@ -258,7 +265,7 @@ export function EventCreateStepper({ displayName }: Props) {
           </Button>
         ) : (
           <Button type="button" onClick={submit} disabled={isPending || !draft.title.trim()}>
-            Créer l’événement
+            Créer l&apos;événement
           </Button>
         )}
       </div>

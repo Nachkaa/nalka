@@ -33,7 +33,7 @@ export function BudgetLineCard(props: {
       </div>
 
       <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
-        <span className="text-muted-foreground">Cible</span>
+        <span className="text-muted-foreground">Budget prévu</span>
         <span className="tabular-nums">{formatMoney(line.targetAmount, currency)}</span>
 
         <span className="text-muted-foreground">Engagé</span>

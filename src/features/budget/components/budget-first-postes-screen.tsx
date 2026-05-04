@@ -12,7 +12,7 @@ import type { BudgetLineCategory } from "@/features/budget/lib/types";
 const QUICK_ADD_CATEGORIES: Array<{ category: BudgetLineCategory; label: string }> = [
   { category: "VENUE", label: "Lieu" },
   { category: "FOOD_BEVERAGE", label: "Restauration" },
-  { category: "DESIGN_DECORATION", label: "Decoration" },
+  { category: "DESIGN_DECORATION", label: "Décoration" },
   { category: "ENTERTAINMENT", label: "Animation" },
   { category: "LOGISTICS", label: "Logistique" },
 ];
@@ -48,8 +48,8 @@ export function BudgetFirstPostesScreen({
       ) : showBudgetSetup ? (
         <BudgetTotalSetupCard
           eventSlug={eventSlug}
-          title="Definir le budget global"
-          intro="Tu peux commencer par tes postes, puis ajouter le budget global quand tu es pret."
+          title="Définir le budget global"
+          intro="Définissez un budget global, puis créez vos premiers postes pour suivre les dépenses et comparer les devis."
           compact
           onSuccess={() => setShowBudgetSetup(false)}
         />
@@ -60,10 +60,10 @@ export function BudgetFirstPostesScreen({
           </CardHeader>
           <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-muted-foreground text-sm">
-              Tu as choisi de definir le budget global plus tard.
+              Le budget global pourra être défini plus tard.
             </p>
             <Button type="button" variant="outline" onClick={() => setShowBudgetSetup(true)}>
-              Definir maintenant
+              Définir maintenant
             </Button>
           </CardContent>
         </Card>
@@ -71,10 +71,10 @@ export function BudgetFirstPostesScreen({
 
       <Card>
         <CardHeader className="space-y-2">
-          <CardTitle className="text-2xl">Ajoute tes premiers postes</CardTitle>
+          <CardTitle className="text-2xl">Ajoutez vos premiers postes</CardTitle>
           <p className="text-muted-foreground text-sm">
-            Cree un poste pour chaque grand sujet de depense. Tu pourras ensuite estimer le
-            montant, comparer des devis et suivre les paiements.
+            Créez un poste pour chaque grand sujet de dépense. Vous pourrez ensuite estimer le
+            montant, comparer les devis et suivre les paiements.
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -84,16 +84,15 @@ export function BudgetFirstPostesScreen({
 
           <div className="space-y-3">
             <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.12em]">
-              Demarrages rapides
+              Créer rapidement un poste
             </p>
             <div className="flex flex-wrap gap-3">
               {QUICK_ADD_CATEGORIES.map((category) => (
                 <AddBudgetLineDialog
                   key={category.category}
                   eventSlug={eventSlug}
-                  triggerLabel={category.label}
+                  triggerLabel={`Poste ${category.label.toLowerCase()}`}
                   triggerVariant="outline"
-                  showPlusIcon={false}
                   initialValues={{
                     category: category.category,
                     label: category.label,

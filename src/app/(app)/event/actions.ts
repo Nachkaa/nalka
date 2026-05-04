@@ -117,6 +117,7 @@ export async function createEvent(formData: FormData) {
 
     bringEnabled: formData.get("modules.bringEnabled"),
     timelineEnabled: formData.get("modules.timelineEnabled"),
+    budgetEnabled: formData.get("modules.budgetEnabled"),
   });
 
   if (!parsed.success) {
@@ -178,6 +179,7 @@ export async function createEvent(formData: FormData) {
       [EventModuleKey.SECRET_SANTA]: !!data.secretSantaEnabled,
       [EventModuleKey.POTLUCK]: !!data.bringEnabled,
       [EventModuleKey.TIMELINE]: !!data.timelineEnabled,
+      [EventModuleKey.BUDGET]: !!data.budgetEnabled,
       [EventModuleKey.POLLS]:
         data.schedule.mode === EventScheduleMode.POLL ||
         data.location.mode === EventLocationMode.POLL,

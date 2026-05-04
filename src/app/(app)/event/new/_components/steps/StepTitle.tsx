@@ -27,14 +27,14 @@ export function StepTitle({ draft, onChange, onNext, autoAdvance = false }: Prop
     <div className="space-y-4">
       <div className="space-y-3">
         <StepHeading
-          title="Donne un nom à l’événement"
-          subtitle="Simple et reconnaissable. Tu pourras le modifier après."
+          title="Nommez l'événement"
+          subtitle="Choisissez un nom simple et reconnaissable. Vous pourrez le modifier plus tard."
         />
         <Input
           id="title"
           value={draft.title}
           onChange={(e) => onChange({ title: e.target.value })}
-          placeholder="Ex: Week-end famille Soyez"
+          placeholder="Ex. Séminaire équipe - Q3"
           autoFocus
         />
 
@@ -60,11 +60,10 @@ export function StepTitle({ draft, onChange, onNext, autoAdvance = false }: Prop
           id="desc"
           value={draft.description}
           onChange={(e) => onChange({ description: e.target.value })}
-          placeholder="Quelques infos utiles…"
+          placeholder="Objectif, format, informations utiles aux participants..."
         />
         <p className="text-muted-foreground text-xs">
-          Mets ici les infos utiles (dress code, programme, lien, etc.). La date et le lieu viennent
-          après.
+          Indiquez les informations utiles aux participants. La date et le lieu viennent ensuite.
         </p>
       </div>
     </div>

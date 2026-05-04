@@ -65,6 +65,7 @@ type ModuleManagerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   modules: EventModuleSnapshot[];
+  activeModule: EventModuleRouteKey;
   eventId: string;
   eventSlug: string;
   giftMode: EventGiftMode;
@@ -89,10 +90,10 @@ const MODULE_ICONS: Record<
   CHAT: MessageSquare,
 };
 
-const MODULE_CATALOG: CatalogEntry[] = listModuleManagerDefinitions().map((definition) => ({
-  ...definition,
-  icon: MODULE_ICONS[definition.key],
-}));
+const MODULE_CATALOG: CatalogEntry[] = listModuleManagerDefinitions().flatMap((definition) => {
+  const icon = MODULE_ICONS[definition.key];
+  return icon ? [{ ...definition, icon }] : [];
+});
 
 type View = { screen: "catalog" } | { screen: "config"; key: EventModuleKey };
 
@@ -100,6 +101,7 @@ export function ModuleManagerDialog({
   open,
   onOpenChange,
   modules,
+  activeModule,
   eventId,
   eventSlug,
   giftMode,
@@ -158,7 +160,10 @@ export function ModuleManagerDialog({
   }, [open, requestedConfigKey]);
 
   const goToTab = (key: EventModuleKey) => {
-    const routeKey: EventModuleRouteKey = getEventModuleDefinition(key)?.navigationKey ?? "overview";
+    const definition = getEventModuleDefinition(key);
+    const routeKey: EventModuleRouteKey = definition?.routeSlug
+      ? definition.navigationKey
+      : "overview";
     router.push(buildEventModulePath(eventSlug, routeKey));
   };
 
@@ -197,6 +202,14 @@ export function ModuleManagerDialog({
         return;
       }
 
+      const disabledRouteKey = getEventModuleDefinition(key)?.navigationKey;
+      if (disabledRouteKey === activeModule) {
+        close();
+        router.replace(buildEventModulePath(eventSlug, "overview"));
+        toast.success("Module désactivé.");
+        return;
+      }
+
       // keep dialog open so user sees the list update
       router.refresh();
       toast.success("Module désactivé.");
@@ -206,8 +219,8 @@ export function ModuleManagerDialog({
   const header = useMemo(() => {
     if (view.screen === "catalog") {
       return {
-        title: "Gérer les modules",
-        desc: "Activez, désactivez et configurez les modules de votre événement.",
+        title: "Gerer les modules",
+        desc: "Activez les modules utiles au pilotage de cet evenement.",
       };
     }
     return {
@@ -365,7 +378,6 @@ function ModuleCard(props: {
 
   const HAS_CONFIG: Partial<Record<EventModuleKey, boolean>> = {
     [EventModuleKey.GIFTS]: true,
-    [EventModuleKey.TIMELINE]: true,
   };
 
   const canConfigure = Boolean(HAS_CONFIG[item.key]);
@@ -542,13 +554,13 @@ function GiftsModuleConfig({
     {
       value: EventGiftMode.HOST_LIST,
       title: "Une liste d'idées",
-      description: "Une seule liste pour tout l'événement. Idéal pour un anniversaire.",
+      description: "Une seule liste contextuelle pour tout l'evenement.",
       icon: User,
     },
     {
       value: EventGiftMode.PERSONAL_LISTS,
       title: "Liste par participant",
-      description: "Chaque participant crée sa propre liste. Parfait pour Noël.",
+      description: "Chaque participant cree sa propre liste lorsque le contexte le justifie.",
       icon: Users,
     },
   ];
@@ -666,11 +678,7 @@ function GiftsModuleConfig({
   );
 }
 
-/**
- * MVP: placeholder.
- * Tu remplaceras par un vrai renderer de config par module.
- * Important: pas de modal vide.
- */
+/** Stable fallback for modules without dedicated settings. */
 function ModuleConfigPlaceholder(props: { moduleKey: EventModuleKey; onOpenModule: () => void }) {
   const { moduleKey, onOpenModule } = props;
 
@@ -680,7 +688,7 @@ function ModuleConfigPlaceholder(props: { moduleKey: EventModuleKey; onOpenModul
       : moduleKey === EventModuleKey.TIMELINE
         ? "Paramètres : Programme"
         : moduleKey === EventModuleKey.POTLUCK
-          ? "Paramètres : Repas partagé"
+          ? "Parametres : Contributions"
           : moduleKey === EventModuleKey.SECRET_SANTA
             ? "Paramètres : Secret Santa"
             : "Paramètres du module";
@@ -690,7 +698,7 @@ function ModuleConfigPlaceholder(props: { moduleKey: EventModuleKey; onOpenModul
       <div className="bg-muted/20 rounded-xl border p-6">
         <p className="text-foreground text-sm font-semibold">{label}</p>
         <p className="text-muted-foreground mt-2 text-sm">
-          Configuration en cours de construction. (MVP : écran non vide)
+          Ce module n&apos;a pas de parametres supplementaires pour le moment.
         </p>
 
         <div className="mt-4">
@@ -701,7 +709,7 @@ function ModuleConfigPlaceholder(props: { moduleKey: EventModuleKey; onOpenModul
       </div>
 
       <div className="text-muted-foreground rounded-xl border border-dashed p-6 text-sm">
-        Prochaine étape : rendre ce panneau spécifique par module (GIFTS, POTLUCK, SECRET_SANTA…).
+        Les donnees existantes restent conservees si vous masquez le module.
       </div>
     </div>
   );

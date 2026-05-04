@@ -20,13 +20,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import type { BudgetLineMutationResult } from "@/features/budget/lib/budget-line-form";
 import {
   BUDGET_LINE_CATEGORY_LABELS,
-  BUDGET_LINE_SOURCING_STATUS_LABELS,
   BUDGET_LINE_CATEGORY_OPTIONS,
+  BUDGET_LINE_SOURCING_STATUS_LABELS,
   EDITABLE_BUDGET_LINE_SOURCING_STATUSES,
 } from "@/features/budget/lib/constants";
-import type { BudgetLineMutationResult } from "@/features/budget/lib/budget-line-form";
 import type {
   BudgetLineCategory,
   BudgetLineSourcingStatus,
@@ -115,8 +115,7 @@ export function BudgetLineFormDialog(props: Props) {
 
           <div className="grid gap-2">
             <Label htmlFor="budget-line-label">
-              Libellé du poste{" "}
-              <span className="text-destructive" aria-hidden="true">*</span>
+              Libellé du poste <span className="text-destructive" aria-hidden="true">*</span>
             </Label>
             <Input
               id="budget-line-label"
@@ -125,15 +124,17 @@ export function BudgetLineFormDialog(props: Props) {
               placeholder="Salle principale"
               aria-required="true"
             />
-            {result?.fieldErrors?.label ? <p className="text-sm text-red-600">{result.fieldErrors.label}</p> : null}
+            {result?.fieldErrors?.label ? (
+              <p className="text-sm text-red-600">{result.fieldErrors.label}</p>
+            ) : null}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="budget-line-target">
-                Montant cible{" "}
-                <span className="text-destructive" aria-hidden="true">*</span>
+                Budget prévu <span className="text-destructive" aria-hidden="true">*</span>
               </Label>
+              <p className="text-muted-foreground text-xs">Enveloppe prévue pour ce poste.</p>
               <Input
                 id="budget-line-target"
                 type="number"
@@ -151,7 +152,10 @@ export function BudgetLineFormDialog(props: Props) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="budget-line-estimated">Montant estimé</Label>
+              <Label htmlFor="budget-line-estimated">Coût estimé</Label>
+              <p className="text-muted-foreground text-xs">
+                Meilleure estimation actuelle, avant sélection finale du devis.
+              </p>
               <Input
                 id="budget-line-estimated"
                 type="number"
@@ -174,7 +178,10 @@ export function BudgetLineFormDialog(props: Props) {
               <Select
                 value={formValues.sourcingStatus}
                 onValueChange={(value) =>
-                  setField("sourcingStatus", value as Extract<BudgetLineSourcingStatus, "DRAFT" | "SOURCING">)
+                  setField(
+                    "sourcingStatus",
+                    value as Extract<BudgetLineSourcingStatus, "DRAFT" | "SOURCING">,
+                  )
                 }
               >
                 <SelectTrigger id="budget-line-status">
@@ -232,11 +239,16 @@ export function BudgetLineFormDialog(props: Props) {
             <span className="text-destructive">*</span> Champs obligatoires
           </p>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => props.onOpenChange(false)} disabled={pending}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => props.onOpenChange(false)}
+              disabled={pending}
+            >
               Annuler
             </Button>
             <Button type="button" onClick={handleSubmit} disabled={pending}>
-              {pending ? "Enregistrement…" : props.submitLabel}
+              {pending ? "Enregistrement..." : props.submitLabel}
             </Button>
           </div>
         </DialogFooter>

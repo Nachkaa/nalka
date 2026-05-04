@@ -43,15 +43,15 @@ export function AddBudgetLineDialog(props: Props) {
         onClick={() => setOpen(true)}
       >
         {props.showPlusIcon === false ? null : <Plus className="h-4 w-4" />}
-        {props.triggerLabel ?? "Ajouter un poste budgetaire"}
+        {props.triggerLabel ?? "Ajouter un poste budgétaire"}
       </Button>
 
       <BudgetLineFormDialog
         open={open}
         onOpenChange={setOpen}
-        title="Ajouter un poste budgetaire"
-        description={`Creez un nouveau poste pour commencer a suivre ${BUDGET_LINE_CATEGORY_LABELS[initialValues.category].toLowerCase()}.`}
-        submitLabel="Creer le poste"
+        title="Ajouter un poste budgétaire"
+        description={`Créez un poste pour suivre ${BUDGET_LINE_CATEGORY_LABELS[initialValues.category].toLowerCase()}.`}
+        submitLabel="Créer le poste"
         values={initialValues}
         onSubmit={(values) =>
           createBudgetLine({

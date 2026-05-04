@@ -4,34 +4,34 @@ import { Container } from "@/components/layout/Container";
 
 const previewTabs = [
   { label: "Aperçu", private: false, active: true },
-  { label: "Cadeaux", private: true, active: false },
-  { label: "Secret Santa", private: true, active: false },
-  { label: "Repas partagé", private: false, active: false },
-  { label: "Planning", private: false, active: false },
-  { label: "Dépenses", private: false, active: false },
+  { label: "Participants", private: false, active: false },
+  { label: "Programme", private: false, active: false },
+  { label: "Décisions", private: false, active: false },
+  { label: "Budget", private: true, active: false },
+  { label: "Devis", private: true, active: false },
 ] as const;
 
 const eventInfo = [
-  { icon: Calendar, label: "Samedi 24 décembre 2025 à 17h00" },
-  { icon: Map, label: "Lieu : Chez les parents" },
+  { icon: Calendar, label: "Jeudi 18 juin 2026 à 09h30" },
+  { icon: Map, label: "Lieu : Centre de conférence Lyon" },
 ] as const;
 
 const guarantees = [
   {
-    title: "Réservations invisibles",
-    description: "Personne ne voit qui a réservé quel cadeau.",
+    title: "Budget réservé aux organisateurs",
+    description: "Les participants ne voient pas les montants, devis ou notes internes.",
   },
   {
-    title: "Zéro spoiler Secret Santa",
-    description: "Vous seul voyez votre attribution.",
+    title: "Accès limité par module",
+    description: "Chaque personne consulte uniquement les informations utiles à son rôle.",
   },
 ] as const;
 
-function PrivateBadge() {
+function ActiveBadge() {
   return (
     <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
       <Activity className="h-3.5 w-3.5" aria-hidden />
-      Activé
+      Actif
     </span>
   );
 }
@@ -42,30 +42,29 @@ export function MarketingPreviewSection() {
       <Container className="flex flex-col items-center gap-10 text-center">
         <div className="space-y-3">
           <h2 className="text-foreground text-3xl font-semibold tracking-tight md:text-5xl">
-            Un espace privé pour organiser l’essentiel.
+            Un hub clair pour piloter l&apos;événement.
           </h2>
           <p className="text-muted-foreground max-w-2xl text-base md:text-lg">
-            Simple pour l’organisateur, évident pour les invités.
+            Simple pour les organisateurs, lisible pour les participants, strict sur les données
+            sensibles.
           </p>
         </div>
 
         <div className="w-full max-w-5xl">
           <div className="bg-card overflow-hidden rounded-3xl border text-left shadow-lg">
-            {/* Header */}
             <div className="border-b px-6 py-7 sm:px-10">
               <h3 className="text-foreground text-xl font-semibold sm:text-2xl">
-                Réunion de famille de Noël
+                Séminaire client Q3
               </h3>
               <p className="text-muted-foreground mt-1 text-sm">
-                Organisé par Sarah · Sam. 24 déc. 2025
+                Piloté par l&apos;équipe opérations - Jeu. 18 juin 2026
               </p>
             </div>
 
-            {/* Tabs */}
             <div className="border-b bg-neutral-50 px-6 sm:px-10">
               <div
                 role="tablist"
-                aria-label="Aperçu des fonctionnalités"
+                aria-label="Apercu des fonctionnalites"
                 className="flex flex-wrap items-center gap-x-6 gap-y-2"
               >
                 {previewTabs.map((tab) => (
@@ -81,13 +80,12 @@ export function MarketingPreviewSection() {
                     ].join(" ")}
                   >
                     <span>{tab.label}</span>
-                    {tab.private ? <PrivateBadge /> : null}
+                    {tab.private ? <ActiveBadge /> : null}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Body */}
             <div className="bg-neutral-50 px-6 py-8 sm:px-10">
               <p className="text-foreground text-sm font-semibold">Informations</p>
               <div className="mt-4 space-y-3">
@@ -104,7 +102,6 @@ export function MarketingPreviewSection() {
                 ))}
               </div>
 
-              {/* 5) guarantees: slightly colored cards (less gray/flat) */}
               <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
                 {guarantees.map((g) => (
                   <div

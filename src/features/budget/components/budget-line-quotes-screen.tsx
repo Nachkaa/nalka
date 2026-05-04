@@ -70,11 +70,11 @@ export function BudgetLineQuotesScreen(props: { data: BudgetLineQuotesData }) {
           ) : null}
         </div>
         <p className="text-muted-foreground text-sm">
-          Budget cible {formatMoney(line.targetAmount, props.data.budget.currency)}
+          Budget prévu {formatMoney(line.targetAmount, props.data.budget.currency)}
           {line.estimatedAmount
-            ? ` - Estimation actuelle ${formatMoney(line.estimatedAmount, props.data.budget.currency)}`
+            ? ` - Coût estimé ${formatMoney(line.estimatedAmount, props.data.budget.currency)}`
             : ""}
-          {line.varianceAmount ? ` - Ecart ${formatMoney(line.varianceAmount, props.data.budget.currency)}` : ""}
+          {line.varianceAmount ? ` - Écart ${formatMoney(line.varianceAmount, props.data.budget.currency)}` : ""}
         </p>
       </div>
 
@@ -92,26 +92,26 @@ export function BudgetLineQuotesScreen(props: { data: BudgetLineQuotesData }) {
 
       <div className="grid gap-6 xl:grid-cols-2">
         <QuoteComparisonList
-          title="Devis recus a comparer"
+          title="Devis reçus à comparer"
           quotes={line.receivedQuotes}
           currency={props.data.budget.currency}
-          emptyState="Aucun devis recu pour le moment."
+          emptyState="Aucun devis reçu pour le moment."
           eventSlug={props.data.event.slug}
           budgetLineId={line.id}
           actionMode="received"
           selectedQuoteId={line.selectedQuoteId}
         />
         <QuoteComparisonList
-          title="En attente de reponse"
+          title="En attente de réponse"
           quotes={line.awaitingResponseQuotes}
           currency={props.data.budget.currency}
-          emptyState="Aucun fournisseur en attente de reponse pour le moment."
+          emptyState="Aucun fournisseur en attente de réponse pour le moment."
           actionMode="awaiting"
         />
       </div>
 
       <QuoteComparisonList
-        title="Devis refuses"
+        title="Devis refusés"
         quotes={line.rejectedQuotes}
         currency={props.data.budget.currency}
         actionMode="rejected"
@@ -119,7 +119,7 @@ export function BudgetLineQuotesScreen(props: { data: BudgetLineQuotesData }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Detail du poste</CardTitle>
+          <CardTitle>Détail du poste</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p>
@@ -127,11 +127,11 @@ export function BudgetLineQuotesScreen(props: { data: BudgetLineQuotesData }) {
             {formatMoney(line.committedAmount, props.data.budget.currency)}
           </p>
           <p>
-            <span className="text-muted-foreground">Regle :</span>{" "}
+            <span className="text-muted-foreground">Réglé :</span>{" "}
             {formatMoney(line.paidAmount, props.data.budget.currency)}
           </p>
           <p>
-            <span className="text-muted-foreground">Pieces jointes :</span> {line.allAttachments.length}
+            <span className="text-muted-foreground">Pièces jointes :</span> {line.allAttachments.length}
           </p>
           <p>
             <span className="text-muted-foreground">Prochain paiement :</span>{" "}
@@ -144,12 +144,12 @@ export function BudgetLineQuotesScreen(props: { data: BudgetLineQuotesData }) {
           ) : null}
           {line.sourcingStatus === "SELECTED" ? (
             <p className="text-muted-foreground">
-              Vous pouvez rouvrir l&apos;evaluation si vous souhaitez comparer les devis a nouveau.
+              Vous pouvez rouvrir l&apos;évaluation si vous souhaitez comparer les devis à nouveau.
             </p>
           ) : null}
           {!canManageSourcing ? (
             <p className="text-muted-foreground">
-              Cette ligne est deja reservee. Vous pouvez encore suivre les paiements ci-dessous.
+              Cette ligne est déjà réservée. Vous pouvez encore suivre les paiements ci-dessous.
             </p>
           ) : null}
         </CardContent>
@@ -161,8 +161,8 @@ export function BudgetLineQuotesScreen(props: { data: BudgetLineQuotesData }) {
           budgetLineId={line.id}
           currency={props.data.budget.currency}
           payments={line.paymentEntries}
-          title="Paiements prevus"
-          emptyState="Aucune echeance de paiement enregistree pour le moment."
+          title="Paiements prévus"
+          emptyState="Aucune échéance de paiement enregistrée pour le moment."
         />
       ) : null}
     </div>

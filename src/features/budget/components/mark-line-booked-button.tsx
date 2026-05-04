@@ -49,15 +49,15 @@ export function MarkLineBookedButton(props: Props) {
     <>
       <Button type="button" size="sm" onClick={() => setOpen(true)}>
         <CheckCircle2 className="h-4 w-4" />
-        Marquer comme reservee
+        Marquer comme réservée
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Confirmer la reservation</DialogTitle>
+            <DialogTitle>Confirmer la réservation</DialogTitle>
             <DialogDescription>
-              Validez la reservation pour {props.lineLabel}. Vous pourrez ensuite suivre les paiements.
+              Validez la réservation pour {props.lineLabel}. Vous pourrez ensuite suivre les paiements.
             </DialogDescription>
           </DialogHeader>
 

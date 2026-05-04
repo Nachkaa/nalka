@@ -9,8 +9,8 @@ function getDisplayName(name?: string | null, email?: string | null) {
   if (n) return n.split(/\s+/)[0]; // first name only
 
   const e = (email ?? "").trim();
-  if (!e) return "…";
-  return e.split("@")[0] || "…";
+  if (!e) return "...";
+  return e.split("@")[0] || "...";
 }
 
 export default async function Page() {
@@ -32,7 +32,7 @@ export default async function Page() {
         </Link>
 
         <h1 className="text-2xl leading-tight font-semibold tracking-tight text-pretty md:text-3xl">
-          Préparez votre moment ensemble
+          Configurez votre espace événement
         </h1>
       </header>
 

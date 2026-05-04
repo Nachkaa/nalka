@@ -55,13 +55,13 @@ export function ReopenSelectedLineButton(props: Props) {
     <>
       <Button type="button" size="sm" variant="outline" onClick={() => setOpen(true)} disabled={pending}>
         <RotateCcw className="h-4 w-4" />
-        Rouvrir l&apos;evaluation
+        Rouvrir l&apos;évaluation
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Rouvrir l&apos;evaluation</DialogTitle>
+            <DialogTitle>Rouvrir l&apos;évaluation</DialogTitle>
             <DialogDescription>
               Remettez {props.lineLabel} en comparaison si vous souhaitez revoir les devis.
             </DialogDescription>

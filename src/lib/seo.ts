@@ -5,7 +5,7 @@ const DEFAULT_OG_IMAGE = "/images/hero-dinner.webp";
 
 export const siteName = "Nalka";
 export const siteDescription =
-  "Nalka aide a organiser un evenement prive, centraliser les invitations et coordonner cadeaux, Secret Santa et depenses sans spoiler les invites.";
+  "Nalka aide les organisateurs à piloter participants, programme, décisions, budget, devis prestataires et paiements dans un espace événement clair.";
 
 export type PublicRoute = {
   path: string;
@@ -71,7 +71,7 @@ export function buildPublicMetadata({
       images: [
         {
           url: DEFAULT_OG_IMAGE,
-          alt: "Apercu d'un evenement prive organise avec Nalka",
+          alt: "Aperçu d'un espace événement organisé avec Nalka",
         },
       ],
     },

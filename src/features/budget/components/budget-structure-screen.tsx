@@ -39,15 +39,15 @@ export function BudgetStructureScreen({ data }: Props) {
           <CardContent className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-2xl font-semibold">{budgetLabel}</p>
             <p className="text-muted-foreground text-sm">
-              {data.linesCount} {data.linesCount > 1 ? "postes crees" : "poste cree"}
+              {data.linesCount} {data.linesCount > 1 ? "postes créés" : "poste créé"}
             </p>
           </CardContent>
         </Card>
       ) : showBudgetSetup ? (
         <BudgetTotalSetupCard
           eventSlug={data.event.slug}
-          title="Definir le budget global"
-          intro="Tu peux continuer a structurer ton budget et definir le budget global quand tu es pret."
+          title="Définir le budget global"
+          intro="Vous pouvez continuer à structurer le budget et définir le budget global plus tard."
           compact
           onSuccess={() => setShowBudgetSetup(false)}
         />
@@ -58,11 +58,10 @@ export function BudgetStructureScreen({ data }: Props) {
           </CardHeader>
           <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-muted-foreground text-sm">
-              Tu as deja commence a structurer ton budget. Tu pourras definir le budget global
-              quand tu voudras.
+              Le budget commence à être structuré. Vous pourrez définir le budget global plus tard.
             </p>
             <Button type="button" variant="outline" onClick={() => setShowBudgetSetup(true)}>
-              Definir maintenant
+              Définir maintenant
             </Button>
           </CardContent>
         </Card>
@@ -70,10 +69,10 @@ export function BudgetStructureScreen({ data }: Props) {
 
       <Card>
         <CardHeader className="space-y-2">
-          <CardTitle className="text-2xl">Structure ton budget</CardTitle>
+          <CardTitle className="text-2xl">Structurez votre budget</CardTitle>
           <p className="text-muted-foreground text-sm">
-            Tu as commence a organiser ton budget. Ajoute encore des postes ou commence a comparer
-            des devis pour obtenir une vue plus utile.
+            Vous avez commencé à organiser le budget. Ajoutez encore des postes ou commencez à
+            comparer des devis pour obtenir une vue plus utile.
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -102,10 +101,10 @@ export function BudgetStructureScreen({ data }: Props) {
                   </div>
                   <h3 className="mt-2 font-semibold">{line.label}</h3>
                   <div className="text-muted-foreground mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                    <span>Budget cible {formatMoney(line.targetAmount, data.budget.currency)}</span>
+                    <span>Budget prévu {formatMoney(line.targetAmount, data.budget.currency)}</span>
                     {line.estimatedAmount ? (
                       <span>
-                        Estimation actuelle {formatMoney(line.estimatedAmount, data.budget.currency)}
+                        Coût estimé {formatMoney(line.estimatedAmount, data.budget.currency)}
                       </span>
                     ) : null}
                   </div>
@@ -117,8 +116,8 @@ export function BudgetStructureScreen({ data }: Props) {
           <section className="rounded-xl border border-dashed p-4">
             <p className="text-sm font-medium">Pour aller plus loin</p>
             <p className="text-muted-foreground mt-2 text-sm">
-              Chaque devis est rattache a un poste budgetaire. La vue d&apos;ensemble devient plus
-              utile des que tu ajoutes une estimation, un devis ou un paiement.
+              Chaque devis est rattaché à un poste budgétaire. La vue d&apos;ensemble devient plus
+              utile dès que vous ajoutez une estimation, un devis ou un paiement.
             </p>
           </section>
         </CardContent>
