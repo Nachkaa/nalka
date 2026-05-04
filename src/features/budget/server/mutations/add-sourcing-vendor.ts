@@ -1,5 +1,7 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+
 import {
   addSourcingVendorSchema,
   normalizeOptionalDateValue,
@@ -11,50 +13,6 @@ import { requireWritableBudgetAccess } from "@/features/budget/server/queries/_s
 import { resolveWritableBudgetAccess } from "@/features/budget/server/write-access";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-
-async function findOrCreateVendor(args: {
-  eventId: string;
-  vendorName: string;
-  vendorType: string;
-  contactName: string;
-  email: string;
-  phone: string;
-}) {
-  const existingVendor = await prisma.vendor.findFirst({
-    where: {
-      eventId: args.eventId,
-      name: args.vendorName,
-    },
-    select: { id: true },
-  });
-
-  if (existingVendor) {
-    await prisma.vendor.update({
-      where: { id: existingVendor.id },
-      data: {
-        vendorType: normalizeOptionalString(args.vendorType),
-        contactName: normalizeOptionalString(args.contactName),
-        email: normalizeOptionalString(args.email),
-        phone: normalizeOptionalString(args.phone),
-      },
-    });
-    return existingVendor.id;
-  }
-
-  const vendor = await prisma.vendor.create({
-    data: {
-      eventId: args.eventId,
-      name: args.vendorName,
-      vendorType: normalizeOptionalString(args.vendorType),
-      contactName: normalizeOptionalString(args.contactName),
-      email: normalizeOptionalString(args.email),
-      phone: normalizeOptionalString(args.phone),
-    },
-    select: { id: true },
-  });
-
-  return vendor.id;
-}
 
 export async function addSourcingVendor(input: unknown): Promise<QuoteMutationResult> {
   const parsed = addSourcingVendorSchema.safeParse(input);
@@ -92,14 +50,29 @@ export async function addSourcingVendor(input: unknown): Promise<QuoteMutationRe
     eventId: access.event.id,
   });
 
-  const vendorId = await findOrCreateVendor({
-    eventId: access.event.id,
-    vendorName,
-    vendorType,
-    contactName,
-    email,
-    phone,
-  });
+  let vendorId: string;
+  try {
+    const vendor = await prisma.vendor.create({
+      data: {
+        eventId: access.event.id,
+        name: vendorName,
+        vendorType: normalizeOptionalString(vendorType),
+        contactName: normalizeOptionalString(contactName),
+        email: normalizeOptionalString(email),
+        phone: normalizeOptionalString(phone),
+      },
+      select: { id: true },
+    });
+    vendorId = vendor.id;
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return {
+        ok: false,
+        formError: `Un prestataire nommé «${vendorName}» existe déjà sur cet événement. Sélectionnez-le dans la liste ou choisissez un autre nom.`,
+      };
+    }
+    throw error;
+  }
 
   await prisma.quote.create({
     data: {

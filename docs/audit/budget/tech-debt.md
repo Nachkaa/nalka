@@ -77,6 +77,21 @@ ou une friction superflue ?
 
 ---
 
+## F3 — Friction Vendor "nom existant" post-PR-08
+
+**Sévérité :** Basse — comportement safe mais potentiellement frustrant  
+**Découvert dans :** PR-08 (changement de comportement intentionnel)  
+**Sprint cible :** Sprint UX, avant lancement public
+
+**Contexte :** PR-08 passe de "fusion silencieuse" à "refus avec erreur explicite" sur nom vendor dupliqué.
+Plus safe, mais introduit une friction si l'utilisateur ne sait pas qu'un prestataire du même nom existe déjà.
+
+**Amélioration future :**
+- Autocomplete sur le champ nom de prestataire proposant les vendors existants de l'event
+- Ou : message d'erreur P2002 avec lien direct vers le picker prestataire
+
+---
+
 ## TD-04 — Sprint Tooling/Tests post-Sprint-1
 
 **Sévérité :** Moyenne — pas bloquant Sprint 1, requis avant lancement public  
