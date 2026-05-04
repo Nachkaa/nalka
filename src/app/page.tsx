@@ -16,10 +16,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { absoluteUrl, buildPublicMetadata } from "@/lib/seo";
 
+const homeTitle = "Pilotage événementiel pour organisateurs professionnels";
+const homeDescription =
+  "Coordonnez participants, programme, décisions, budget, devis prestataires et paiements dans un espace événement clair.";
+
 export const metadata: Metadata = buildPublicMetadata({
-  title: "Organisation d'evenements prives et listes cadeaux",
-  description:
-    "Organisez un evenement prive avec invitations, cadeaux, Secret Santa et depenses dans un espace clair, discret et sans spoiler.",
+  title: homeTitle,
+  description: homeDescription,
   path: "/",
 });
 
@@ -30,7 +33,7 @@ function MockEventCard() {
       className="card shadow-soft w-full max-w-[520px] rounded-2xl border bg-[linear-gradient(180deg,white_0%,color-mix(in_oklch,var(--primary),white_94%)_100%)] p-5"
     >
       <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="text-foreground font-semibold">Vos événements</span>
+        <span className="text-foreground font-semibold">Espaces événement</span>
         <span className="rounded-full bg-[color-mix(in_oklch,var(--primary),white_78%)] px-3 py-1 text-xs font-semibold text-[color-mix(in_oklch,var(--primary),black_8%)]">
           3 en cours
         </span>
@@ -39,26 +42,26 @@ function MockEventCard() {
       <div className="mt-4 rounded-xl border bg-[color-mix(in_oklch,var(--primary),white_92%)]/80 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-foreground text-sm font-semibold">Anniversaire d&apos;Emma</p>
-            <p className="text-muted-foreground text-xs">Sam 15 fév · 19h00</p>
+            <p className="text-foreground text-sm font-semibold">Séminaire client Q3</p>
+            <p className="text-muted-foreground text-xs">Jeu 18 juin - 09h30</p>
           </div>
           <span className="bg-foreground text-background rounded-full px-3 py-1 text-[11px] font-semibold">
-            Hôte
+            Organisateur
           </span>
         </div>
 
         <div className="text-muted-foreground mt-4 grid grid-cols-3 gap-3 text-xs">
           <div>
-            <p className="text-[11px] tracking-[0.03em]">Participants</p>
-            <p className="text-foreground text-base font-semibold">12 / 15</p>
+            <p className="text-[11px] tracking-[0.03em]">RSVP</p>
+            <p className="text-foreground text-base font-semibold">42 / 60</p>
           </div>
           <div>
-            <p className="text-[11px] tracking-[0.03em]">Cadeaux</p>
-            <p className="text-foreground text-base font-semibold">8 réservés</p>
+            <p className="text-[11px] tracking-[0.03em]">Devis</p>
+            <p className="text-foreground text-base font-semibold">3 à arbitrer</p>
           </div>
           <div>
             <p className="text-[11px] tracking-[0.03em]">Budget</p>
-            <p className="text-foreground text-base font-semibold">20 €</p>
+            <p className="text-foreground text-base font-semibold">18 400 EUR</p>
           </div>
         </div>
       </div>
@@ -79,10 +82,9 @@ export default async function MarketingHomePage() {
         data={{
           "@context": "https://schema.org",
           "@type": "WebPage",
-          name: "Organisation d'evenements prives et listes cadeaux",
+          name: homeTitle,
           url: absoluteUrl("/"),
-          description:
-            "Organisez un evenement prive avec invitations, cadeaux, Secret Santa et depenses dans un espace clair, discret et sans spoiler.",
+          description: homeDescription,
         }}
       />
       <MarketingNavbar />
@@ -96,11 +98,11 @@ export default async function MarketingHomePage() {
           <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-14">
             <div className="space-y-6">
               <h1 className="text-foreground text-2xl leading-tight font-semibold tracking-tight md:text-5xl lg:text-[2.5rem]">
-                Créez un événement privé en toute simplicité.
+                Pilotez vos événements, devis et décisions au même endroit.
               </h1>
               <p className="text-muted-foreground max-w-xl text-lg">
-                Activez uniquement ce dont vous avez besoin — Liste des présents, cadeaux, Secret
-                Santa, suivi des dépenses… Tout au même endroit.
+                Centralisez participants, RSVP, programme, arbitrages, budget, devis prestataires
+                et paiements dans un espace opérationnel léger.
               </p>
 
               <div className="space-y-2.5">
@@ -123,7 +125,7 @@ export default async function MarketingHomePage() {
                     size="lg"
                     className="shadow-soft h-12 rounded-xl bg-(--primary) px-6 text-base text-(--primary-foreground) hover:bg-[color-mix(in_oklch,var(--primary),black_8%)]"
                   >
-                    <Link href="/event/new">Créer votre événement</Link>
+                    <Link href="/event/new">Créer un espace événement</Link>
                   </Button>
                 </form>
 
@@ -135,19 +137,19 @@ export default async function MarketingHomePage() {
                     href="#fonctionnement"
                     className="text-foreground underline-offset-4 hover:underline"
                   >
-                    Voir comment creer un evenement prive
+                    Voir comment créer un espace événement
                   </Link>
                   <Link
                     href="#modules-evenement"
                     className="text-foreground underline-offset-4 hover:underline"
                   >
-                    Decouvrir les modules cadeaux, Secret Santa et depenses
+                    Découvrir les modules programme, décisions, budget et devis
                   </Link>
                   <Link
                     href="#idees-evenements"
                     className="text-foreground underline-offset-4 hover:underline"
                   >
-                    Explorer des exemples d&apos;evenements prives
+                    Explorer des exemples professionnels
                   </Link>
                 </nav>
               </div>

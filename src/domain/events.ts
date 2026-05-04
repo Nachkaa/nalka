@@ -81,6 +81,7 @@ export const EventCreateSchema = z
     secretSantaEnabled: checkboxFromForm.optional(),
     bringEnabled: checkboxFromForm.optional(),
     timelineEnabled: checkboxFromForm.optional(),
+    budgetEnabled: checkboxFromForm.optional(),
 
     isNoSpoil: checkboxFromForm,
     isAnonReservations: checkboxFromForm,

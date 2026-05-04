@@ -1,38 +1,38 @@
-import { Cake, Plane, ShieldCheck, Smartphone, TreePine, Users } from "lucide-react";
+import { BriefcaseBusiness, Building2, Rocket, ShieldCheck, Smartphone, Users } from "lucide-react";
 
 import { Container } from "@/components/layout/Container";
 import { Card, CardContent } from "@/components/ui/card";
 
 const highlights = [
-  { icon: Users, label: "Pensé pour des groupes privés" },
-  { icon: ShieldCheck, label: "La confidentialité par design" },
+  { icon: BriefcaseBusiness, label: "Pensé pour les organisateurs" },
+  { icon: ShieldCheck, label: "Données sensibles séparées" },
   { icon: Smartphone, label: "Mobile + desktop" },
 ] as const;
 
 const examples = [
   {
-    title: "Anniversaire",
-    description: "RSVP, réservations de cadeaux, dépenses partagées",
-    chips: ["Aperçu", "Cadeaux", "Dépenses"],
-    icon: Cake,
-    gradientFrom: "#FF2D87",
-    gradientTo: "#FF4F7B",
-  },
-  {
-    title: "Noël en famille",
-    description: "Planning, Secret Santa, repas partagé",
-    chips: ["Planning", "Secret Santa", "Repas partagé"],
-    icon: TreePine,
-    gradientFrom: "#00C38A",
-    gradientTo: "#00B07D",
-  },
-  {
-    title: "Voyage entre amis",
-    description: "Itinéraire, dépenses, infos pratiques",
-    chips: ["Planning", "Dépenses", "Aperçu"],
-    icon: Plane,
+    title: "Séminaire interne",
+    description: "RSVP, programme, décisions de lieu et suivi budgétaire",
+    chips: ["Participants", "Programme", "Budget"],
+    icon: Users,
     gradientFrom: "#0B84FF",
     gradientTo: "#08B0FF",
+  },
+  {
+    title: "Soirée partenaire",
+    description: "Invitations, devis prestataires, arbitrages et paiements",
+    chips: ["RSVP", "Devis", "Paiements"],
+    icon: Building2,
+    gradientFrom: "#00A676",
+    gradientTo: "#00C38A",
+  },
+  {
+    title: "Lancement produit",
+    description: "Run of show, décisions rapides et budget engagé",
+    chips: ["Programme", "Décisions", "Budget"],
+    icon: Rocket,
+    gradientFrom: "#6D5DFB",
+    gradientTo: "#8E59FF",
   },
 ] as const;
 
@@ -61,10 +61,10 @@ export function MarketingExamplesSection() {
 
         <div className="space-y-3 text-center">
           <h2 className="text-foreground text-3xl font-semibold tracking-tight md:text-4xl">
-            Exemples d’événements
+            Exemples de pilotage événementiel
           </h2>
           <p className="text-muted-foreground text-base md:text-lg">
-            Découvrez comment Nalka s’adapte à différentes occasions
+            Des espaces adaptés aux événements internes, clients et partenaires.
           </p>
         </div>
 
