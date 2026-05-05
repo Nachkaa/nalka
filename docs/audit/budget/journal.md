@@ -1,5 +1,34 @@
 # Journal d'exécution — Module Budget
 
+## 2026-05-05 — PR-09 mergée
+
+**PR-09 — Email rappel paiements J-7 + J-1 via Vercel Cron** ✅
+- Branche : `budget/sprint-1-pr-09-payment-reminder-email`
+- Commits : Phase 2 implémentation complète
+- Statut : mergée (build ✓, lint ✓, TypeScript ✓)
+- Contenu livré :
+  - `src/emails/PaymentReminderEmail.tsx` : template table-based, tokens cohérents InviteEmail, badges J-1/J-7, groupé par event
+  - `src/features/budget/server/queries/get-payments-due-soon.ts` : query globale unique, fenêtre ±12h pour absorber timezones, `paidAt: null`, include organizers OWNER + ADMIN
+  - `src/features/budget/server/send-payment-reminder.ts` : skip si 0 paiements, groupe par event, formate montants/dates en français, appelle `sendMail`
+  - `src/app/api/cron/payment-reminders/route.ts` : auth `Bearer CRON_SECRET`, groupe par organizer en mémoire (no N+1), logs structurés `[PAYMENT_REMINDER]`
+  - `vercel.json` : cron quotidien `0 9 * * *` (9h UTC ≈ 11h Paris)
+  - `.env.example` : créé, documente `CRON_SECRET` + variables SMTP + AUTH_URL
+- Validation : build ✓, lint ✓, TypeScript ✓
+- Tests manuels Ethereal : `{"processed":2,"sent":2,"skipped":0}` — multi-organizer (Aurèle + Juliette), greeting personnalisé, montants/dates formatés en français, badges J-1/J-7 visibles
+- Auth route : 401 sans Bearer ✓, 401 mauvais token ✓, 200 bon token ✓
+- Bug A23 : closed
+- Durée réelle : ~2h (vs 2.5j estimé) — réutilisation lib/mail + React Email + Ethereal dev
+
+**Prérequis prod :**
+Définir `CRON_SECRET` dans Vercel Dashboard avant déploiement batch fin Sprint 1.
+
+**Décision idempotence :**
+Option A retenue (pas de migration). Cron Vercel une fois/jour — double-envoi seulement si relancement manuel. Documenté en tech-debt si besoin confirmé post-lancement.
+
+### Sprint 1 à 6/7 effective sur main
+PR-04 ✓, PR-05 ✓, PR-07 ✓, PR-08 ✓, PR-09 ✓, PR-10 ✓ (no-op)
+Reste : PR-06 (PaymentLog + démarquage paiements) — ~2-2.5j
+
 ## 2026-05-04 — PR-10 vérifiée (no-op)
 
 **PR-10 — Passer l'étape budget total (allowSkip)** ✅ no-op
