@@ -34,6 +34,12 @@ export const markPaymentEntryPaidSchema = z.object({
     .refine((value) => value === "" || !Number.isNaN(new Date(value).getTime()), "La date doit etre valide"),
 });
 
+export const markPaymentEntryUnpaidSchema = z.object({
+  eventSlug: z.string().trim().min(1),
+  budgetLineId: z.string().trim().min(1),
+  paymentEntryId: z.string().trim().min(1),
+});
+
 export const markLineBookedSchema = z.object({
   eventSlug: z.string().trim().min(1),
   budgetLineId: z.string().trim().min(1, "La ligne budgetaire est requise"),

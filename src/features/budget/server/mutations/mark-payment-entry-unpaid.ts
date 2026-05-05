@@ -4,30 +4,25 @@ import { PaymentLogAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import {
-  markPaymentEntryPaidSchema,
+  markPaymentEntryUnpaidSchema,
   type BudgetPaymentMutationResult,
 } from "@/features/budget/lib/payment-entry-form";
 import { assertPaymentEntryInEventChain } from "@/features/budget/server/invariants";
 import { requireWritableBudgetAccess } from "@/features/budget/server/queries/_shared";
-import { resolvePaidAtOverride } from "@/features/budget/server/workflow";
 import { resolveWritableBudgetAccess } from "@/features/budget/server/write-access";
 import { prisma } from "@/lib/prisma";
 
-export async function markPaymentEntryPaid(input: unknown): Promise<BudgetPaymentMutationResult> {
-  const parsed = markPaymentEntryPaidSchema.safeParse(input);
+export async function markPaymentEntryUnpaid(input: unknown): Promise<BudgetPaymentMutationResult> {
+  const parsed = markPaymentEntryUnpaidSchema.safeParse(input);
 
   if (!parsed.success) {
-    const fieldErrors = parsed.error.flatten().fieldErrors;
     return {
       ok: false,
-      formError: "Corrigez les champs invalides.",
-      fieldErrors: {
-        paidAt: fieldErrors.paidAt?.[0],
-      },
+      formError: "Requête invalide.",
     };
   }
 
-  const { eventSlug, budgetLineId, paymentEntryId, paidAt } = parsed.data;
+  const { eventSlug, budgetLineId, paymentEntryId } = parsed.data;
   const accessResult = await resolveWritableBudgetAccess(() => requireWritableBudgetAccess(eventSlug));
   if (!accessResult.ok) {
     return {
@@ -47,28 +42,30 @@ export async function markPaymentEntryPaid(input: unknown): Promise<BudgetPaymen
   } catch (error) {
     return {
       ok: false,
-      formError: error instanceof Error ? error.message : "Impossible de marquer cette echeance comme reglee.",
+      formError: error instanceof Error ? error.message : "Impossible de démarquer cette échéance.",
     };
   }
 
   if (!paymentEntry.paidAt) {
-    const newPaidAt = resolvePaidAtOverride(paidAt, new Date());
-    await prisma.$transaction(async (tx) => {
-      await tx.paymentEntry.update({
-        where: { id: paymentEntryId },
-        data: { paidAt: newPaidAt },
-      });
-      await tx.paymentLog.create({
-        data: {
-          paymentEntryId,
-          userId: access.userId,
-          action: PaymentLogAction.MARKED_PAID,
-          previousPaidAt: null,
-          newPaidAt,
-        },
-      });
-    });
+    return { ok: true };
   }
+
+  const previousPaidAt = paymentEntry.paidAt;
+  await prisma.$transaction(async (tx) => {
+    await tx.paymentEntry.update({
+      where: { id: paymentEntryId },
+      data: { paidAt: null },
+    });
+    await tx.paymentLog.create({
+      data: {
+        paymentEntryId,
+        userId: access.userId,
+        action: PaymentLogAction.MARKED_UNPAID,
+        previousPaidAt,
+        newPaidAt: null,
+      },
+    });
+  });
 
   revalidatePath(`/event/${eventSlug}/budget`);
   revalidatePath(`/event/${eventSlug}/budget/lines`);

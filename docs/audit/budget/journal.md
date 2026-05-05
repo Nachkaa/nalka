@@ -1,5 +1,21 @@
 # Journal d'exécution — Module Budget
 
+## PR-06 — démarrée le [date]
+Sujet : Réversibilité paiements + audit trail PaymentLog
+Bug : A4
+État : Phase 2 en cours
+
+### Phase 1 confirmé
+- markPaymentEntryPaid n'a pas de transaction (à refactor)
+- Pas de mutation unpaid (à créer)
+- UI one-way (à enrichir avec menu contextuel)
+- Schema PaymentLog validé avec note nullable, sans previousAmount
+
+### Décisions
+- UI : menu contextuel (Option C)
+- Note : champ DB présent, pas dans UI v1
+- Transactions sur les 2 mutations
+
 ## 2026-05-05 — PR-09 mergée
 
 **PR-09 — Email rappel paiements J-7 + J-1 via Vercel Cron** ✅
@@ -186,6 +202,9 @@ pm2 restart nalka
 
 **Prochaine PR** : PR-05
 
+
+
 ---
 
 _Format : Date — PR — Statut — Ce qui a dérapé (si applicable) — Prochaine PR_
+
