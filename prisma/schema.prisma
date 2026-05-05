@@ -31,6 +31,7 @@ model User {
   managedProfiles     ManagedProfile[]
   reservations        Reservation[]
   sessions            Session[]
+  paymentLogs         PaymentLog[]
 }
 
 model Account {
@@ -283,10 +284,34 @@ model PaymentEntry {
   updatedAt    DateTime         @updatedAt
   budgetLine   BudgetLine       @relation(fields: [budgetLineId], references: [id], onDelete: Cascade)
   quote        Quote?           @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  logs         PaymentLog[]
 
   @@index([budgetLineId, dueDate])
   @@index([quoteId])
   @@index([paidAt])
+}
+
+model PaymentLog {
+  id             String           @id @default(cuid())
+  paymentEntryId String
+  paymentEntry   PaymentEntry     @relation(fields: [paymentEntryId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action         PaymentLogAction
+  previousPaidAt DateTime?
+  newPaidAt      DateTime?
+  note           String?
+  createdAt      DateTime         @default(now())
+
+  @@index([paymentEntryId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum PaymentLogAction {
+  MARKED_PAID
+  MARKED_UNPAID
+  AMOUNT_CHANGED
 }
 
 model EventPollsSettings {

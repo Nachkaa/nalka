@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarkPaymentPaidButton } from "@/features/budget/components/mark-payment-paid-button";
+import { UnmarkPaymentPaidButton } from "@/features/budget/components/unmark-payment-paid-button";
 import {
   formatDateTime,
   formatMoney,
@@ -61,7 +62,16 @@ export function PaymentEntryList(props: Props) {
                       paymentEntryId={payment.id}
                       paymentLabel={payment.label}
                     />
-                  ) : null}
+                  ) : (
+                    <UnmarkPaymentPaidButton
+                      eventSlug={props.eventSlug}
+                      budgetLineId={props.budgetLineId}
+                      paymentEntryId={payment.id}
+                      paymentLabel={payment.label}
+                      formattedAmount={formatMoney(payment.amount, props.currency)}
+                      formattedPaidAt={formatDateTime(payment.paidAt)}
+                    />
+                  )}
                 </div>
               );
             })}
