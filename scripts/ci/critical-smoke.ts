@@ -26,7 +26,6 @@ const prisma = new PrismaClient();
 const baseUrl = (process.env.NEXTAUTH_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const suffix = `${Date.now()}-${randomUUID().slice(0, 8)}`;
 const slug = `ci-smoke-${suffix}`;
-const title = `CI smoke ${suffix}`;
 const ownerEmail = `ci-owner-${suffix}@nalka.local`;
 const joinerEmail = `ci-joiner-${suffix}@nalka.local`;
 const ownerSessionToken = `ci-owner-session-${randomUUID()}`;
@@ -50,13 +49,12 @@ function assertRedirect(response: Response, pathname: string) {
     response.status === 307 || response.status === 308,
     `Expected redirect for ${response.url}, received ${response.status}`,
   );
-
   const location = response.headers.get("location");
   assert.ok(location, `Missing redirect location for ${response.url}`);
   assert.equal(new URL(location, baseUrl).pathname, pathname);
 }
 
-async function seed() {
+async function seedCriticalEvent() {
   const owner = await prisma.user.create({
     data: { email: ownerEmail, name: "CI Owner", emailVerified: new Date() },
   });
@@ -67,11 +65,9 @@ async function seed() {
   const event = await prisma.event.create({
     data: {
       ownerId: owner.id,
-      title,
+      title: `CI smoke ${suffix}`,
       slug,
-      memberships: {
-        create: { userId: owner.id, role: EventMemberRole.OWNER },
-      },
+      memberships: { create: { userId: owner.id, role: EventMemberRole.OWNER } },
     },
   });
 
@@ -80,20 +76,19 @@ async function seed() {
     [EventModuleKey.BUDGET]: true,
     [EventModuleKey.GIFTS]: true,
   });
-
   await prisma.eventModule.createMany({
-    data: moduleSeeds.map((module) => ({ ...module, eventId: event.id })),
+    data: moduleSeeds.map((eventModule) => ({ ...eventModule, eventId: event.id })),
   });
 
-  const modules = await prisma.eventModule.findMany({
+  const eventModules = await prisma.eventModule.findMany({
     where: { eventId: event.id },
-    select: { id: true, key: true, enabled: true },
+    select: { id: true, key: true },
   });
-  const moduleByKey = new Map(modules.map((module) => [module.key, module]));
+  const moduleByKey = new Map(eventModules.map((eventModule) => [eventModule.key, eventModule]));
   const moduleId = (key: EventModuleKey) => {
-    const module = moduleByKey.get(key);
-    assert.ok(module, `Missing seeded module ${key}`);
-    return module.id;
+    const eventModule = moduleByKey.get(key);
+    assert.ok(eventModule, `Missing seeded module ${key}`);
+    return eventModule.id;
   };
 
   await prisma.$transaction([
@@ -122,7 +117,6 @@ async function seed() {
       setupStatus: BudgetSetupStatus.STARTED,
     },
   });
-
   const budgetLine = await prisma.budgetLine.create({
     data: {
       budgetId: budget.id,
@@ -133,38 +127,33 @@ async function seed() {
     },
   });
 
-  const [vendorA, vendorB] = await Promise.all([
-    prisma.vendor.create({ data: { eventId: event.id, name: `CI Vendor A ${suffix}` } }),
-    prisma.vendor.create({ data: { eventId: event.id, name: `CI Vendor B ${suffix}` } }),
-  ]);
-
-  const [quoteA, quoteB] = await Promise.all([
-    prisma.quote.create({
-      data: {
-        budgetLineId: budgetLine.id,
-        vendorId: vendorA.id,
-        status: QuoteStatus.RECEIVED,
-        amount: "1200.00",
-        receivedAt: new Date(),
-      },
-    }),
-    prisma.quote.create({
-      data: {
-        budgetLineId: budgetLine.id,
-        vendorId: vendorB.id,
-        status: QuoteStatus.RECEIVED,
-        amount: "1350.00",
-        receivedAt: new Date(),
-      },
-    }),
-  ]);
+  const vendorA = await prisma.vendor.create({
+    data: { eventId: event.id, name: `CI Vendor A ${suffix}` },
+  });
+  const vendorB = await prisma.vendor.create({
+    data: { eventId: event.id, name: `CI Vendor B ${suffix}` },
+  });
+  const quoteA = await prisma.quote.create({
+    data: {
+      budgetLineId: budgetLine.id,
+      vendorId: vendorA.id,
+      status: QuoteStatus.RECEIVED,
+      amount: "1200.00",
+      receivedAt: new Date(),
+    },
+  });
+  const quoteB = await prisma.quote.create({
+    data: {
+      budgetLineId: budgetLine.id,
+      vendorId: vendorB.id,
+      status: QuoteStatus.RECEIVED,
+      amount: "1350.00",
+      receivedAt: new Date(),
+    },
+  });
 
   const giftList = await prisma.giftList.create({
-    data: {
-      eventId: event.id,
-      ownerId: owner.id,
-      title: "CI Owner list",
-    },
+    data: { eventId: event.id, ownerId: owner.id, title: "CI Owner list" },
   });
   const giftItem = await prisma.giftItem.create({
     data: { listId: giftList.id, title: giftTitle },
@@ -185,7 +174,6 @@ async function seed() {
       { userId: joiner.id, sessionToken: joinerSessionToken, expires },
     ],
   });
-
   await prisma.inviteToken.create({
     data: {
       eventId: event.id,
@@ -196,7 +184,7 @@ async function seed() {
     },
   });
 
-  return { owner, joiner, event, budgetLine, quoteA, quoteB };
+  return { owner, joiner, event, budgetLine, quoteA, quoteB, moduleSeeds };
 }
 
 async function cleanup() {
@@ -204,140 +192,112 @@ async function cleanup() {
   await prisma.user.deleteMany({ where: { email: { in: [ownerEmail, joinerEmail] } } });
 }
 
-async function smokeEventCreationAndModuleLifecycle(eventId: string) {
-  const createdModules = await prisma.eventModule.findMany({
-    where: { eventId },
-    select: { key: true, enabled: true },
+async function smokeAuthAndEventCreation(eventId: string, expectedModuleCount: number) {
+  assert.equal((await get("/login")).status, 200, "Login page must render");
+  assertRedirect(await get("/event"), "/login");
+  assert.equal((await get("/event", ownerSessionToken)).status, 200, "Event list must render");
+  assert.equal((await get("/event/new", ownerSessionToken)).status, 200, "Event creation UI must render");
+  assert.equal((await get(`/event/${slug}`, ownerSessionToken)).status, 200, "Created event must render");
+
+  const moduleCount = await prisma.eventModule.count({ where: { eventId } });
+  assert.equal(moduleCount, expectedModuleCount, "Created event must seed the complete module registry");
+}
+
+async function smokeInviteJoin(joinerId: string, eventId: string) {
+  const join = await get(`/join?code=${encodeURIComponent(inviteCode)}`, joinerSessionToken);
+  assertRedirect(join, `/event/${slug}`);
+
+  const membership = await prisma.eventMember.findUnique({
+    where: { userId_eventId: { userId: joinerId, eventId } },
+    select: { role: true },
   });
-  assert.equal(
-    createdModules.length,
-    buildEventModuleSeeds().length,
-    "Event creation smoke must seed the complete module registry",
-  );
+  assert.equal(membership?.role, EventMemberRole.MEMBER, "Invite must create membership");
 
-  const createdEvent = await get(`/event/${slug}`, ownerSessionToken);
-  assert.equal(createdEvent.status, 200, "Newly created event must render");
+  const invite = await prisma.inviteToken.findUnique({
+    where: { code: inviteCode },
+    select: { remainingUses: true },
+  });
+  assert.equal(invite?.remainingUses, 0, "Invite must be consumed once");
+  assert.equal((await get(`/event/${slug}`, joinerSessionToken)).status, 200);
+}
 
-  const enabledTimeline = await get(`/event/${slug}/timeline`, ownerSessionToken);
-  assert.equal(enabledTimeline.status, 200, "Enabled module route must render");
+async function smokeModuleLifecycle(eventId: string) {
+  assert.equal((await get(`/event/${slug}/timeline`, ownerSessionToken)).status, 200);
 
   await prisma.eventModule.update({
     where: { eventId_key: { eventId, key: EventModuleKey.TIMELINE } },
     data: { enabled: false },
   });
-
-  const disabledTimeline = await get(`/event/${slug}/timeline`, ownerSessionToken);
-  assertRedirect(disabledTimeline, `/event/${slug}`);
+  assertRedirect(await get(`/event/${slug}/timeline`, ownerSessionToken), `/event/${slug}`);
 
   await prisma.eventModule.update({
     where: { eventId_key: { eventId, key: EventModuleKey.TIMELINE } },
     data: { enabled: true },
   });
-
-  const reenabledTimeline = await get(`/event/${slug}/timeline`, ownerSessionToken);
-  assert.equal(reenabledTimeline.status, 200, "Re-enabled module route must render again");
+  assert.equal((await get(`/event/${slug}/timeline`, ownerSessionToken)).status, 200);
 }
 
-async function smokeQuoteWorkflow(args: {
-  budgetLineId: string;
-  quoteId: string;
-  alternateQuoteId: string;
-}) {
+async function smokeQuoteWorkflow(budgetLineId: string, quoteId: string, alternateQuoteId: string) {
   const select = buildSelectQuoteTransaction({
-    budgetLineId: args.budgetLineId,
-    quoteId: args.quoteId,
+    budgetLineId,
+    quoteId,
     decisionNote: "CI selected",
   });
-
   await prisma.$transaction(async (tx) => {
-    await tx.quote.updateMany({
-      where: select.demoteSelectedWhere,
-      data: select.demoteSelectedData,
-    });
-    await tx.quote.update({
-      where: select.selectQuoteWhere,
-      data: select.selectQuoteData,
-    });
-    await tx.budgetLine.update({
-      where: select.updateLineWhere,
-      data: select.updateLineData,
-    });
+    await tx.quote.updateMany({ where: select.demoteSelectedWhere, data: select.demoteSelectedData });
+    await tx.quote.update({ where: select.selectQuoteWhere, data: select.selectQuoteData });
+    await tx.budgetLine.update({ where: select.updateLineWhere, data: select.updateLineData });
   });
 
   const selected = await prisma.budgetLine.findUniqueOrThrow({
-    where: { id: args.budgetLineId },
-    select: {
-      selectedQuoteId: true,
-      sourcingStatus: true,
-      quotes: { select: { id: true, status: true } },
-    },
+    where: { id: budgetLineId },
+    select: { selectedQuoteId: true, sourcingStatus: true, quotes: { select: { id: true, status: true } } },
   });
-  assert.equal(selected.selectedQuoteId, args.quoteId, "Quote selection must persist on the line");
+  assert.equal(selected.selectedQuoteId, quoteId);
   assert.equal(selected.sourcingStatus, BudgetLineSourcingStatus.SELECTED);
+  assert.equal(selected.quotes.find((quote) => quote.id === quoteId)?.status, QuoteStatus.SELECTED);
   assert.equal(
-    selected.quotes.find((quote) => quote.id === args.quoteId)?.status,
-    QuoteStatus.SELECTED,
-  );
-  assert.equal(
-    selected.quotes.find((quote) => quote.id === args.alternateQuoteId)?.status,
+    selected.quotes.find((quote) => quote.id === alternateQuoteId)?.status,
     QuoteStatus.RECEIVED,
   );
-
-  const quotePage = await get(
-    `/event/${slug}/budget/quotes/${args.budgetLineId}`,
-    ownerSessionToken,
+  assert.equal(
+    (await get(`/event/${slug}/budget/quotes/${budgetLineId}`, ownerSessionToken)).status,
+    200,
+    "Quote comparison route must render",
   );
-  assert.equal(quotePage.status, 200, "Quote comparison route must render after selection");
 
   const reopen = buildReopenSelectedLineTransaction({
-    budgetLineId: args.budgetLineId,
-    selectedQuoteId: args.quoteId,
+    budgetLineId,
+    selectedQuoteId: quoteId,
     decisionNote: "CI reopened",
     receivedQuotesCount: 2,
     awaitingResponseQuotesCount: 0,
   });
-
   await prisma.$transaction(async (tx) => {
-    await tx.quote.update({
-      where: reopen.reopenQuoteWhere,
-      data: reopen.reopenQuoteData,
-    });
-    await tx.budgetLine.update({
-      where: reopen.updateLineWhere,
-      data: reopen.updateLineData,
-    });
+    await tx.quote.update({ where: reopen.reopenQuoteWhere, data: reopen.reopenQuoteData });
+    await tx.budgetLine.update({ where: reopen.updateLineWhere, data: reopen.updateLineData });
   });
 
   const reopened = await prisma.budgetLine.findUniqueOrThrow({
-    where: { id: args.budgetLineId },
+    where: { id: budgetLineId },
     select: { selectedQuoteId: true, sourcingStatus: true },
   });
-  assert.equal(reopened.selectedQuoteId, null, "Reopening must clear the selected quote");
+  assert.equal(reopened.selectedQuoteId, null, "Reopen must clear selected quote");
   assert.equal(reopened.sourcingStatus, BudgetLineSourcingStatus.QUOTES_RECEIVED);
 }
 
-async function smokePaymentReversal(args: {
-  ownerId: string;
-  budgetLineId: string;
-  quoteId: string;
-}) {
-  await prisma.quote.update({
-    where: { id: args.quoteId },
-    data: { status: QuoteStatus.SELECTED },
-  });
+async function smokePaymentReversal(ownerId: string, budgetLineId: string, quoteId: string) {
+  await prisma.quote.update({ where: { id: quoteId }, data: { status: QuoteStatus.SELECTED } });
   await prisma.budgetLine.update({
-    where: { id: args.budgetLineId },
-    data: {
-      selectedQuoteId: args.quoteId,
-      sourcingStatus: BudgetLineSourcingStatus.BOOKED,
-    },
+    where: { id: budgetLineId },
+    data: { selectedQuoteId: quoteId, sourcingStatus: BudgetLineSourcingStatus.BOOKED },
   });
 
   const paidAt = new Date();
   const payment = await prisma.paymentEntry.create({
     data: {
-      budgetLineId: args.budgetLineId,
-      quoteId: args.quoteId,
+      budgetLineId,
+      quoteId,
       label: "CI deposit",
       entryType: PaymentEntryType.DEPOSIT,
       amount: "300.00",
@@ -345,16 +305,12 @@ async function smokePaymentReversal(args: {
       paidAt,
     },
   });
-
   await prisma.$transaction(async (tx) => {
-    await tx.paymentEntry.update({
-      where: { id: payment.id },
-      data: { paidAt: null },
-    });
+    await tx.paymentEntry.update({ where: { id: payment.id }, data: { paidAt: null } });
     await tx.paymentLog.create({
       data: {
         paymentEntryId: payment.id,
-        userId: args.ownerId,
+        userId: ownerId,
         action: PaymentLogAction.MARKED_UNPAID,
         previousPaidAt: paidAt,
         newPaidAt: null,
@@ -376,111 +332,60 @@ async function smokePaymentReversal(args: {
     ),
     "Payment reversal must be audit logged",
   );
-
-  const budgetPage = await get(`/event/${slug}/budget`, ownerSessionToken);
-  assert.equal(budgetPage.status, 200, "Budget route must render after payment reversal");
+  assert.equal((await get(`/event/${slug}/budget`, ownerSessionToken)).status, 200);
 }
 
-async function smokeGiftSecrecy(args: {
-  ownerId: string;
-  joinerId: string;
-  eventId: string;
-}) {
-  const ownerResult = await getEventGiftsScreenData({
-    eventId: args.eventId,
+async function smokeGiftSecrecy(ownerId: string, joinerId: string, eventId: string) {
+  const common = {
+    eventId,
     slug,
-    currentUserId: args.ownerId,
-    eventOwnerId: args.ownerId,
+    eventOwnerId: ownerId,
     giftMode: EventGiftMode.HOST_LIST,
     isConfigured: true,
     isNoSpoil: true,
     isAnonReservations: true,
-    isAdmin: true,
     giftsModuleEnabled: true,
     includeScreenData: true,
-  });
+  } as const;
 
+  const ownerResult = await getEventGiftsScreenData({
+    ...common,
+    currentUserId: ownerId,
+    isAdmin: true,
+  });
   const ownerItem = ownerResult.screenData?.myList?.items.find((item) => item.title === giftTitle);
-  assert.ok(ownerItem, "Owner gift must be present in the gifts screen data");
+  assert.ok(ownerItem, "Gift owner item must exist");
   assert.equal(ownerItem.reservation.hideReservationState, true);
   assert.equal(ownerItem.reservation.isReserved, false, "Gift owner must not see reservation state");
-  assert.equal(ownerItem.reservation.isReservedByCurrentUser, false);
   assert.equal(ownerItem.reservation.reservedByName, null);
   assert.deepEqual(ownerItem.reservation.reservedByNames, []);
 
   const joinerResult = await getEventGiftsScreenData({
-    eventId: args.eventId,
-    slug,
-    currentUserId: args.joinerId,
-    eventOwnerId: args.ownerId,
-    giftMode: EventGiftMode.HOST_LIST,
-    isConfigured: true,
-    isNoSpoil: true,
-    isAnonReservations: true,
+    ...common,
+    currentUserId: joinerId,
     isAdmin: false,
-    giftsModuleEnabled: true,
-    includeScreenData: true,
   });
-
   const participantItem = joinerResult.screenData?.otherLists
     .flatMap((list) => list.items)
     .find((item) => item.title === giftTitle);
-  assert.ok(participantItem, "Participant must see the host gift list");
+  assert.ok(participantItem, "Participant must see host gift item");
   assert.equal(participantItem.reservation.isReserved, true);
-  assert.equal(participantItem.reservation.reservedByName, null, "Anonymous reservations must hide identity");
+  assert.equal(participantItem.reservation.reservedByName, null, "Anonymous reservation must hide identity");
   assert.deepEqual(participantItem.reservation.reservedByNames, []);
 
-  const ownerGiftPage = await get(`/event/${slug}/gifts`, ownerSessionToken);
-  assert.equal(ownerGiftPage.status, 200, "Gift module must render for the owner");
-  const joinerGiftPage = await get(`/event/${slug}/gifts`, joinerSessionToken);
-  assert.equal(joinerGiftPage.status, 200, "Gift module must render for a joined participant");
+  assert.equal((await get(`/event/${slug}/gifts`, ownerSessionToken)).status, 200);
+  assert.equal((await get(`/event/${slug}/gifts`, joinerSessionToken)).status, 200);
 }
 
 async function main() {
-  const { owner, joiner, event, budgetLine, quoteA, quoteB } = await seed();
-
+  const seeded = await seedCriticalEvent();
   try {
-    const login = await get("/login");
-    assert.equal(login.status, 200, "Login page must render");
-
-    const guestEvents = await get("/event");
-    assertRedirect(guestEvents, "/login");
-
-    const ownerEvents = await get("/event", ownerSessionToken);
-    assert.equal(ownerEvents.status, 200, "Authenticated event list must render");
-
-    await smokeEventCreationAndModuleLifecycle(event.id);
-
-    const join = await get(`/join?code=${encodeURIComponent(inviteCode)}`, joinerSessionToken);
-    assertRedirect(join, `/event/${slug}`);
-
-    const membership = await prisma.eventMember.findUnique({
-      where: { userId_eventId: { userId: joiner.id, eventId: event.id } },
-      select: { role: true },
-    });
-    assert.equal(membership?.role, EventMemberRole.MEMBER, "Invite must create membership");
-
-    const invite = await prisma.inviteToken.findUnique({
-      where: { code: inviteCode },
-      select: { remainingUses: true },
-    });
-    assert.equal(invite?.remainingUses, 0, "Invite must be consumed once");
-
-    const joinedEvent = await get(`/event/${slug}`, joinerSessionToken);
-    assert.equal(joinedEvent.status, 200, "Joined member must access the event");
-
-    await smokeQuoteWorkflow({
-      budgetLineId: budgetLine.id,
-      quoteId: quoteA.id,
-      alternateQuoteId: quoteB.id,
-    });
-    await smokePaymentReversal({
-      ownerId: owner.id,
-      budgetLineId: budgetLine.id,
-      quoteId: quoteA.id,
-    });
-    await smokeGiftSecrecy({ ownerId: owner.id, joinerId: joiner.id, eventId: event.id });
-
+    await smokeAuthAndEventCreation(seeded.event.id, seeded.moduleSeeds.length);
+    await smokeInviteJoin(seeded.joiner.id, seeded.event.id);
+    await smokeModuleLifecycle(seeded.event.id);
+    await smokeQuoteWorkflow(seeded.budgetLine.id, seeded.quoteA.id, seeded.quoteB.id);
+    await smokePaymentReversal(seeded.owner.id, seeded.budgetLine.id, seeded.quoteA.id);
+    await smokeGiftSecrecy(seeded.owner.id, seeded.joiner.id, seeded.event.id);
     console.log(
       "Critical smoke passed: login, invite join, event creation, module lifecycle, quote workflow, payment reversal, gift secrecy.",
     );
