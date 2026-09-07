@@ -59,6 +59,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const from = useMemo(() => searchParams.get("from") || "/event", [searchParams]);
   const hasExplicitFrom = useMemo(() => searchParams.has("from"), [searchParams]);
+  const isCreateEventIntent = searchParams.get("intent") === "create-event";
 
   const [email, setEmail] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -208,7 +209,11 @@ function LoginForm() {
     setError("");
     setHelpNote(false);
     setEmail("");
-    router.replace("/login?reset=1");
+
+    const resetParams = new URLSearchParams(searchParams.toString());
+    resetParams.set("reset", "1");
+    resetParams.delete("error");
+    router.replace(`/login?${resetParams.toString()}`);
     requestAnimationFrame(() => emailInputRef.current?.focus());
   };
 
@@ -251,9 +256,13 @@ function LoginForm() {
         {!sent ? (
           <>
             <CardHeader className="space-y-2">
-              <CardTitle className="text-2xl">Connexion</CardTitle>
+              <CardTitle className="text-2xl">
+                {isCreateEventIntent ? "Votre événement est prêt" : "Connexion"}
+              </CardTitle>
               <CardDescription>
-                Continuez avec Google pour acceder rapidement a vos evenements prives.
+                {isCreateEventIntent
+                  ? "Connectez-vous pour l'enregistrer. Le compte vérifié deviendra automatiquement l'organisateur et vos choix seront conservés."
+                  : "Continuez avec Google pour acceder rapidement a vos evenements prives."}
               </CardDescription>
             </CardHeader>
 
@@ -273,7 +282,7 @@ function LoginForm() {
                 ) : (
                   <span className="inline-flex items-center gap-3">
                     <GoogleIcon />
-                    Continuer avec Google
+                    {isCreateEventIntent ? "Enregistrer avec Google" : "Continuer avec Google"}
                   </span>
                 )}
               </Button>
@@ -288,9 +297,9 @@ function LoginForm() {
 
               <form
                 noValidate
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  submit(e.currentTarget);
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  submit(event.currentTarget);
                 }}
                 className="space-y-5 rounded-xl border border-dashed p-4"
               >
@@ -298,7 +307,9 @@ function LoginForm() {
                   <div className="space-y-1">
                     <Label htmlFor="email">Lien magique e-mail</Label>
                     <p className="text-muted-foreground text-xs">
-                      Option secondaire si vous ne souhaitez pas utiliser Google.
+                      {isCreateEventIntent
+                        ? "Nous vérifierons cette adresse avant d'attribuer l'événement à votre compte."
+                        : "Option secondaire si vous ne souhaitez pas utiliser Google."}
                     </p>
                   </div>
                   <Input
@@ -311,7 +322,7 @@ function LoginForm() {
                     inputMode="email"
                     placeholder="vous@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(event) => setEmail(event.target.value)}
                     className="h-11 text-base"
                     disabled={isSending || isGooglePending}
                   />
@@ -358,10 +369,13 @@ function LoginForm() {
                   E-mail renvoye.
                 </div>
               ) : null}
-              <CardTitle className="text-2xl">Lien envoye</CardTitle>
+              <CardTitle className="text-2xl">
+                {isCreateEventIntent ? "Confirmez pour enregistrer l'événement" : "Lien envoye"}
+              </CardTitle>
               <CardDescription>
                 Si un compte existe pour cette adresse, un e-mail a ete envoye a{" "}
                 <span className="text-foreground font-semibold">{masked || "cette adresse"}</span>.
+                {isCreateEventIntent ? " Votre brouillon reste disponible pendant 24 heures." : null}
               </CardDescription>
             </CardHeader>
 
