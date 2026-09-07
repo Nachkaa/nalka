@@ -97,7 +97,9 @@ jobs:
           exit 1
 
       - name: Run critical production smoke
-        run: pnpm exec tsx scripts/ci/critical-smoke.ts
+        run: |
+          pnpm exec tsx scripts/ci/critical-smoke.ts
+          pnpm exec tsx scripts/ci/anonymous-event-draft-smoke.ts
 
       - name: Show server log on failure
         if: failure()
