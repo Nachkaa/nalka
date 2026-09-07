@@ -30,7 +30,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://nalka:nalka@127.0.0.1:5432/nalka_smoke
-      SHADOW_DATABASE_URL: postgresql://nalka:nalka@127.0.0.1:5432/nalka_smoke
+      SHADOW_DATABASE_URL: postgresql://nalka:nalka@127.0.0.1:5432/postgres
       AUTH_SECRET: ci-nalka-runtime-smoke-secret
       NEXTAUTH_SECRET: ci-nalka-runtime-smoke-secret
       NEXTAUTH_URL: http://127.0.0.1:3000
