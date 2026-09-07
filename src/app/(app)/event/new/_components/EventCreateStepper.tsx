@@ -1,11 +1,18 @@
 "use client";
 
-import { createEvent } from "@/app/(app)/event/actions"; // adjust path
+import { createEvent } from "@/app/(app)/event/actions";
 import { Button } from "@/components/ui/button";
-import { EventModuleKey, type EventGiftMode, type EventLocationMode, type EventScheduleMode } from "@prisma/client";
+import { saveAnonymousEventDraft } from "@/features/events/event-draft-actions";
+import {
+  EventModuleKey,
+  type EventGiftMode,
+  type EventLocationMode,
+  type EventScheduleMode,
+} from "@prisma/client";
+import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { StepperHeader } from "./StepperHeader";
 import { StepLocation } from "./steps/StepLocation";
 import { inferModuleRecommendations } from "./steps/moduleRecommendations";
@@ -35,7 +42,10 @@ export type Draft = {
   budgetEnabled: boolean;
 };
 
-type Props = { displayName: string };
+type Props = {
+  displayName: string;
+  isAuthenticated: boolean;
+};
 
 type StepDef = {
   key: "type" | "title" | "date" | "place" | "modules" | "review";
@@ -52,7 +62,8 @@ export const STEPS: readonly StepDef[] = [
   { key: "review", chip: "Récap", title: "Résumé" },
 ] as const;
 
-export function EventCreateStepper({ displayName }: Props) {
+export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
+  const router = useRouter();
   const [draft, setDraft] = useState<Draft>({
     theme: undefined,
     displayName,
@@ -72,6 +83,7 @@ export function EventCreateStepper({ displayName }: Props) {
     budgetEnabled: false,
   });
   const [step, setStep] = useState(0);
+  const [submitError, setSubmitError] = useState("");
   const [isPending, startTransition] = useTransition();
   const moduleRecommendations = useMemo(() => inferModuleRecommendations(draft), [draft]);
   const giftRecommendation = useMemo(
@@ -108,58 +120,73 @@ export function EventCreateStepper({ displayName }: Props) {
 
   function next() {
     if (!canNext) return;
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    setSubmitError("");
+    setStep((currentStep) => Math.min(currentStep + 1, STEPS.length - 1));
   }
 
   function back() {
-    setStep((s) => Math.max(0, s - 1));
+    setSubmitError("");
+    setStep((currentStep) => Math.max(0, currentStep - 1));
+  }
+
+  function buildFormData() {
+    const formData = new FormData();
+
+    formData.set("title", draft.title);
+    formData.set("description", draft.description);
+    formData.set("schedule.mode", draft.scheduleMode);
+
+    if (draft.scheduleMode === "EXACT") {
+      formData.set("schedule.date", draft.scheduleDate);
+    } else if (draft.scheduleMode === "POLL") {
+      for (const date of draft.pollDates) formData.append("schedule.options", date);
+    }
+
+    formData.set("schedule.time", draft.scheduleTime);
+    formData.set("location.mode", draft.locationMode);
+
+    if (draft.locationMode === "EXACT") {
+      formData.set("location.value", draft.location);
+    } else if (draft.locationMode === "POLL") {
+      for (const location of draft.pollLocations) formData.append("location.options", location);
+    }
+
+    if (draft.giftMode) {
+      formData.set("modules.giftsEnabled", "on");
+      formData.set("giftMode", draft.giftMode);
+    }
+
+    formData.set("modules.secretSantaEnabled", draft.secretSantaEnabled ? "on" : "");
+    formData.set("modules.bringEnabled", draft.bringEnabled ? "on" : "");
+    formData.set("modules.timelineEnabled", draft.timelineEnabled ? "on" : "");
+    formData.set("modules.budgetEnabled", draft.budgetEnabled ? "on" : "");
+    formData.set("rules.isNoSpoil", "on");
+    formData.set("rules.isAnonReservations", "on");
+    formData.set("rules.isSecondHandOk", "");
+    formData.set("rules.isHandmadeOk", "");
+    formData.set("rules.budgetCap", "");
+
+    return formData;
   }
 
   function submit() {
-    const fd = new FormData();
-
-    fd.set("title", draft.title);
-    fd.set("description", draft.description);
-
-    // schedule (Prisma enums)
-    fd.set("schedule.mode", draft.scheduleMode);
-    if (draft.scheduleMode === "EXACT") {
-      fd.set("schedule.date", draft.scheduleDate);
-    } else if (draft.scheduleMode === "POLL") {
-      for (const d of draft.pollDates) fd.append("schedule.options", d);
-    }
-
-    fd.set("schedule.time", draft.scheduleTime);
-
-    // location (Prisma enums)
-    fd.set("location.mode", draft.locationMode);
-    if (draft.locationMode === "EXACT") {
-      fd.set("location.value", draft.location);
-    } else if (draft.locationMode === "POLL") {
-      for (const l of draft.pollLocations) fd.append("location.options", l);
-    }
-
-    // gifts (Prisma enum string)
-    if (draft.giftMode) {
-      fd.set("modules.giftsEnabled", "on");
-      fd.set("giftMode", draft.giftMode);
-    }
-
-    // modules
-    fd.set("modules.secretSantaEnabled", draft.secretSantaEnabled ? "on" : "");
-    fd.set("modules.bringEnabled", draft.bringEnabled ? "on" : "");
-    fd.set("modules.timelineEnabled", draft.timelineEnabled ? "on" : "");
-    fd.set("modules.budgetEnabled", draft.budgetEnabled ? "on" : "");
-
-    // rules (for now you hard-force defaults)
-    fd.set("rules.isNoSpoil", "on");
-    fd.set("rules.isAnonReservations", "on");
-    fd.set("rules.isSecondHandOk", "");
-    fd.set("rules.isHandmadeOk", "");
-    fd.set("rules.budgetCap", "");
+    setSubmitError("");
+    const formData = buildFormData();
 
     startTransition(async () => {
-      await createEvent(fd);
+      try {
+        if (isAuthenticated) {
+          await createEvent(formData);
+          return;
+        }
+
+        const { loginUrl } = await saveAnonymousEventDraft(formData);
+        router.push(loginUrl);
+      } catch {
+        setSubmitError(
+          "Impossible d'enregistrer cet événement pour le moment. Vérifiez les informations puis réessayez.",
+        );
+      }
     });
   }
 
@@ -184,7 +211,7 @@ export function EventCreateStepper({ displayName }: Props) {
           {step === 0 && (
             <StepType
               value={draft.theme}
-              onChange={(theme) => setDraft((d) => ({ ...d, theme }))}
+              onChange={(theme) => setDraft((current) => ({ ...current, theme }))}
               onNext={next}
               autoAdvance
             />
@@ -193,7 +220,7 @@ export function EventCreateStepper({ displayName }: Props) {
           {step === 1 && (
             <StepTitle
               draft={draft}
-              onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+              onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
               onNext={next}
               autoAdvance={false}
             />
@@ -205,7 +232,7 @@ export function EventCreateStepper({ displayName }: Props) {
               date={draft.scheduleDate}
               pollDates={draft.pollDates}
               time={draft.scheduleTime}
-              onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+              onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
               onNext={next}
               autoAdvance={draft.scheduleMode === "EXACT"}
             />
@@ -218,7 +245,7 @@ export function EventCreateStepper({ displayName }: Props) {
               pollLocations={draft.pollLocations}
               theme={draft.theme}
               displayName={displayName}
-              onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+              onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
               onNext={next}
               autoAdvance={false}
             />
@@ -233,26 +260,47 @@ export function EventCreateStepper({ displayName }: Props) {
               bringRecommendation={bringRecommendation}
               timelineRecommendation={timelineRecommendation}
               budgetEnabled={draft.budgetEnabled}
-              onChangeGiftMode={(giftMode) => setDraft((d) => ({ ...d, giftMode }))}
-              onRemoveGifts={() => setDraft((d) => ({ ...d, giftMode: null }))}
+              onChangeGiftMode={(giftMode) => setDraft((current) => ({ ...current, giftMode }))}
+              onRemoveGifts={() => setDraft((current) => ({ ...current, giftMode: null }))}
               onChangeSecretSantaEnabled={(secretSantaEnabled) =>
-                setDraft((d) => ({ ...d, secretSantaEnabled }))
+                setDraft((current) => ({ ...current, secretSantaEnabled }))
               }
               bringEnabled={draft.bringEnabled}
-              onChangeBringEnabled={(bringEnabled) => setDraft((d) => ({ ...d, bringEnabled }))}
+              onChangeBringEnabled={(bringEnabled) =>
+                setDraft((current) => ({ ...current, bringEnabled }))
+              }
               timelineEnabled={draft.timelineEnabled}
               onChangeTimelineEnabled={(timelineEnabled) =>
-                setDraft((d) => ({ ...d, timelineEnabled }))
+                setDraft((current) => ({ ...current, timelineEnabled }))
               }
               onChangeBudgetEnabled={(budgetEnabled) =>
-                setDraft((d) => ({ ...d, budgetEnabled }))
+                setDraft((current) => ({ ...current, budgetEnabled }))
               }
             />
           )}
 
-          {step === 5 && <StepReview draft={draft} />}
+          {step === 5 && (
+            <div className="space-y-4">
+              <StepReview draft={draft} />
+              {!isAuthenticated ? (
+                <div className="border-primary/20 bg-primary/5 rounded-xl border px-4 py-3">
+                  <p className="text-sm font-medium">Votre événement est prêt.</p>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    Enregistrez-le puis connectez-vous. Votre compte vérifié deviendra
+                    automatiquement l'organisateur de cet événement.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
+
+      {submitError ? (
+        <p className="text-destructive text-sm" role="alert">
+          {submitError}
+        </p>
+      ) : null}
 
       <div className="flex items-center justify-between gap-2 pt-2">
         <Button type="button" variant="secondary" onClick={back} disabled={step === 0 || isPending}>
@@ -265,7 +313,11 @@ export function EventCreateStepper({ displayName }: Props) {
           </Button>
         ) : (
           <Button type="button" onClick={submit} disabled={isPending || !draft.title.trim()}>
-            Créer l&apos;événement
+            {isPending
+              ? "Enregistrement..."
+              : isAuthenticated
+                ? "Créer l'événement"
+                : "Enregistrer mon événement"}
           </Button>
         )}
       </div>
