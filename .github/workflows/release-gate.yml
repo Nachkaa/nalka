@@ -74,6 +74,9 @@ jobs:
       - name: Run auth regression tests
         run: pnpm test:auth-routes
 
+      - name: Run analytics privacy regression tests
+        run: pnpm exec tsx --test src/lib/analytics/sanitizePageViewUrl.test.ts
+
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
