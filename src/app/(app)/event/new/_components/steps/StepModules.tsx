@@ -44,6 +44,7 @@ type Props = {
   secretSantaRecommendation: ModuleRecommendation | null;
   bringRecommendation: ModuleRecommendation | null;
   timelineRecommendation: ModuleRecommendation | null;
+  budgetRecommendation: ModuleRecommendation | null;
   budgetEnabled: boolean;
   onChangeGiftMode: (giftMode: EventGiftMode) => void;
   onRemoveGifts: () => void;
@@ -236,6 +237,7 @@ export function StepModules({
   secretSantaRecommendation,
   bringRecommendation,
   timelineRecommendation,
+  budgetRecommendation,
   budgetEnabled,
   onChangeGiftMode,
   onRemoveGifts,
@@ -263,7 +265,7 @@ export function StepModules({
       ? [
           {
             id: "budget",
-            title: "Budget",
+            title: "Provider Cockpit",
             icon: ReceiptEuro,
             onRemove: () => onChangeBudgetEnabled(false),
           } satisfies SelectedModule,
@@ -317,8 +319,10 @@ export function StepModules({
       ? [
           {
             id: "budget",
-            title: "Budget",
-            description: "Suivre les postes, devis prestataires et paiements.",
+            title: "Provider Cockpit",
+            description:
+              budgetRecommendation?.reason ??
+              "Centralisez prestations, devis prestataires, échéances et paiements.",
             icon: ReceiptEuro,
             onClick: () => onChangeBudgetEnabled(true),
           } satisfies ModuleCatalogCard,
@@ -372,7 +376,7 @@ export function StepModules({
       : []),
     ...(bringRecommendation && !bringEnabled ? (["bring"] as const) : []),
     ...(timelineRecommendation && !timelineEnabled ? (["timeline"] as const) : []),
-    ...(!budgetEnabled ? (["budget"] as const) : []),
+    ...(budgetRecommendation && !budgetEnabled ? (["budget"] as const) : []),
   ]);
 
   const rankModules = (modules: ModuleCatalogCard[]) => [
