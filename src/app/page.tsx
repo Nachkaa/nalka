@@ -1,4 +1,3 @@
-import { Mail } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -13,7 +12,6 @@ import { Container } from "@/components/layout/Container";
 import { MarketingNavbar } from "@/components/marketing/MarketingNavbar";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { absoluteUrl, buildPublicMetadata } from "@/lib/seo";
 
 const homeTitle = "Pilotage événementiel pour organisateurs professionnels";
@@ -106,31 +104,17 @@ export default async function MarketingHomePage() {
               </p>
 
               <div className="space-y-2.5">
-                <form className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <label className="sr-only" htmlFor="email">
-                    E-mail
-                  </label>
-                  <div className="shadow-soft ring-border flex w-full items-center gap-2 rounded-xl border bg-white px-3 py-2 ring-1 sm:max-w-md">
-                    <Mail className="text-muted-foreground size-5" aria-hidden />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Votre adresse e-mail"
-                      className="h-8 flex-1 border-0 px-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
-                    />
-                  </div>
+                <Button
+                  asChild
+                  size="lg"
+                  className="shadow-soft h-12 rounded-xl bg-(--primary) px-6 text-base text-(--primary-foreground) hover:bg-[color-mix(in_oklch,var(--primary),black_8%)]"
+                >
+                  <Link href="/event/new">Créer mon espace événement</Link>
+                </Button>
 
-                  <Button
-                    asChild
-                    size="lg"
-                    className="shadow-soft h-12 rounded-xl bg-(--primary) px-6 text-base text-(--primary-foreground) hover:bg-[color-mix(in_oklch,var(--primary),black_8%)]"
-                  >
-                    <Link href="/event/new">Créer un espace événement</Link>
-                  </Button>
-                </form>
-
-                <p className="text-muted-foreground text-sm">
-                  Aucun mot de passe. Connexion par lien magique sécurisé.
+                <p className="text-muted-foreground max-w-lg text-sm">
+                  Commencez sans compte. Nous vous demanderons de vous connecter uniquement pour
+                  enregistrer votre événement et vous en attribuer la propriété.
                 </p>
                 <nav aria-label="Acces rapides" className="flex flex-wrap gap-3 text-sm">
                   <Link
