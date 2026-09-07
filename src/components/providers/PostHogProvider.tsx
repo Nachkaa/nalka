@@ -3,8 +3,10 @@
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider, usePostHog } from "posthog-js/react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import type { ReactNode } from "react";
+
+import { sanitizePageViewUrl } from "@/lib/analytics/sanitizePageViewUrl";
 
 function PostHogPageView() {
   const pathname = usePathname();
@@ -12,12 +14,10 @@ function PostHogPageView() {
   const ph = usePostHog();
 
   useEffect(() => {
-    if (pathname && ph) {
-      let url = window.origin + pathname;
-      const search = searchParams?.toString();
-      if (search) url += "?" + search;
-      ph.capture("$pageview", { $current_url: url });
-    }
+    if (!pathname || !ph) return;
+
+    const url = sanitizePageViewUrl(window.origin, pathname, searchParams?.toString() ?? "");
+    ph.capture("$pageview", { $current_url: url });
   }, [pathname, searchParams, ph]);
 
   return null;
