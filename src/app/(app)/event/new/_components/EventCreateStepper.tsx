@@ -287,7 +287,7 @@ export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
                   <p className="text-sm font-medium">Votre événement est prêt.</p>
                   <p className="text-muted-foreground mt-1 text-sm">
                     Enregistrez-le puis connectez-vous. Votre compte vérifié deviendra
-                    automatiquement l'organisateur de cet événement.
+                    automatiquement l&apos;organisateur de cet événement.
                   </p>
                 </div>
               ) : null}
