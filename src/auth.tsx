@@ -4,6 +4,7 @@ import EmailProvider from "next-auth/providers/email";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { AUTH_ENTRY_PATH } from "@/features/auth/routes";
 
 import { render } from "@react-email/render";
 import MagicLinkEmail from "@/emails/MagicLinkEmail";
@@ -167,7 +168,7 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   session: { strategy: "database" },
-  pages: { signIn: "/login", error: "/login" },
+  pages: { signIn: AUTH_ENTRY_PATH, error: AUTH_ENTRY_PATH },
   providers,
   callbacks: {
     session({ session, user }) {
