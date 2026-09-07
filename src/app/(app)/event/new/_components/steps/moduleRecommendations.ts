@@ -22,6 +22,9 @@ const AVAILABLE_MODULES = [
   EventModuleKey.BUDGET,
 ] as const;
 
+const PROFESSIONAL_THEMES = ["social", "family", "sport", "trip"] as const;
+const STRUCTURED_EVENT_THEMES = [...PROFESSIONAL_THEMES, "group"] as const;
+
 const GIFT_KEYWORDS = [
   "anniversaire",
   "birthday",
@@ -116,22 +119,32 @@ export function inferModuleRecommendations(draft: Draft): ModuleRecommendationRe
   const theme = draft.theme;
   const recommended: ModuleRecommendation[] = [];
 
-  const isProfessionalTheme = isOneOf(theme, ["social", "family", "sport", "trip", "group"]);
+  const isProfessionalTheme = isOneOf(theme, PROFESSIONAL_THEMES);
+  const hasStructuredProgramTheme = isOneOf(theme, STRUCTURED_EVENT_THEMES);
   const hasGiftContext = containsAny(text, GIFT_KEYWORDS);
   const hasSecretSantaContext = containsAny(text, SECRET_SANTA_KEYWORDS);
   const hasContributionContext = containsAny(text, CONTRIBUTION_KEYWORDS);
-  const hasTimelineContext = containsAny(text, TIMELINE_KEYWORDS) || isProfessionalTheme;
+  const hasTimelineContext = containsAny(text, TIMELINE_KEYWORDS) || hasStructuredProgramTheme;
   const needsPollCoordination =
     draft.scheduleMode !== EventScheduleMode.EXACT ||
     draft.locationMode !== EventLocationMode.EXACT ||
     isOneOf(theme, ["trip", "group"]) ||
     containsAny(text, POLL_KEYWORDS);
 
+  if (isProfessionalTheme) {
+    pushRecommendation(
+      recommended,
+      EventModuleKey.BUDGET,
+      "high",
+      "Recommandé pour centraliser prestataires, devis, échéances et paiements dans un même espace.",
+    );
+  }
+
   if (hasTimelineContext) {
     pushRecommendation(
       recommended,
       EventModuleKey.TIMELINE,
-      isProfessionalTheme ? "high" : "medium",
+      hasStructuredProgramTheme ? "high" : "medium",
       "Recommandé pour structurer le programme et les temps forts.",
     );
   }
