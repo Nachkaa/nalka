@@ -77,6 +77,9 @@ jobs:
       - name: Run analytics privacy regression tests
         run: pnpm exec tsx --test src/lib/analytics/sanitizePageViewUrl.test.ts
 
+      - name: Run module recommendation regression tests
+        run: pnpm exec tsx --test "src/app/(app)/event/new/_components/steps/moduleRecommendations.test.ts"
+
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
