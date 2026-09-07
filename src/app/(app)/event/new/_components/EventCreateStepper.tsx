@@ -111,6 +111,12 @@ export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
       null,
     [moduleRecommendations],
   );
+  const budgetRecommendation = useMemo(
+    () =>
+      moduleRecommendations.recommended.find((item) => item.moduleKey === EventModuleKey.BUDGET) ??
+      null,
+    [moduleRecommendations],
+  );
 
   const canNext = useMemo(() => {
     if (step === 1) return draft.title.trim().length > 0;
@@ -259,6 +265,7 @@ export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
               secretSantaRecommendation={secretSantaRecommendation}
               bringRecommendation={bringRecommendation}
               timelineRecommendation={timelineRecommendation}
+              budgetRecommendation={budgetRecommendation}
               budgetEnabled={draft.budgetEnabled}
               onChangeGiftMode={(giftMode) => setDraft((current) => ({ ...current, giftMode }))}
               onRemoveGifts={() => setDraft((current) => ({ ...current, giftMode: null }))}
