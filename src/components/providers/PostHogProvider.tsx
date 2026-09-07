@@ -6,7 +6,10 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import type { ReactNode } from "react";
 
-import { sanitizePageViewUrl } from "@/lib/analytics/sanitizePageViewUrl";
+import {
+  sanitizePageViewUrl,
+  sanitizePostHogProperties,
+} from "@/lib/analytics/sanitizePageViewUrl";
 
 function PostHogPageView() {
   const pathname = usePathname();
@@ -29,6 +32,14 @@ if (typeof window !== "undefined") {
     ui_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
     capture_pageview: false,
     capture_pageleave: true,
+    before_send: (event) => {
+      if (!event?.properties) return event;
+
+      return {
+        ...event,
+        properties: sanitizePostHogProperties(event.properties),
+      };
+    },
   });
 }
 
