@@ -1,0 +1,112 @@
+name: Nalka Release Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-gate:
+    name: Build and critical smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nalka_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nalka_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nalka_ci?schema=public
+      SHADOW_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nalka_shadow?schema=public
+      AUTH_SECRET: nalka-ci-release-gate-secret-only
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      MAIL_MODE: console
+      MAIL_FROM: ci@nalka.local
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma and Next.js types
+        run: |
+          pnpm exec prisma generate
+          pnpm exec next typegen
+
+      - name: Apply database migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Run auth regression tests
+        run: pnpm test:auth-routes
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Production build
+        run: pnpm build
+
+      - name: Start production server
+        run: |
+          pnpm start > /tmp/nalka-server.log 2>&1 &
+          echo $! > /tmp/nalka-server.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/login > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/nalka-server.log
+          exit 1
+
+      - name: Run critical production smoke
+        run: pnpm exec tsx scripts/ci/critical-smoke.ts
+
+      - name: Show server log on failure
+        if: failure()
+        run: cat /tmp/nalka-server.log || true
+
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f /tmp/nalka-server.pid ]; then
+            kill "$(cat /tmp/nalka-server.pid)" || true
+          fi
