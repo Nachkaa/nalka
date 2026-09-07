@@ -1,0 +1,81 @@
+name: NKA-002 runtime v3
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/nka-002-runtime-v3.yml
+
+permissions:
+  contents: read
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://nalka:nalka@127.0.0.1:5432/nalka_ci
+      AUTH_SECRET: ci-nalka-auth-route-secret
+      NEXTAUTH_SECRET: ci-nalka-auth-route-secret
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      MAIL_MODE: console
+      MAIL_FROM: ci@nalka.invalid
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install and generate
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec prisma generate
+
+      - name: Build
+        run: pnpm build
+
+      - name: Verify redirect semantics
+        run: |
+          pnpm start > /tmp/nalka-nka002.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --silent --output /dev/null http://127.0.0.1:3000/login; then
+              break
+            fi
+            sleep 1
+          done
+
+          node <<'NODE'
+          async function main() {
+            const response = await fetch('http://127.0.0.1:3000/event', { redirect: 'manual' });
+            if (![307, 308].includes(response.status)) {
+              throw new Error(`Expected 307/308, got ${response.status}`);
+            }
+
+            const location = response.headers.get('location');
+            if (!location) throw new Error('Missing Location header');
+
+            const target = new URL(location, 'http://127.0.0.1:3000');
+            if (target.pathname !== '/login' || target.searchParams.get('from') !== '/event') {
+              throw new Error(`Unexpected redirect target: ${location}`);
+            }
+
+            console.log(`redirect-ok ${response.status} ${location}`);
+          }
+
+          main().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
