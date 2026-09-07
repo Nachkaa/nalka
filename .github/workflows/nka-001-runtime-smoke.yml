@@ -1,0 +1,223 @@
+name: NKA-001 runtime smoke
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/nka-001-runtime-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nalka
+          POSTGRES_PASSWORD: nalka
+          POSTGRES_DB: nalka_smoke
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nalka -d nalka_smoke"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://nalka:nalka@127.0.0.1:5432/nalka_smoke
+      SHADOW_DATABASE_URL: postgresql://nalka:nalka@127.0.0.1:5432/nalka_smoke
+      AUTH_SECRET: ci-nalka-runtime-smoke-secret
+      NEXTAUTH_SECRET: ci-nalka-runtime-smoke-secret
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      MAIL_MODE: console
+      MAIL_FROM: ci@nalka.invalid
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply database migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Create smoke fixtures
+        run: |
+          node <<'NODE'
+          const { PrismaClient } = require('@prisma/client');
+          const prisma = new PrismaClient();
+
+          async function main() {
+            const expires = new Date(Date.now() + 60 * 60 * 1000);
+
+            const owner = await prisma.user.create({
+              data: {
+                id: 'smoke-owner',
+                email: 'smoke-owner@nalka.invalid',
+                name: 'Smoke Owner',
+              },
+            });
+
+            const invitee = await prisma.user.create({
+              data: {
+                id: 'smoke-invitee',
+                email: 'smoke-invitee@nalka.invalid',
+                name: 'Smoke Invitee',
+              },
+            });
+
+            const event = await prisma.event.create({
+              data: {
+                id: 'smoke-event',
+                ownerId: owner.id,
+                title: 'NKA-001 smoke event',
+                slug: 'nka-001-smoke-event',
+                memberships: {
+                  create: {
+                    userId: owner.id,
+                    role: 'OWNER',
+                  },
+                },
+                modules: {
+                  create: {
+                    key: 'OVERVIEW',
+                    enabled: true,
+                    position: 0,
+                    overviewSettings: {
+                      create: { rsvpRequired: true },
+                    },
+                  },
+                },
+              },
+            });
+
+            await prisma.session.createMany({
+              data: [
+                {
+                  id: 'smoke-owner-session',
+                  sessionToken: 'smoke-owner-session-token',
+                  userId: owner.id,
+                  expires,
+                },
+                {
+                  id: 'smoke-invitee-session',
+                  sessionToken: 'smoke-invitee-session-token',
+                  userId: invitee.id,
+                  expires,
+                },
+              ],
+            });
+
+            await prisma.inviteToken.create({
+              data: {
+                id: 'smoke-invite-token',
+                eventId: event.id,
+                code: 'nka-001-smoke-invite',
+                remainingUses: 1,
+                createdById: owner.id,
+                expiresAt: expires,
+              },
+            });
+          }
+
+          main()
+            .finally(async () => prisma.$disconnect())
+            .catch((error) => {
+              console.error(error);
+              process.exit(1);
+            });
+          NODE
+
+      - name: Build application
+        run: pnpm build
+
+      - name: Start application
+        run: |
+          pnpm start > /tmp/nalka-smoke.log 2>&1 &
+          echo $! > /tmp/nalka-smoke.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/login > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/nalka-smoke.log
+          exit 1
+
+      - name: Smoke auth entry and provider API
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:3000/login > /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:3000/api/auth/providers > /tmp/providers.json
+          node -e "const fs=require('fs'); const value=JSON.parse(fs.readFileSync('/tmp/providers.json','utf8')); if (!value.email) throw new Error('Email auth provider missing');"
+
+      - name: Smoke authenticated event list and detail
+        run: |
+          curl --fail --silent --show-error \
+            -H 'Cookie: next-auth.session-token=smoke-owner-session-token' \
+            http://127.0.0.1:3000/event > /tmp/event-list.html
+          grep -q 'NKA-001 smoke event' /tmp/event-list.html
+
+          curl --fail --silent --show-error \
+            -H 'Cookie: next-auth.session-token=smoke-owner-session-token' \
+            http://127.0.0.1:3000/event/nka-001-smoke-event > /tmp/event-detail.html
+          grep -q 'NKA-001 smoke event' /tmp/event-detail.html
+
+      - name: Smoke invite acceptance and joined event access
+        run: |
+          curl --fail --silent --show-error --location \
+            -H 'Cookie: next-auth.session-token=smoke-invitee-session-token' \
+            'http://127.0.0.1:3000/join?code=nka-001-smoke-invite' > /tmp/invite-result.html
+          grep -q 'NKA-001 smoke event' /tmp/invite-result.html
+
+          node <<'NODE'
+          const { PrismaClient } = require('@prisma/client');
+          const prisma = new PrismaClient();
+          async function main() {
+            const membership = await prisma.eventMember.findUnique({
+              where: {
+                userId_eventId: {
+                  userId: 'smoke-invitee',
+                  eventId: 'smoke-event',
+                },
+              },
+            });
+            if (!membership || membership.role !== 'MEMBER') {
+              throw new Error('Invite did not create MEMBER membership');
+            }
+            const token = await prisma.inviteToken.findUnique({
+              where: { code: 'nka-001-smoke-invite' },
+            });
+            if (!token || token.remainingUses !== 0) {
+              throw new Error('Invite token was not consumed exactly once');
+            }
+          }
+          main()
+            .finally(async () => prisma.$disconnect())
+            .catch((error) => {
+              console.error(error);
+              process.exit(1);
+            });
+          NODE
+
+      - name: Show server log on failure
+        if: failure()
+        run: cat /tmp/nalka-smoke.log || true
