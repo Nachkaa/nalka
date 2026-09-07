@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { acceptInvite } from "@/features/events/actions/invite";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InlineMagicLink } from "@/features/auth/inline-magic-link";
+import { getAuthEntryUrl } from "@/features/auth/routes";
 
 type Search = { code?: string };
 
@@ -44,10 +45,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             <InlineMagicLink redirectTo={from} />
             <p className="text-muted-foreground text-xs">
               Déjà un compte ?{" "}
-              <Link
-                className="underline underline-offset-4"
-                href={`/login?from=${encodeURIComponent(from)}`}
-              >
+              <Link className="underline underline-offset-4" href={getAuthEntryUrl(from)}>
                 Se connecter
               </Link>
             </p>
