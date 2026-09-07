@@ -4,13 +4,14 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { EventList } from "@/components/events/event-list";
 import { getUserEventSummaries } from "@/features/events/queries";
+import { getAuthEntryUrl } from "@/features/auth/routes";
 import { Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
   const session = await auth();
-  if (!session) redirect("/signin");
+  if (!session) redirect(getAuthEntryUrl("/event"));
 
   let userId = session.user.id as string | undefined;
   if (!userId && session.user.email) {
@@ -20,7 +21,7 @@ export default async function Page() {
     });
     userId = u?.id;
   }
-  if (!userId) redirect("/signin");
+  if (!userId) redirect(getAuthEntryUrl("/event"));
 
   const events = await getUserEventSummaries(userId);
 
