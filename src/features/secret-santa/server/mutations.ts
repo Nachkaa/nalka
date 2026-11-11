@@ -136,7 +136,7 @@ export async function launchDraw(formData: FormData) {
           eventTitle: eventRow.title,
           eventUrl: `${baseUrl}/event/${access.event.slug}`,
           giverName: giver.name ?? giver.email,
-          receiverName: receiver.name ?? "un proche",
+          receiverName: receiver.name?.trim() || receiver.email || "un proche",
         }),
       );
 

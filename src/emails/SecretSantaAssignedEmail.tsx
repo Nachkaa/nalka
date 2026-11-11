@@ -103,7 +103,7 @@ export default function SecretSantaAssignedEmail({
             <Hr style={{ borderColor: brand.border, margin: "24px 0" }} />
 
             <Text style={{ marginTop: 0, fontSize: 12, color: brand.muted }}>
-              Si tu n’es pas à l’origine de cette action, ignore ce message.
+              Garde ton attribution secrète jusqu’à l’échange des cadeaux.
             </Text>
           </Section>
 
