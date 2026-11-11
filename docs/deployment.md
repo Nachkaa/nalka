@@ -66,7 +66,7 @@ Run these steps through the existing trusted SSH session as `deploy`. The fixed 
    bash "$nalka_setup_dir/setup-server.sh"
    ```
 
-   This installs a late systemd drop-in, a bounded preview service and a root-owned helper with narrowly scoped sudo access. The helper permits only restarting Nalka and starting/stopping a preview whose release ID passes validation. It preserves the existing legacy build as the first rollback target and links both gift/event upload directories to their existing storage. Setup reloads systemd but does not restart the running app. The script refuses to overwrite an existing setup; resolve a partial setup before rerunning it.
+   This installs a late systemd drop-in, a bounded preview service and a root-owned helper with narrowly scoped sudo access. The helper permits only resetting Nalka's failed/start-limit state and restarting it, plus starting/stopping a preview whose release ID passes validation. It preserves the existing legacy build as the first rollback target and links both gift/event upload directories to their existing storage. Setup reloads systemd but does not restart the running app. The script refuses to overwrite an existing setup; resolve a partial setup before rerunning it.
 
 3. Authorize a dedicated GitHub deployment SSH key for `deploy`, using a `restrict` entry in `/home/deploy/.ssh/authorized_keys`. Store the private key in GitHub's `NALKA_SSH_KEY` secret. An existing deployment key may be reused if its access is appropriate; no key belongs in the repository or chat.
 
