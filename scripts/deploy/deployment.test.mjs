@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { once } from "node:events";
 import { mkdtemp, mkdir, readFile, readlink, rm, symlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -146,7 +147,7 @@ fi
       },
       timeout: 10000,
     });
-  return { root, run };
+  return { root, run, checksum };
 }
 
 test("activation checks preview before switching and preserves uploaded files", async (t) => {
@@ -184,6 +185,25 @@ for (const failure of ["schema", "preview", "production", "public", "restart", "
 test("a corrupted archive is rejected before activation", async (t) => {
   const { root, run } = await deploymentFixture(t);
   assert.notEqual(run("", "0".repeat(64)).status, 0);
+  assert.equal(await readlink(path.join(root, "current")), path.join(root, "releases/legacy"));
+});
+
+test("rollback survives a disconnected output channel", async (t) => {
+  const { root, checksum } = await deploymentFixture(t);
+  const child = spawn("bash", [script, sha, releaseId, checksum], {
+    env: {
+      ...process.env,
+      PATH: `${root}/bin:${process.env.PATH}`,
+      NALKA_DEPLOY_ROOT: root,
+      NALKA_NODE: process.execPath,
+      TEST_FAIL: "signal",
+    },
+    timeout: 10000,
+  });
+  child.stdout.destroy();
+  child.stderr.destroy();
+  const [code] = await once(child, "close");
+  assert.notEqual(code, 0);
   assert.equal(await readlink(path.join(root, "current")), path.join(root, "releases/legacy"));
 });
 

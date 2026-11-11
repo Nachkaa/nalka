@@ -29,14 +29,17 @@ printf '%s  %s\n' "$checksum" "$archive" | sha256sum --check --status
 cleanup() {
   result=$?
   trap - EXIT INT TERM HUP
+  # Lost SSH output must not interrupt rollback or its service restart.
+  trap '' PIPE
+  set +e
   if (( preview_started )); then
     sudo -n /usr/local/sbin/nalka-release-service preview-stop "$release_id" || result=1
   fi
   if (( result != 0 && switched )); then
     echo "Release check failed; restoring the previous release." >&2
-    ln -sT "$previous" "$deploy_root/rollback.$release_id"
-    mv -Tf "$deploy_root/rollback.$release_id" "$deploy_root/current"
-    if sudo -n /usr/local/sbin/nalka-release-service restart &&
+    if ln -sT "$previous" "$deploy_root/rollback.$release_id" &&
+      mv -Tf "$deploy_root/rollback.$release_id" "$deploy_root/current" &&
+      sudo -n /usr/local/sbin/nalka-release-service restart &&
       curl --fail --silent --retry 8 --retry-connrefused --retry-delay 2 --max-time 10 http://127.0.0.1:3000/login >/dev/null; then
       echo "Previous release restored." >&2
     else
@@ -46,7 +49,7 @@ cleanup() {
   exit "$result"
 }
 trap cleanup EXIT
-trap 'exit 1' INT TERM HUP
+trap 'exit 1' INT TERM HUP PIPE
 
 mkdir "$release"
 tar -xzf "$archive" -C "$release" --no-same-owner
