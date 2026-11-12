@@ -4,8 +4,17 @@ import { motion } from "framer-motion";
 import { Hammer, Loader2, Recycle, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { useFormStatus } from "react-dom";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fmtEUR } from "@/lib/formatters";
@@ -17,35 +26,6 @@ import type { SecretSantaMeView, SecretSantaModuleProps } from "../types";
 type SecretSantaScreenProps = SecretSantaModuleProps & {
   meEndpoint: string;
 };
-
-function DrawButton({ disabledBase, hasDraw }: { disabledBase: boolean; hasDraw: boolean }) {
-  const { pending } = useFormStatus();
-
-  const label = pending
-    ? "Tirage en cours..."
-    : hasDraw
-      ? "Relancer le tirage"
-      : "Lancer le tirage";
-
-  const title = disabledBase
-    ? "Au moins 2 participants requis"
-    : hasDraw
-      ? "Relancer le tirage"
-      : "Lancer le tirage";
-
-  return (
-    <Button
-      type="submit"
-      disabled={disabledBase || pending}
-      aria-disabled={pending || disabledBase}
-      title={title}
-      className="inline-flex items-center gap-2"
-    >
-      {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-      <span>{label}</span>
-    </Button>
-  );
-}
 
 function displayName(user?: { name: string | null; email: string | null } | null) {
   if (!user) return "Inconnu";
@@ -74,10 +54,38 @@ export function SecretSantaScreen({
   meEndpoint,
 }: SecretSantaScreenProps) {
   const router = useRouter();
-  const [isRefreshing, startTransition] = useTransition();
+  const [isDrawing, startDrawTransition] = useTransition();
   const [isBudgetSaving, startBudgetTransition] = useTransition();
   const [target, setTarget] = useState<SecretSantaMeView | null>(null);
   const [hasDraw, setHasDraw] = useState(false);
+  const [confirmDrawOpen, setConfirmDrawOpen] = useState(false);
+  const [drawError, setDrawError] = useState<string | null>(null);
+
+  const runDraw = (confirmReplace: boolean) => {
+    if (!isAdmin || isDrawing) return;
+    setDrawError(null);
+    startDrawTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.set("eventId", eventId);
+        formData.set("slug", slug);
+        formData.set("confirmReplace", String(confirmReplace));
+        const result = await launchDraw(formData);
+        if (result.requiresConfirmation) {
+          setHasDraw(true);
+          setConfirmDrawOpen(true);
+          return;
+        }
+        setTarget(await fetchMyTarget(meEndpoint));
+        setHasDraw(true);
+        setConfirmDrawOpen(false);
+        router.refresh();
+        emitGlobalRefresh();
+      } catch (error) {
+        setDrawError(error instanceof Error ? error.message : "Impossible de lancer le tirage.");
+      }
+    });
+  };
 
   const [budgetCents, setBudgetCents] = useState<number | null>(() => budgetCapCents);
   const [isBudgetEditing, setIsBudgetEditing] = useState(false);
@@ -230,9 +238,7 @@ export function SecretSantaScreen({
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-xs text-(--muted-foreground)">
-                Seul toi vois cette section.
-              </p>
+              <p className="mt-3 text-xs text-(--muted-foreground)">Seul toi vois cette section.</p>
             </div>
           ) : (
             <p className="relative mt-2 text-sm text-(--muted-foreground)">
@@ -262,32 +268,70 @@ export function SecretSantaScreen({
           )}
 
           {isAdmin ? (
-            <form
-              action={async (formData) => {
-                await launchDraw(formData);
-                startTransition(async () => {
-                  const fresh = await fetchMyTarget(meEndpoint);
-                  if (fresh) {
-                    setTarget(fresh);
-                    setHasDraw(true);
-                  }
-                  router.refresh();
-                  emitGlobalRefresh();
-                });
-              }}
-              className="mt-2 inline-flex items-center gap-2"
-            >
-              <input type="hidden" name="eventId" value={eventId} />
-              <input type="hidden" name="slug" value={slug} />
-
-              <DrawButton disabledBase={membersCount < 2 || isRefreshing} hasDraw={hasDraw} />
-
+            <div className="mt-2 space-y-2">
+              <Button
+                type="button"
+                disabled={membersCount < 2 || isDrawing}
+                onClick={() => {
+                  setDrawError(null);
+                  if (hasDraw) setConfirmDrawOpen(true);
+                  else runDraw(false);
+                }}
+              >
+                {isDrawing ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+                {isDrawing
+                  ? "Tirage en cours..."
+                  : hasDraw
+                    ? "Relancer le tirage"
+                    : "Lancer le tirage"}
+              </Button>
               {membersCount < 2 ? (
-                <span className="text-xs text-(--muted-foreground)">
+                <p className="text-xs text-(--muted-foreground)">
                   Ajoute au moins 2 participants pour lancer le tirage.
-                </span>
+                </p>
               ) : null}
-            </form>
+              {drawError && !confirmDrawOpen ? (
+                <p role="alert" className="text-sm text-red-600">
+                  {drawError}
+                </p>
+              ) : null}
+              <AlertDialog
+                open={confirmDrawOpen}
+                onOpenChange={(open) => {
+                  if (!isDrawing) setConfirmDrawOpen(open);
+                }}
+              >
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remplacer le tirage actuel ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Les attributions actuelles seront remplacées par un nouveau tirage. Chaque
+                      participant recevra un nouvel e-mail avec son attribution. Cette action ne
+                      peut pas être annulée.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  {drawError ? (
+                    <p role="alert" className="text-sm text-red-600">
+                      {drawError}
+                    </p>
+                  ) : null}
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDrawing}>
+                      Conserver le tirage actuel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      disabled={isDrawing}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        runDraw(true);
+                      }}
+                    >
+                      {isDrawing ? "Tirage en cours..." : "Remplacer et prévenir les participants"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           ) : null}
 
           <div className="mt-4 space-y-3 rounded-xl border p-3">
