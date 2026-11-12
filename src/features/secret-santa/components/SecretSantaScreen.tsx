@@ -14,6 +14,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -268,39 +269,46 @@ export function SecretSantaScreen({
           )}
 
           {isAdmin ? (
-            <div className="mt-2 space-y-2">
-              <Button
-                type="button"
-                disabled={membersCount < 2 || isDrawing}
-                onClick={() => {
-                  setDrawError(null);
-                  if (hasDraw) setConfirmDrawOpen(true);
-                  else runDraw(false);
-                }}
-              >
-                {isDrawing ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-                {isDrawing
-                  ? "Tirage en cours..."
-                  : hasDraw
-                    ? "Relancer le tirage"
-                    : "Lancer le tirage"}
-              </Button>
-              {membersCount < 2 ? (
-                <p className="text-xs text-(--muted-foreground)">
-                  Ajoute au moins 2 participants pour lancer le tirage.
-                </p>
-              ) : null}
-              {drawError && !confirmDrawOpen ? (
-                <p role="alert" className="text-sm text-red-600">
-                  {drawError}
-                </p>
-              ) : null}
-              <AlertDialog
-                open={confirmDrawOpen}
-                onOpenChange={(open) => {
-                  if (!isDrawing) setConfirmDrawOpen(open);
-                }}
-              >
+            <AlertDialog
+              open={confirmDrawOpen}
+              onOpenChange={(open) => {
+                if (!isDrawing) setConfirmDrawOpen(open);
+              }}
+            >
+              <div className="mt-2 space-y-2">
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    disabled={membersCount < 2 || isDrawing}
+                    onClick={(event) => {
+                      setDrawError(null);
+                      if (!hasDraw) {
+                        event.preventDefault();
+                        runDraw(false);
+                      }
+                    }}
+                  >
+                    {isDrawing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : null}
+                    {isDrawing
+                      ? "Tirage en cours..."
+                      : hasDraw
+                        ? "Relancer le tirage"
+                        : "Lancer le tirage"}
+                  </Button>
+                </AlertDialogTrigger>
+                {membersCount < 2 ? (
+                  <p className="text-xs text-(--muted-foreground)">
+                    Ajoute au moins 2 participants pour lancer le tirage.
+                  </p>
+                ) : null}
+                {drawError && !confirmDrawOpen ? (
+                  <p role="alert" className="text-sm text-red-600">
+                    {drawError}
+                  </p>
+                ) : null}
+
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Remplacer le tirage actuel ?</AlertDialogTitle>
@@ -330,8 +338,8 @@ export function SecretSantaScreen({
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
-              </AlertDialog>
-            </div>
+              </div>
+            </AlertDialog>
           ) : null}
 
           <div className="mt-4 space-y-3 rounded-xl border p-3">
