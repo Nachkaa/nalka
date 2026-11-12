@@ -326,7 +326,7 @@ export function SecretSantaScreen({
                         runDraw(true);
                       }}
                     >
-                      {isDrawing ? "Tirage en cours..." : "Remplacer et prévenir les participants"}
+                      {isDrawing ? "Tirage en cours..." : "Remplacer le tirage"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
