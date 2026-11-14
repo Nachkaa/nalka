@@ -11,7 +11,8 @@ permissions:
 
 concurrency:
   group: release-gate-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Never interrupt an activation/rollback on main.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   release-gate:
@@ -88,6 +89,11 @@ jobs:
       - name: Run module recommendation regression tests
         run: pnpm exec tsx --test "src/app/(app)/event/new/_components/steps/moduleRecommendations.test.ts"
 
+      - name: Test deployment guardrails
+        run: |
+          bash -n scripts/deploy/*.sh
+          node --test scripts/deploy/deployment.test.mjs
+
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
@@ -126,3 +132,161 @@ jobs:
           if [ -f /tmp/nalka-server.pid ]; then
             kill "$(cat /tmp/nalka-server.pid)" || true
           fi
+
+  build-release:
+    name: Build and verify deployable release
+    needs: release-gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nalka_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nalka_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nalka_ci?schema=public
+      SHADOW_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nalka_shadow?schema=public
+      AUTH_SECRET: nalka-ci-release-gate-secret-only
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      AUTH_URL: http://127.0.0.1:3000
+      MAIL_MODE: console
+      MAIL_FROM: ci@nalka.local
+      NEXT_TELEMETRY_DISABLED: "1"
+      NALKA_STANDALONE: "1"
+      NALKA_RELEASE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 10.15.1
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install and prepare fixture database
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec prisma generate
+          pnpm exec prisma migrate deploy
+      - name: Build production artifact
+        env:
+          NEXTAUTH_URL: https://nalka.fr
+          AUTH_URL: https://nalka.fr
+          NEXT_PUBLIC_APP_URL: https://nalka.fr
+          NEXT_PUBLIC_ENABLE_ANALYTICS: ${{ vars.NEXT_PUBLIC_ENABLE_ANALYTICS || 'false' }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ vars.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.posthog.com' }}
+        run: |
+          if [ "$NEXT_PUBLIC_ENABLE_ANALYTICS" = true ] && [ -z "$NEXT_PUBLIC_POSTHOG_KEY" ]; then
+            echo "Analytics is enabled but NEXT_PUBLIC_POSTHOG_KEY is missing." >&2
+            exit 1
+          fi
+          pnpm build
+          node scripts/deploy/package-release.mjs
+          tar -czf "$RUNNER_TEMP/nalka-release.tar.gz" -C .next/standalone .
+      - name: Verify the extracted artifact
+        run: |
+          mkdir "$RUNNER_TEMP/nalka-release"
+          tar -xzf "$RUNNER_TEMP/nalka-release.tar.gz" -C "$RUNNER_TEMP/nalka-release"
+          node "$RUNNER_TEMP/nalka-release/.deploy/verify-release.mjs" "$GITHUB_SHA"
+          HOSTNAME=127.0.0.1 PORT=3000 node "$RUNNER_TEMP/nalka-release/server.js" > /tmp/nalka-release.log 2>&1 &
+          echo $! > /tmp/nalka-release.pid
+          node scripts/deploy/health-check.mjs http://127.0.0.1:3000 "$GITHUB_SHA"
+          pnpm exec tsx scripts/ci/critical-smoke.ts
+          pnpm exec tsx scripts/ci/anonymous-event-draft-smoke.ts
+          pnpm exec tsx scripts/ci/event-email-domain-smoke.ts
+      - name: Show release log on failure
+        if: failure()
+        run: cat /tmp/nalka-release.log || true
+      - name: Stop release fixture server
+        if: always()
+        run: |
+          if [ -f /tmp/nalka-release.pid ]; then
+            kill "$(cat /tmp/nalka-release.pid)" || true
+          fi
+      - name: Save verified artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nalka-release-${{ github.sha }}
+          path: ${{ runner.temp }}/nalka-release.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  deploy:
+    name: Deploy production
+    needs: build-release
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      vars.NALKA_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://nalka.fr
+    concurrency:
+      group: nalka-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: nalka-release-${{ github.sha }}
+          path: ${{ runner.temp }}/nalka-artifact
+      - name: Skip superseded commits
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [ "$head_sha" = "$GITHUB_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::A newer main commit exists; this release will not be deployed."
+          fi
+      - name: Upload and activate verified release
+        if: steps.target.outputs.current == 'true'
+        env:
+          DEPLOY_HOST: ${{ vars.NALKA_SSH_HOST }}
+          DEPLOY_PORT: ${{ vars.NALKA_SSH_PORT || '22' }}
+          DEPLOY_KEY: ${{ secrets.NALKA_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.NALKA_SSH_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]] || { echo "Configure NALKA_SSH_HOST." >&2; exit 1; }
+          [[ "$DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]] && (( 10#$DEPLOY_PORT >= 1 && 10#$DEPLOY_PORT <= 65535 ))
+          [[ -n "$DEPLOY_KEY" && -n "$DEPLOY_KNOWN_HOSTS" ]] || { echo "Configure NALKA_SSH_KEY and NALKA_SSH_KNOWN_HOSTS." >&2; exit 1; }
+          ssh_dir=$(mktemp -d)
+          trap 'rm -rf "$ssh_dir"' EXIT
+          chmod 700 "$ssh_dir"
+          printf '%s\n' "$DEPLOY_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          chmod 600 "$ssh_dir/key" "$ssh_dir/known_hosts"
+          ssh-keygen -y -P '' -f "$ssh_dir/key" > /dev/null
+          ssh_options=(-i "$ssh_dir/key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$ssh_dir/known_hosts" -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4)
+          target="deploy@$DEPLOY_HOST"
+          deploy_root=/home/deploy/app/nalka-deploy
+          release_id="$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          archive="$RUNNER_TEMP/nalka-artifact/nalka-release.tar.gz"
+          checksum=$(sha256sum "$archive" | cut -d ' ' -f 1)
+          ssh "${ssh_options[@]}" -p "$DEPLOY_PORT" "$target" "test -L $deploy_root/current && test -r $deploy_root/shared/runtime.env && test -x /usr/local/sbin/nalka-release-service"
+          scp "${ssh_options[@]}" -P "$DEPLOY_PORT" "$archive" "$target:$deploy_root/incoming/$release_id.tar.gz"
+          scp "${ssh_options[@]}" -P "$DEPLOY_PORT" scripts/deploy/activate-release.sh "$target:$deploy_root/incoming/$release_id.sh"
+          ssh "${ssh_options[@]}" -p "$DEPLOY_PORT" "$target" "bash $deploy_root/incoming/$release_id.sh $GITHUB_SHA $release_id $checksum"
+          ssh "${ssh_options[@]}" -p "$DEPLOY_PORT" "$target" "rm -f $deploy_root/incoming/$release_id.sh $deploy_root/incoming/$release_id.tar.gz"
