@@ -1,4 +1,5 @@
 import { EventCreateSchema } from "@/domain/events";
+import { parseEventEmailDomainFormData } from "@/features/events/email-domain-policy";
 import { ensureBudgetForEvent } from "@/features/budget/server/ensure-budget-exists";
 import { buildEventModuleSeeds } from "@/features/events/module-registry";
 import { syncGiftListsIfEnabled } from "@/features/gifts/server/lifecycle";
@@ -53,6 +54,7 @@ export function parseEventCreateFormData(formData: FormData) {
 
   const parsed = EventCreateSchema.safeParse({
     title: formData.get("title"),
+    allowedEmailDomains: parseEventEmailDomainFormData(formData),
     description: formData.get("description"),
     location: {
       mode: locationMode,
@@ -96,8 +98,10 @@ export async function createEventForOwner(
   const slug = `${base}-${nanoid(6)}`;
   const eventOn = data.schedule.mode === EventScheduleMode.EXACT ? data.schedule.date : null;
   const location = data.location.mode === EventLocationMode.EXACT ? data.location.value : null;
-  const scheduleOptions = data.schedule.mode === EventScheduleMode.POLL ? data.schedule.options : [];
-  const locationOptions = data.location.mode === EventLocationMode.POLL ? data.location.options : [];
+  const scheduleOptions =
+    data.schedule.mode === EventScheduleMode.POLL ? data.schedule.options : [];
+  const locationOptions =
+    data.location.mode === EventLocationMode.POLL ? data.location.options : [];
   const status: EventStatus =
     data.schedule.mode === EventScheduleMode.EXACT ? EventStatus.ACTIVE : EventStatus.PLANNING;
 
@@ -114,6 +118,7 @@ export async function createEventForOwner(
       scheduleMode: data.schedule.mode,
       locationMode: data.location.mode,
       giftMode: data.giftMode,
+      allowedEmailDomains: data.allowedEmailDomains,
     },
     select: { id: true, slug: true },
   });
@@ -137,7 +142,8 @@ export async function createEventForOwner(
     [EventModuleKey.TIMELINE]: !!data.timelineEnabled,
     [EventModuleKey.BUDGET]: !!data.budgetEnabled,
     [EventModuleKey.POLLS]:
-      data.schedule.mode === EventScheduleMode.POLL || data.location.mode === EventLocationMode.POLL,
+      data.schedule.mode === EventScheduleMode.POLL ||
+      data.location.mode === EventLocationMode.POLL,
   });
 
   const createdModules = await Promise.all(

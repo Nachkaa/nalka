@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatEventDateTime } from "@/lib/dates/format-date";
+import { EventEmailDomainFields } from "@/features/events/components/EventEmailDomainFields";
 import { Calendar, Gift, MapPin, PackagePlus } from "lucide-react";
 import type { Draft } from "../EventCreateStepper";
 import { StepHeading } from "./StepHeading";
@@ -50,7 +51,15 @@ function StackedRow({
   );
 }
 
-export function StepReview({ draft }: { draft: Draft }) {
+export function StepReview({
+  draft,
+  onAccessChange,
+  disabled,
+}: {
+  draft: Draft;
+  onAccessChange: (value: { enabled: boolean; domains: string[] }) => void;
+  disabled?: boolean;
+}) {
   const scheduleTime = draft.scheduleTime?.trim();
   const exactDate =
     draft.scheduleMode === "EXACT"
@@ -128,6 +137,13 @@ export function StepReview({ draft }: { draft: Draft }) {
           ) : null}
         </CardContent>
       </Card>
+
+      <EventEmailDomainFields
+        enabled={draft.restrictEmailDomains}
+        domains={draft.allowedEmailDomains}
+        onChange={onAccessChange}
+        disabled={disabled}
+      />
 
       <Card>
         <CardHeader className="space-y-1">

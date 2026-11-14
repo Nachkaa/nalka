@@ -43,6 +43,7 @@ type EventHeaderEvent = {
   budgetCapCents: number | null;
 
   hasBringSection: boolean;
+  allowAccountlessParticipants: boolean;
   rsvpRequired: boolean;
 };
 
@@ -120,7 +121,12 @@ export function EventHeader({
   return (
     <>
       <div className="pb-1">
-        <Button variant="ghost" size="sm" asChild className="text-muted-foreground h-7 px-1 text-xs">
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="text-muted-foreground h-7 px-1 text-xs"
+        >
           <Link href="/event" className="inline-flex items-center gap-1.5">
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
             Revenir à mes événements
@@ -193,7 +199,14 @@ export function EventHeader({
 
           <div className="flex shrink-0 items-center gap-2">
             {summaryTrigger}
-            {canInvite ? <AddParticipantLauncher eventId={event.id} slug={slug} context="header" /> : null}
+            {canInvite ? (
+              <AddParticipantLauncher
+                eventId={event.id}
+                slug={slug}
+                context="header"
+                allowAccountlessParticipants={event.allowAccountlessParticipants}
+              />
+            ) : null}
           </div>
         </div>
       </header>

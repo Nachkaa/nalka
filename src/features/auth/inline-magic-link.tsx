@@ -38,7 +38,8 @@ export function InlineMagicLink({ redirectTo }: { redirectTo: string }) {
 
     start(async () => {
       try {
-        await sendMagicLink({ email: parsed.data, redirectTo });
+        const result = await sendMagicLink({ email: parsed.data, redirectTo });
+        if (!result.ok) throw new Error("Impossible d’envoyer le lien de connexion. Réessayez.");
         setSent(true);
       } catch (err: unknown) {
         setError(getErrorMessage(err));

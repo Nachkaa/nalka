@@ -50,6 +50,21 @@ export default async function AddRelativePage({ params, searchParams }: Props) {
   const event = await requireEventForUser(slug, meId);
   if (!event) notFound();
 
+  if (event.allowedEmailDomains.length > 0) {
+    return (
+      <main className="mx-auto max-w-md space-y-4 px-4 py-6">
+        <h1 className="text-xl font-semibold">Une adresse e-mail vérifiée est nécessaire</h1>
+        <p className="text-muted-foreground text-sm">
+          Les participants sans compte ne peuvent pas être ajoutés à cet événement. Demandez à un
+          organisateur d’envoyer une invitation nominative.
+        </p>
+        <Button asChild variant="outline">
+          <Link href={`/event/${slug}/participants`}>Revenir aux participants</Link>
+        </Button>
+      </main>
+    );
+  }
+
   const existingProfiles = await prisma.managedProfile.findMany({
     where: { ownerId: meId },
     orderBy: { firstName: "asc" },

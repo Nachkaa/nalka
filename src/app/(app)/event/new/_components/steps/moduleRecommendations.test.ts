@@ -26,6 +26,8 @@ function makeDraft(theme: Draft["theme"]): Draft {
     bringEnabled: false,
     timelineEnabled: false,
     budgetEnabled: false,
+    restrictEmailDomains: false,
+    allowedEmailDomains: [],
   };
 }
 

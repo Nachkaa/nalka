@@ -3,6 +3,7 @@
 "use server";
 
 import { auth, signIn } from "@/auth";
+import { isEmailDomainAllowed } from "@/features/events/email-domain-policy";
 import {
   deleteGiftListsForMember,
   deleteGiftListsForRelative,
@@ -62,6 +63,7 @@ export async function inviteMember(formData: FormData) {
       id: true,
       title: true,
       slug: true,
+      allowedEmailDomains: true,
       giftMode: true,
       modules: {
         where: { key: EventModuleKey.GIFTS },
@@ -71,6 +73,14 @@ export async function inviteMember(formData: FormData) {
     },
   });
   if (!event) throw new Error("Event not found");
+
+  // Addressed invitations are organizer-controlled exceptions, never a shared-link bypass.
+  if (
+    !isEmailDomainAllowed(email, event.allowedEmailDomains) &&
+    formData.get("allowExternalEmail") !== "on"
+  ) {
+    return { ok: false, requiresDomainException: true } as const;
+  }
 
   const user = await prisma.user.upsert({
     where: { email },

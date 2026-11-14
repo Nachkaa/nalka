@@ -1,10 +1,5 @@
 import { notFound } from "next/navigation";
-import {
-  EventGiftMode,
-  EventPollStatus,
-  EventPollType,
-  EventRsvpStatus,
-} from "@prisma/client";
+import { EventGiftMode, EventPollStatus, EventPollType, EventRsvpStatus } from "@prisma/client";
 
 import {
   buildEventShellNavigation,
@@ -31,9 +26,7 @@ import { getCurrentUser } from "@/lib/session";
 
 type EventWithMembership = NonNullable<Awaited<ReturnType<typeof requireEventForUser>>>;
 
-function toEventModuleSnapshots(
-  modules: EventWithMembership["modules"],
-): EventModuleSnapshot[] {
+function toEventModuleSnapshots(modules: EventWithMembership["modules"]): EventModuleSnapshot[] {
   return (modules ?? []).map((module) => ({
     key: module.key,
     enabled: module.enabled,
@@ -129,6 +122,7 @@ export type EventShellFrame = {
     isHandmadeOk: boolean;
     budgetCapCents: number | null;
     hasBringSection: boolean;
+    allowAccountlessParticipants: boolean;
     rsvpRequired: boolean;
     scheduleMode: EventWithMembership["scheduleMode"];
     locationMode: EventWithMembership["locationMode"];
@@ -239,6 +233,7 @@ export async function getEventShellFrame(args: {
     rsvpSummary,
     headerEvent: {
       id: event.id,
+      allowAccountlessParticipants: event.allowedEmailDomains.length === 0,
       slug: event.slug,
       title: event.title,
       description: event.description,

@@ -2,17 +2,22 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { BasicEventForm } from "./_components/BasicEventForm";
 import { DeleteEventSection } from "./DeleteEventSection";
+import { getEventAccessContext, isOrganizerRole } from "@/features/events/access";
+import { EventEmailDomainForm } from "./_components/EventEmailDomainForm";
 
 export default async function EditEventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
   const session = await auth();
   if (!session?.user?.email) redirect("/signin");
+
+  const access = await getEventAccessContext({ slug });
+  if (!access || !isOrganizerRole(access.membership.role)) notFound();
 
   const event = await prisma.event.findUnique({
     where: { slug },
@@ -23,6 +28,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
       eventOn: true,
       eventTime: true,
       location: true,
+      allowedEmailDomains: true,
     },
   });
 
@@ -59,6 +65,8 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
           location: event.location ?? "",
         }}
       />
+
+      <EventEmailDomainForm slug={slug} allowedEmailDomains={event.allowedEmailDomains} />
 
       {/* Suppression */}
       <DeleteEventSection eventId={event.id} title={event.title} />

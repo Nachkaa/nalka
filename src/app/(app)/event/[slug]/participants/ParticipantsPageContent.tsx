@@ -49,6 +49,7 @@ type Props = {
   slug: string;
   eventId: string;
   canInviteMembers: boolean;
+  allowAccountlessParticipants: boolean;
 };
 
 const STATUS_FILTERS: Array<{ key: EventRsvpStatus | "ALL"; label: string }> = [
@@ -112,6 +113,7 @@ export function ParticipantsPageContent({
   slug,
   eventId,
   canInviteMembers,
+  allowAccountlessParticipants,
 }: Props) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<EventRsvpStatus | "ALL">("ALL");
@@ -282,8 +284,13 @@ export function ParticipantsPageContent({
         <div className="from-background via-background/95 pointer-events-none sticky bottom-0 -mx-4 bg-gradient-to-t to-transparent px-4 pt-6 pb-1 md:-mx-6 md:px-6">
           <div className="pointer-events-auto">
             {canInviteMembers ? (
-              <AddParticipantLauncher eventId={eventId} slug={slug} context="participants" />
-            ) : (
+              <AddParticipantLauncher
+                eventId={eventId}
+                slug={slug}
+                context="participants"
+                allowAccountlessParticipants={allowAccountlessParticipants}
+              />
+            ) : allowAccountlessParticipants ? (
               <Link
                 href={`/event/${slug}/participants/add-relative?from=participants`}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-6 text-sm font-medium text-[var(--primary-foreground)] shadow-sm transition hover:shadow-md hover:brightness-105 focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:outline-none"
@@ -291,7 +298,7 @@ export function ParticipantsPageContent({
                 <UserPlus className="h-4 w-4" aria-hidden="true" />
                 Ajouter un proche sans compte
               </Link>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

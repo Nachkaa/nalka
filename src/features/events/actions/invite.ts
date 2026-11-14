@@ -4,6 +4,7 @@
 "use server";
 
 import { auth } from "@/auth";
+import { assertEmailDomainAccess } from "@/features/events/email-domain-policy";
 import { ensureGiftListForJoinedMember } from "@/features/gifts/server/lifecycle";
 import { prisma } from "@/lib/prisma";
 import { EventGiftMode, EventModuleKey } from "@prisma/client";
@@ -149,9 +150,6 @@ export async function acceptInvite(code: string) {
   if (token.expiresAt && token.expiresAt < new Date()) {
     throw Object.assign(new Error("Link expired"), { status: 410 });
   }
-  if (token.remainingUses <= 0) {
-    throw Object.assign(new Error("Link already used"), { status: 409 });
-  }
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
@@ -175,6 +173,17 @@ export async function acceptInvite(code: string) {
     let joinedNow = false;
 
     if (!existing) {
+      if (token.remainingUses <= 0) {
+        throw httpError("Link already used", 409);
+      }
+
+      // Read the current policy: changing settings also protects links already shared.
+      const eventAccess = await tx.event.findUniqueOrThrow({
+        where: { id: token.eventId },
+        select: { allowedEmailDomains: true },
+      });
+      assertEmailDomainAccess(user, eventAccess.allowedEmailDomains);
+
       // 2) Vérif capacité uniquement si on rejoint maintenant
       const limit = token.event.memberLimit ?? 50;
       const count = await tx.eventMember.count({
@@ -184,19 +193,17 @@ export async function acceptInvite(code: string) {
         throw Object.assign(new Error("Event is full"), { status: 409 });
       }
 
+      const consumed = await tx.inviteToken.updateMany({
+        where: { code: token.code, remainingUses: { gt: 0 } },
+        data: { remainingUses: { decrement: 1 } },
+      });
+      if (consumed.count !== 1) throw httpError("Link already used", 409);
+
       await tx.eventMember.create({
         data: {
           userId: user.id,
           eventId: token.eventId,
           role: "MEMBER",
-        },
-      });
-
-      // 3) Consommer une utilisation du token uniquement au premier join
-      await tx.inviteToken.update({
-        where: { code: token.code },
-        data: {
-          remainingUses: { decrement: 1 },
         },
       });
 

@@ -126,6 +126,7 @@ export default async function ManageParticipantsPage({ params }: Props) {
         slug={slug}
         eventId={event.id}
         canInviteMembers={canManage}
+        allowAccountlessParticipants={event.allowedEmailDomains.length === 0}
       />
     </main>
   );
