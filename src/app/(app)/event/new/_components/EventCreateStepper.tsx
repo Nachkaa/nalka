@@ -40,6 +40,8 @@ export type Draft = {
   bringEnabled: boolean;
   timelineEnabled: boolean;
   budgetEnabled: boolean;
+  restrictEmailDomains: boolean;
+  allowedEmailDomains: string[];
 };
 
 type Props = {
@@ -81,6 +83,8 @@ export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
     bringEnabled: false,
     timelineEnabled: false,
     budgetEnabled: false,
+    restrictEmailDomains: false,
+    allowedEmailDomains: [],
   });
   const [step, setStep] = useState(0);
   const [submitError, setSubmitError] = useState("");
@@ -107,8 +111,9 @@ export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
   );
   const timelineRecommendation = useMemo(
     () =>
-      moduleRecommendations.recommended.find((item) => item.moduleKey === EventModuleKey.TIMELINE) ??
-      null,
+      moduleRecommendations.recommended.find(
+        (item) => item.moduleKey === EventModuleKey.TIMELINE,
+      ) ?? null,
     [moduleRecommendations],
   );
   const budgetRecommendation = useMemo(
@@ -171,12 +176,22 @@ export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
     formData.set("rules.isSecondHandOk", "");
     formData.set("rules.isHandmadeOk", "");
     formData.set("rules.budgetCap", "");
+    formData.set("access.restrictEmailDomains", draft.restrictEmailDomains ? "on" : "");
+    if (draft.restrictEmailDomains) {
+      for (const domain of draft.allowedEmailDomains) {
+        formData.append("access.allowedEmailDomains", domain);
+      }
+    }
 
     return formData;
   }
 
   function submit() {
     setSubmitError("");
+    if (draft.restrictEmailDomains && draft.allowedEmailDomains.length === 0) {
+      setSubmitError("Ajoutez au moins un domaine autorisé.");
+      return;
+    }
     const formData = buildFormData();
 
     startTransition(async () => {
@@ -288,7 +303,17 @@ export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
 
           {step === 5 && (
             <div className="space-y-4">
-              <StepReview draft={draft} />
+              <StepReview
+                draft={draft}
+                disabled={isPending}
+                onAccessChange={({ enabled, domains }) =>
+                  setDraft((current) => ({
+                    ...current,
+                    restrictEmailDomains: enabled,
+                    allowedEmailDomains: domains,
+                  }))
+                }
+              />
               {!isAuthenticated ? (
                 <div className="border-primary/20 bg-primary/5 rounded-xl border px-4 py-3">
                   <p className="text-sm font-medium">Votre événement est prêt.</p>
@@ -319,7 +344,15 @@ export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
             Continuer
           </Button>
         ) : (
-          <Button type="button" onClick={submit} disabled={isPending || !draft.title.trim()}>
+          <Button
+            type="button"
+            onClick={submit}
+            disabled={
+              isPending ||
+              !draft.title.trim() ||
+              (draft.restrictEmailDomains && draft.allowedEmailDomains.length === 0)
+            }
+          >
             {isPending
               ? "Enregistrement..."
               : isAuthenticated

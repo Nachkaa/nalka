@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { parseDateOrThrow, startOfTodayLocal } from "@/lib/dates/parseDateOrThrow";
 import { EventScheduleMode, EventLocationMode } from "@prisma/client";
+import { EmailDomainListSchema } from "@/features/events/email-domain-policy";
 
 const checkboxFromForm = z
   .union([z.string(), z.boolean(), z.null(), z.undefined()])
@@ -65,6 +66,7 @@ const locationSchema = z.discriminatedUnion("mode", [
 export const EventCreateSchema = z
   .object({
     title: z.string().min(1).max(120),
+    allowedEmailDomains: EmailDomainListSchema.default([]),
     description: z
       .string()
       .max(500)

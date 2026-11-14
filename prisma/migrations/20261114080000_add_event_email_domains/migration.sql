@@ -1,0 +1,1 @@
+ALTER TABLE "Event" ADD COLUMN "allowedEmailDomains" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

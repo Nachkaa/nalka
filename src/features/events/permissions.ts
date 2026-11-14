@@ -26,6 +26,7 @@ export async function requireEventForUser(slug: string, userId: string) {
       colorHex: true,
       scheduleMode: true,
       locationMode: true,
+      allowedEmailDomains: true,
 
       giftMode: true,
 

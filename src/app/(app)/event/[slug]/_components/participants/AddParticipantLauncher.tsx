@@ -22,6 +22,7 @@ type Props = {
   context?: "event" | "participants" | "header";
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  allowAccountlessParticipants?: boolean;
 };
 
 export function AddParticipantLauncher({
@@ -30,6 +31,7 @@ export function AddParticipantLauncher({
   context = "event",
   open: openProp,
   onOpenChange,
+  allowAccountlessParticipants = true,
 }: Props) {
   const [open, setOpen] = React.useState(openProp ?? false);
   const [mode, setMode] = React.useState<"choice" | "email">("choice");
@@ -131,18 +133,20 @@ export function AddParticipantLauncher({
                 <span>Inviter par e-mail</span>
               </Button>
 
-              <Button
-                asChild
-                type="button"
-                variant="outline"
-                className="flex w-full items-center justify-start gap-2 py-3 text-sm sm:text-base"
-                onClick={closeDialog}
-              >
-                <Link href={addRelativeHref}>
-                  <UserRoundPlus className="h-5 w-5" aria-hidden="true" />
-                  <span>Ajouter un proche sans compte</span>
-                </Link>
-              </Button>
+              {allowAccountlessParticipants ? (
+                <Button
+                  asChild
+                  type="button"
+                  variant="outline"
+                  className="flex w-full items-center justify-start gap-2 py-3 text-sm sm:text-base"
+                  onClick={closeDialog}
+                >
+                  <Link href={addRelativeHref}>
+                    <UserRoundPlus className="h-5 w-5" aria-hidden="true" />
+                    <span>Ajouter un proche sans compte</span>
+                  </Link>
+                </Button>
+              ) : null}
             </div>
           </>
         ) : (

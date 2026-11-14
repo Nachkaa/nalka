@@ -3,10 +3,7 @@ import { randomUUID } from "node:crypto";
 
 import { EventMemberRole, PrismaClient } from "@prisma/client";
 
-import {
-  createEventDraft,
-  hashEventDraftToken,
-} from "@/features/events/server/event-draft";
+import { createEventDraft, hashEventDraftToken } from "@/features/events/server/event-draft";
 
 const prisma = new PrismaClient();
 const baseUrl = (process.env.NEXTAUTH_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
@@ -55,6 +52,8 @@ function buildDraftFormData() {
   formData.set("rules.isSecondHandOk", "");
   formData.set("rules.isHandmadeOk", "");
   formData.set("rules.budgetCap", "");
+  formData.set("access.restrictEmailDomains", "on");
+  formData.append("access.allowedEmailDomains", "@NALKA.LOCAL");
   return formData;
 }
 
@@ -101,6 +100,7 @@ async function main() {
       select: {
         id: true,
         ownerId: true,
+        allowedEmailDomains: true,
         memberships: {
           where: { userId: owner.id },
           select: { role: true },
@@ -111,12 +111,21 @@ async function main() {
 
     assert.equal(claimedEvent.ownerId, owner.id, "Verified user must own the claimed event");
     assert.equal(claimedEvent.memberships[0]?.role, EventMemberRole.OWNER);
+    assert.deepEqual(
+      claimedEvent.allowedEmailDomains,
+      ["nalka.local"],
+      "Anonymous drafts must preserve the normalized access policy",
+    );
 
     const claimedDraft = await prisma.eventDraft.findUniqueOrThrow({
       where: { tokenHash: draftTokenHash },
       select: { claimedEventId: true },
     });
-    assert.equal(claimedDraft.claimedEventId, claimedEvent.id, "Draft must record its claimed event");
+    assert.equal(
+      claimedDraft.claimedEventId,
+      claimedEvent.id,
+      "Draft must record its claimed event",
+    );
 
     const repeatedClaim = redirectLocation(await get(claimPath, ownerSessionToken));
     assert.equal(

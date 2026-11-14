@@ -39,6 +39,8 @@ export function InviteMemberForm({
 }: InviteMemberFormProps) {
   const [email, setEmail] = useState("");
   const [lastEmail, setLastEmail] = useState("");
+  const [exceptionEmail, setExceptionEmail] = useState("");
+  const [allowExternalEmail, setAllowExternalEmail] = useState(false);
   const [status, setStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -67,11 +69,20 @@ export function InviteMemberForm({
         const fd = new FormData();
         fd.append("eventId", eventId);
         fd.append("email", value);
+        fd.set("allowExternalEmail", allowExternalEmail && exceptionEmail === value ? "on" : "");
 
         setLastEmail(value);
-        await inviteMember(fd);
+        const result = await inviteMember(fd);
+        if ("requiresDomainException" in result && result.requiresDomainException) {
+          setExceptionEmail(value);
+          setAllowExternalEmail(false);
+          setStatus("idle");
+          return;
+        }
         setStatus("success");
         setEmail("");
+        setExceptionEmail("");
+        setAllowExternalEmail(false);
 
         if (onDone) onDone();
       } catch {
@@ -111,7 +122,11 @@ export function InviteMemberForm({
             autoComplete="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setExceptionEmail("");
+              setAllowExternalEmail(false);
+            }}
             onBlur={(e) => setEmail(normalizeEmail(e.target.value))}
             ref={inputRef}
             aria-invalid={!!errorMsg}
@@ -125,7 +140,27 @@ export function InviteMemberForm({
           )}
         </div>
 
-        <Button type="submit" disabled={isPending || !email} className="w-full">
+        {exceptionEmail ? (
+          <label className="bg-muted flex items-start gap-3 rounded-lg p-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1 size-4 shrink-0"
+              checked={allowExternalEmail}
+              disabled={isPending}
+              onChange={(event) => setAllowExternalEmail(event.target.checked)}
+            />
+            <span>
+              Cette adresse est hors des domaines autorisés. J’autorise exceptionnellement cette
+              personne à rejoindre l’événement.
+            </span>
+          </label>
+        ) : null}
+
+        <Button
+          type="submit"
+          disabled={isPending || !email || (!!exceptionEmail && !allowExternalEmail)}
+          className="w-full"
+        >
           {isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />

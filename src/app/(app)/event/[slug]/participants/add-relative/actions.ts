@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
+import { requireEventMembership } from "@/features/events/access";
 import { syncGiftListsIfEnabled } from "@/features/gifts/server/lifecycle";
 import { prisma } from "@/lib/prisma";
 import { EventGiftMode } from "@prisma/client";
@@ -33,6 +34,16 @@ export async function createEventRelativeAction(formData: FormData) {
 
   if (!eventId || !slug) {
     redirect(`/event/${slug || ""}`);
+  }
+
+  const access = await requireEventMembership({ eventId, userId: meId });
+  if (access.event.slug !== slug) throw new Error("Forbidden");
+  const emailPolicy = await prisma.event.findUniqueOrThrow({
+    where: { id: access.event.id },
+    select: { allowedEmailDomains: true },
+  });
+  if (emailPolicy.allowedEmailDomains.length > 0) {
+    redirect(`/event/${slug}/participants/add-relative?from=${from}`);
   }
 
   const baseTarget =
@@ -127,6 +138,7 @@ export async function createEventRelativeAction(formData: FormData) {
       select: {
         id: true,
         giftMode: true,
+        allowedEmailDomains: true,
         modules: {
           where: { key: "GIFTS" }, // keep as string to avoid importing EventModuleKey if you want
           select: { enabled: true },
@@ -135,6 +147,9 @@ export async function createEventRelativeAction(formData: FormData) {
       },
     });
     if (!event) throw new Error("Event not found");
+    if (event.allowedEmailDomains.length > 0) {
+      throw new Error("Cet événement nécessite une adresse e-mail vérifiée.");
+    }
 
     const giftsEnabled = event.modules[0]?.enabled === true;
 
