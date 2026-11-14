@@ -75,6 +75,9 @@ jobs:
       - name: Run auth regression tests
         run: pnpm test:auth-routes
 
+      - name: Run Secret Santa redraw regression tests
+        run: node --test src/features/secret-santa/server/mutations.test.mjs
+
       - name: Run analytics privacy regression tests
         run: pnpm exec tsx --test src/lib/analytics/sanitizePageViewUrl.test.ts
 

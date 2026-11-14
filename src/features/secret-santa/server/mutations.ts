@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 const Input = z.object({
   eventId: z.string().min(1),
   slug: z.string().min(1),
+  confirmReplace: z.boolean(),
 });
 
 const BudgetInput = z.object({
@@ -63,6 +64,7 @@ export async function launchDraw(formData: FormData) {
   const parsed = Input.safeParse({
     eventId: formData.get("eventId"),
     slug: formData.get("slug"),
+    confirmReplace: formData.get("confirmReplace") === "true",
   });
   if (!parsed.success) throw new Error("Champs requis");
 
@@ -108,7 +110,14 @@ export async function launchDraw(formData: FormData) {
     receiversByGiver.set(giverId, receivers[index]);
   });
 
-  await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
+    const existing = await tx.secretSantaAssignment.findFirst({
+      where: { eventId: access.event.id },
+      select: { id: true },
+    });
+    if (existing && !parsed.data.confirmReplace) {
+      return { requiresConfirmation: true };
+    }
     await tx.secretSantaAssignment.deleteMany({ where: { eventId: access.event.id } });
     await tx.secretSantaAssignment.createMany({
       data: participantIds.map((giverId) => ({
@@ -117,7 +126,9 @@ export async function launchDraw(formData: FormData) {
         receiverId: receiversByGiver.get(giverId)!,
       })),
     });
+    return { requiresConfirmation: false };
   });
+  if (result.requiresConfirmation) return result;
 
   const baseUrl =
     process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -151,6 +162,7 @@ export async function launchDraw(formData: FormData) {
   }
 
   revalidatePath(`/event/${access.event.slug}`);
+  return { requiresConfirmation: false };
 }
 
 export async function setSecretSantaBudget(formData: FormData) {
