@@ -2,6 +2,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: process.env.NALKA_STANDALONE === "1" ? "standalone" : undefined,
   async rewrites() {
     return [
       {
