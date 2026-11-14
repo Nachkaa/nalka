@@ -1,21 +1,10 @@
-﻿import { Body, Head, Html, Preview } from "@react-email/components";
+import { Body, Head, Html, Preview } from "@react-email/components";
+import { EMAIL_BRAND as TOKENS, EMAIL_FONT_FAMILY, EmailBrandHeader } from "./brand";
 
 export type MagicLinkEmailProps = {
   url: string;
   appName?: string;
   supportEmail?: string;
-};
-
-const TOKENS = {
-  bg: "#F6F7FB", // neutral background
-  card: "#FFFFFF",
-  border: "#E7EAF0", // soft borders
-  text: "#111827",
-  muted: "#4B5563",
-  subtle: "#6B7280",
-  primary600: "#4F39F6",
-  primary700: "#3520D6",
-  primary100: "#F1EEFF",
 };
 
 export default function MagicLinkEmail({
@@ -35,8 +24,7 @@ export default function MagicLinkEmail({
           margin: 0,
           padding: "32px 0",
           backgroundColor: TOKENS.bg,
-          fontFamily:
-            'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+          fontFamily: EMAIL_FONT_FAMILY,
           color: TOKENS.text,
         }}
       >
@@ -61,51 +49,7 @@ export default function MagicLinkEmail({
                     {/* Header */}
                     <tr>
                       <td align="center" style={{ paddingBottom: 18 }}>
-                        <table
-                          role="presentation"
-                          cellPadding={0}
-                          cellSpacing={0}
-                          style={{ borderCollapse: "collapse" }}
-                        >
-                          <tbody>
-                            <tr>
-                              <td
-                                style={{
-                                  width: 36,
-                                  height: 36,
-                                  borderRadius: 12,
-                                  backgroundColor: TOKENS.primary600,
-                                  textAlign: "center",
-                                  verticalAlign: "middle",
-                                  boxShadow: "0 6px 16px rgba(17, 24, 39, 0.10)",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    display: "inline-block",
-                                    color: "#FFFFFF",
-                                    fontSize: 16,
-                                    lineHeight: "36px",
-                                    fontWeight: 800,
-                                  }}
-                                >
-                                  N
-                                </span>
-                              </td>
-                              <td style={{ paddingLeft: 10 }}>
-                                <span
-                                  style={{
-                                    fontSize: 16,
-                                    color: TOKENS.primary600,
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  {appName}
-                                </span>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
+                        <EmailBrandHeader appName={appName} />
                       </td>
                     </tr>
 

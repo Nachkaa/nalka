@@ -9,6 +9,7 @@ import {
   Button,
   Hr,
 } from "@react-email/components";
+import { EMAIL_BRAND as TOKENS, EMAIL_FONT_FAMILY, EmailBrandHeader } from "./brand";
 
 export default function SecretSantaAssignedEmail({
   giverName,
@@ -21,34 +22,44 @@ export default function SecretSantaAssignedEmail({
   eventTitle: string;
   eventUrl: string;
 }) {
-  const brand = {
-    bg: "#FAF8F1",
-    card: "#FFFFFF",
-    text: "#0B3D2E",
-    muted: "#475569",
-    border: "#E7E2D6",
-    accent: "#EAB308",
-    btnBg: "#0B3D2E",
-    btnText: "#FFFBE6",
-  };
-
   return (
-    <Html>
+    <Html lang="fr">
       <Head />
       <Preview>Ton partenaire Secret Santa a été tiré 🎁</Preview>
       <Body
         style={{
-          backgroundColor: brand.bg,
-          fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial",
+          margin: 0,
+          padding: "32px 0",
+          backgroundColor: TOKENS.bg,
+          fontFamily: EMAIL_FONT_FAMILY,
+          color: TOKENS.text,
         }}
       >
-        <Container style={{ maxWidth: 560, margin: "0 auto", padding: 24 }}>
+        <Container
+          style={{
+            maxWidth: 600,
+            width: "100%",
+            margin: "0 auto",
+            padding: "0 16px",
+            boxSizing: "border-box",
+          }}
+        >
+          <table role="presentation" cellPadding={0} cellSpacing={0} width="100%">
+            <tbody>
+              <tr>
+                <td align="center" style={{ paddingBottom: 18 }}>
+                  <EmailBrandHeader appName="Nalka" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
           <Section
             style={{
-              backgroundColor: brand.card,
-              borderRadius: 16,
-              padding: 24,
-              border: `1px solid ${brand.border}`,
+              backgroundColor: TOKENS.card,
+              borderRadius: 20,
+              padding: 32,
+              border: `1px solid ${TOKENS.border}`,
+              boxShadow: "0 10px 30px rgba(17, 24, 39, 0.08)",
             }}
           >
             <Text
@@ -56,13 +67,13 @@ export default function SecretSantaAssignedEmail({
                 margin: 0,
                 fontSize: 18,
                 fontWeight: 700,
-                color: brand.text,
+                color: TOKENS.text,
               }}
             >
               🎄 Secret Santa
             </Text>
 
-            <Text style={{ marginTop: 12, fontSize: 16, color: brand.text }}>
+            <Text style={{ marginTop: 12, fontSize: 16, color: TOKENS.text }}>
               Bonjour {giverName},
               <br />
               <br />
@@ -71,38 +82,52 @@ export default function SecretSantaAssignedEmail({
               Tu devras offrir un cadeau à :
             </Text>
 
-            <Text
+            <Section
               style={{
                 marginTop: 16,
-                fontSize: 20,
-                fontWeight: 700,
-                color: brand.accent,
+                padding: 16,
+                borderRadius: 12,
+                backgroundColor: TOKENS.primary100,
               }}
             >
-              {receiverName}
-            </Text>
+              <Text
+                style={{
+                  margin: 0,
+                  fontSize: 20,
+                  lineHeight: "28px",
+                  fontWeight: 700,
+                  color: TOKENS.primary700,
+                  overflowWrap: "anywhere",
+                  wordBreak: "break-word",
+                }}
+              >
+                {receiverName}
+              </Text>
+            </Section>
 
             <Section style={{ textAlign: "center", marginTop: 24 }}>
               <Button
                 href={eventUrl}
                 style={{
                   display: "inline-block",
-                  padding: "12px 18px",
-                  borderRadius: 12,
+                  padding: "14px 18px",
+                  borderRadius: 999,
                   textDecoration: "none",
-                  fontWeight: 600,
-                  backgroundColor: brand.btnBg,
-                  color: brand.btnText,
-                  border: `1px solid ${brand.accent}`,
+                  fontSize: 16,
+                  lineHeight: "20px",
+                  fontWeight: 700,
+                  backgroundColor: TOKENS.primary600,
+                  color: TOKENS.onPrimary,
+                  border: `1px solid ${TOKENS.primary600}`,
                 }}
               >
                 Voir l’événement
               </Button>
             </Section>
 
-            <Hr style={{ borderColor: brand.border, margin: "24px 0" }} />
+            <Hr style={{ borderColor: TOKENS.border, margin: "24px 0" }} />
 
-            <Text style={{ marginTop: 0, fontSize: 12, color: brand.muted }}>
+            <Text style={{ marginTop: 0, fontSize: 12, color: TOKENS.muted }}>
               Garde ton attribution secrète jusqu’à l’échange des cadeaux.
             </Text>
           </Section>
@@ -111,7 +136,7 @@ export default function SecretSantaAssignedEmail({
             style={{
               marginTop: 12,
               fontSize: 12,
-              color: brand.muted,
+              color: TOKENS.muted,
               textAlign: "center",
             }}
           >
