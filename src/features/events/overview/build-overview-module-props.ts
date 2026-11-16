@@ -30,6 +30,7 @@ type BuildOverviewModulePropsArgs = {
   userRole: OverviewModuleProps["userRole"];
   giftsStats?: GiftsStats | null;
   potluckStats?: PotluckStats | null;
+  secretSantaOverview?: OverviewModuleProps["secretSantaOverview"];
   programmeSummary?: ProgrammeSummary | null;
   programmeLive?: ProgrammeLiveData;
   canonicalPolls?: EventPollVM[];
@@ -49,6 +50,7 @@ export function buildOverviewModuleProps({
   userRole,
   giftsStats,
   potluckStats,
+  secretSantaOverview,
   programmeSummary,
   programmeLive,
   canonicalPolls = [],
@@ -76,6 +78,7 @@ export function buildOverviewModuleProps({
     giftMode: event.giftMode,
     giftsStats: giftsStats ?? undefined,
     potluckStats: potluckStats ?? undefined,
+    secretSantaOverview,
     programmeSummary: programmeSummary ?? undefined,
     programmeLive,
     pollsProps:

@@ -43,7 +43,9 @@ function buildDraftFormData() {
   formData.set("schedule.mode", "TBD");
   formData.set("schedule.time", "");
   formData.set("location.mode", "TBD");
-  formData.set("modules.secretSantaEnabled", "");
+  formData.set("modules.secretSantaEnabled", "on");
+  formData.set("modules.giftsEnabled", "on");
+  formData.set("giftMode", "PERSONAL_LISTS");
   formData.set("modules.bringEnabled", "");
   formData.set("modules.timelineEnabled", "");
   formData.set("modules.budgetEnabled", "");
@@ -101,6 +103,8 @@ async function main() {
         id: true,
         ownerId: true,
         allowedEmailDomains: true,
+        giftMode: true,
+        modules: { select: { key: true, enabled: true } },
         memberships: {
           where: { userId: owner.id },
           select: { role: true },
@@ -111,6 +115,11 @@ async function main() {
 
     assert.equal(claimedEvent.ownerId, owner.id, "Verified user must own the claimed event");
     assert.equal(claimedEvent.memberships[0]?.role, EventMemberRole.OWNER);
+    assert.equal(claimedEvent.giftMode, "PERSONAL_LISTS");
+    assert.ok(
+      claimedEvent.modules.some((module) => module.key === "SECRET_SANTA" && module.enabled),
+    );
+    assert.ok(claimedEvent.modules.some((module) => module.key === "GIFTS" && module.enabled));
     assert.deepEqual(
       claimedEvent.allowedEmailDomains,
       ["nalka.local"],

@@ -1,4 +1,5 @@
 import type { EventPollVM } from "@/features/polls/types";
+import type { SecretSantaOverview } from "@/features/secret-santa/overview";
 import type {
   EventGiftMode,
   EventLocationMode,
@@ -43,13 +44,11 @@ export type ProgrammeSummary = {
   endsAt: string | null;
   locationName?: string | null;
   note?: string | null;
-  next?:
-    | {
-        title: string;
-        startsAt: string;
-        endsAt: string | null;
-      }
-    | null;
+  next?: {
+    title: string;
+    startsAt: string;
+    endsAt: string | null;
+  } | null;
 };
 
 export type ProgrammeLiveMoment = {
@@ -93,6 +92,7 @@ export type OverviewModuleProps = {
   giftMode: EventGiftMode;
   giftsStats?: GiftsStats;
   potluckStats?: PotluckStats;
+  secretSantaOverview?: SecretSantaOverview;
   programmeSummary?: ProgrammeSummary | null;
   programmeLive?: ProgrammeLiveData;
 };

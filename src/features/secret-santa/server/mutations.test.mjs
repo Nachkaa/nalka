@@ -1,92 +1,103 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import vm from "node:vm";
 import { test } from "node:test";
-import ts from "typescript";
 
-const load = createRequire(import.meta.url);
-const source = ts.transpileModule(
-  readFileSync(new URL("./mutations.ts", import.meta.url), "utf8"),
-  {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  },
-).outputText;
+import { deferred, drawForm, loadDrawAction } from "./draw-test-fixture.mjs";
 
-function fixture({ existing = false, denied = false, failWrite = false } = {}) {
+function fixture({ existing = false, denied = false, failWrite = false, mail } = {}) {
   const calls = { delete: 0, create: 0, mail: 0, refresh: 0 };
-  const assignments = {
-    findFirst: async () => (existing ? { id: "existing-draw" } : null),
-    deleteMany: async () => {
-      calls.delete += 1;
+  let stored = existing ? [{ id: "old-one" }, { id: "old-two" }] : [];
+  let locked = false;
+  let generation = 0;
+  const tx = {
+    $queryRaw: async () => [{ id: "module" }],
+    event: {
+      findUnique: async () => ({
+        title: "Fixture Santa",
+        memberships: ["one", "two"].map((id) => ({
+          user: { id, name: id, email: `${id}@example.test` },
+        })),
+      }),
     },
-    createMany: async () => {
-      calls.create += 1;
-      if (failWrite) throw new Error("Write failed");
-    },
-  };
-  const mocks = {
-    "@react-email/render": { render: async () => "fixture email" },
-    "@prisma/client": { EventModuleKey: { SECRET_SANTA: "SECRET_SANTA" } },
-    "next/cache": {
-      revalidatePath: () => {
-        calls.refresh += 1;
+    secretSantaAssignment: {
+      findMany: async () => stored.map((row) => ({ ...row })),
+      deleteMany: async () => {
+        calls.delete += 1;
+        stored = [];
       },
-    },
-    "@/emails/SecretSantaAssignedEmail": { default: () => null },
-    "@/features/events/access": {
-      requireEnabledModule: async () => {
-        if (denied) throw new Error("Forbidden");
-        return { event: { id: "event", slug: "santa" } };
-      },
-    },
-    "@/lib/mail": {
-      sendMail: async () => {
-        calls.mail += 1;
-      },
-    },
-    "@/lib/prisma": {
-      prisma: {
-        event: {
-          findUnique: async () => ({
-            title: "Fixture Santa",
-            memberships: ["one", "two"].map((id) => ({
-              user: { id, name: id, email: `${id}@example.test` },
-            })),
-          }),
-        },
-        $transaction: async (fn) => fn({ secretSantaAssignment: assignments }),
+      createMany: async ({ data }) => {
+        calls.create += 1;
+        if (failWrite) throw new Error("Write failed");
+        generation += 1;
+        stored = data.map((row) => ({ ...row, id: `draw-${generation}-${row.giverId}` }));
       },
     },
   };
-  const fixtureModule = { exports: {} };
-  const run = vm.runInThisContext(`(function(require, module, exports) {${source}\n})`);
-  run((name) => (name in mocks ? mocks[name] : load(name)), fixtureModule, fixtureModule.exports);
-  const form = new FormData();
-  form.set("eventId", "event");
-  form.set("slug", "santa");
-  return { calls, form, launch: fixtureModule.exports.launchDraw };
+  const prisma = {
+    ...tx,
+    $transaction: async (work) => {
+      const previous = stored;
+      try {
+        return await work(tx);
+      } catch (error) {
+        stored = previous;
+        throw error;
+      }
+    },
+  };
+  const action = loadDrawAction({
+    prisma,
+    access: async () => {
+      if (denied) throw new Error("Forbidden");
+      return { event: { id: "event", slug: "santa" }, eventModule: { id: "module" } };
+    },
+    mail: async () => {
+      calls.mail += 1;
+      await mail?.();
+    },
+    refresh: () => {
+      calls.refresh += 1;
+    },
+    lock: async (_eventId, work) => {
+      if (locked) return null;
+      locked = true;
+      try {
+        return await work({ assertHeld: async () => {} });
+      } finally {
+        locked = false;
+      }
+    },
+  });
+  return {
+    calls,
+    form: drawForm("event", action.drawRevision(stored)),
+    launch: action.launchDraw,
+    assignments: () => stored,
+  };
 }
 
 for (const confirmation of [undefined, "false", "yes"]) {
   test(`existing draw requires exact confirmation (${confirmation ?? "missing"})`, async () => {
     const { calls, form, launch } = fixture({ existing: true });
-    if (confirmation !== undefined) form.set("confirmReplace", confirmation);
-    assert.equal((await launch(form)).requiresConfirmation, true);
+    if (confirmation === undefined) form.delete("confirmReplace");
+    else form.set("confirmReplace", confirmation);
+    assert.equal((await launch(form)).status, "requiresConfirmation");
     assert.deepEqual(calls, { delete: 0, create: 0, mail: 0, refresh: 0 });
   });
 }
 
-test("first draw remains a single action", async () => {
+test("first draw remains a single action and returns an opaque revision", async () => {
   const { calls, form, launch } = fixture();
-  assert.equal((await launch(form)).requiresConfirmation, false);
+  const result = await launch(form);
+  assert.equal(result.status, "completed");
+  assert.match(result.drawRevision, /^[a-f0-9]{64}$/);
+  assert.equal(result.notificationFailures, 0);
   assert.deepEqual(calls, { delete: 1, create: 1, mail: 2, refresh: 1 });
 });
 
 test("confirmed redraw replaces assignments and notifies participants", async () => {
   const { calls, form, launch } = fixture({ existing: true });
   form.set("confirmReplace", "true");
-  assert.equal((await launch(form)).requiresConfirmation, false);
+  assert.equal((await launch(form)).status, "completed");
   assert.deepEqual(calls, { delete: 1, create: 1, mail: 2, refresh: 1 });
 });
 
@@ -97,9 +108,76 @@ test("confirmation does not bypass organizer authorization", async () => {
   assert.deepEqual(calls, { delete: 0, create: 0, mail: 0, refresh: 0 });
 });
 
-test("failed assignment writes do not send notifications", async () => {
-  const { calls, form, launch } = fixture({ failWrite: true });
-  await assert.rejects(launch(form), /Write failed/);
-  assert.equal(calls.mail, 0);
-  assert.equal(calls.refresh, 0);
+test("failed assignment writes preserve the previous draw and send nothing", async () => {
+  const f = fixture({ existing: true, failWrite: true });
+  f.form.set("confirmReplace", "true");
+  await assert.rejects(f.launch(f.form), /Write failed/);
+  assert.deepEqual(f.assignments(), [{ id: "old-one" }, { id: "old-two" }]);
+  assert.equal(f.calls.mail, 0);
+  assert.equal(f.calls.refresh, 0);
+  await assert.rejects(f.launch(f.form), /Write failed/);
+});
+
+for (const existing of [false, true]) {
+  test(`overlapping ${existing ? "redraws" : "first draws"} are rejected during email delivery`, async () => {
+    const started = deferred();
+    const finish = deferred();
+    const f = fixture({
+      existing,
+      mail: async () => {
+        started.resolve();
+        await finish.promise;
+      },
+    });
+    f.form.set("confirmReplace", "true");
+    const first = f.launch(f.form);
+    try {
+      await started.promise;
+      assert.deepEqual(await f.launch(f.form), { status: "busy" });
+      assert.equal(f.calls.create, 1);
+    } finally {
+      finish.resolve();
+    }
+    assert.equal((await first).status, "completed");
+    assert.equal(f.calls.mail, 2);
+    assert.equal((await f.launch(f.form)).status, "stale");
+    assert.equal(f.calls.create, 1);
+    assert.equal(f.calls.mail, 2);
+  });
+}
+
+test("a fresh confirmed revision permits a later intentional redraw", async () => {
+  const f = fixture();
+  const first = await f.launch(f.form);
+  const second = await f.launch(drawForm("event", first.drawRevision, true));
+  assert.equal(second.status, "completed");
+  assert.notEqual(second.drawRevision, first.drawRevision);
+  assert.equal(f.calls.create, 2);
+});
+
+test("SMTP failure preserves the saved draw, reports failures and never logs recipient data", async (t) => {
+  const errors = [];
+  t.mock.method(console, "error", (...args) => {
+    errors.push(args);
+  });
+  const f = fixture({
+    mail: async () => {
+      throw new Error("recipient@example.test / private mapping");
+    },
+  });
+  const result = await f.launch(f.form);
+  assert.equal(result.status, "completed");
+  assert.equal(result.notificationFailures, 2);
+  assert.equal(f.assignments().length, 2);
+  assert.doesNotMatch(JSON.stringify(errors), /recipient@example.test|private mapping/);
+  assert.equal((await f.launch(f.form)).status, "stale");
+  assert.equal(f.calls.mail, 2);
+  assert.equal((await f.launch(drawForm("event", result.drawRevision, true))).status, "completed");
+});
+
+test("old clients without a revision cannot trigger an unchecked redraw", async () => {
+  const f = fixture({ existing: true });
+  f.form.delete("expectedRevision");
+  await assert.rejects(f.launch(f.form), /Actualise la page/);
+  assert.deepEqual(f.calls, { delete: 0, create: 0, mail: 0, refresh: 0 });
 });

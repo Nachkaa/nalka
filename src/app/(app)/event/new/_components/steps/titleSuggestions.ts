@@ -5,6 +5,12 @@ type Theme = Draft["theme"];
 type Suggestion = { prefix: string; title: string };
 
 const byTheme: Record<Exclude<Theme, undefined>, Suggestion[]> = {
+  christmas: [
+    { prefix: "Noël", title: "Noël en famille" },
+    { prefix: "Amis", title: "Secret Santa entre amis" },
+    { prefix: "Équipe", title: "Secret Santa de l'équipe" },
+    { prefix: "Fêtes", title: "Repas de Noël" },
+  ],
   social: [
     { prefix: "Séminaire", title: "Séminaire équipe" },
     { prefix: "Formation", title: "Formation client" },

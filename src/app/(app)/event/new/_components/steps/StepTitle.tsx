@@ -34,7 +34,12 @@ export function StepTitle({ draft, onChange, onNext, autoAdvance = false }: Prop
           id="title"
           value={draft.title}
           onChange={(e) => onChange({ title: e.target.value })}
-          placeholder="Ex. Séminaire équipe - Q3"
+          aria-label="Nom de l'événement"
+          placeholder={
+            draft.theme === "christmas"
+              ? "Ex. Noël en famille, Secret Santa de l'équipe..."
+              : "Ex. Séminaire équipe - Q3"
+          }
           autoFocus
         />
 

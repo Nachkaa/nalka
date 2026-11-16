@@ -19,4 +19,5 @@ export type SecretSantaModuleProps = {
   budgetCapCents: number | null;
   isSecondHandOk: boolean;
   isHandmadeOk: boolean;
+  drawRevision: string | null;
 };

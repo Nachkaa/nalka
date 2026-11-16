@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { ModuleRecommendation } from "./moduleRecommendations";
+import { GiftExchangeOptions } from "./GiftExchangeOptions";
 import { StepHeading } from "./StepHeading";
 
 type GiftChoice = EventGiftMode;
@@ -38,6 +39,7 @@ type SelectedModule = {
 };
 
 type Props = {
+  christmasContext: "explicit" | "seasonal" | null;
   giftMode: EventGiftMode | null;
   giftRecommendation: ModuleRecommendation | null;
   secretSantaEnabled: boolean;
@@ -86,7 +88,7 @@ function scrollTo(id: string) {
 
 function RecommendedBadge() {
   return (
-    <Badge className="border-primary/20 bg-primary/10 text-primary shadow-none hover:bg-primary/10">
+    <Badge className="border-primary/20 bg-primary/10 text-primary hover:bg-primary/10 shadow-none">
       Recommandé
     </Badge>
   );
@@ -135,7 +137,7 @@ function SelectedModulesStrip({ modules }: { modules: SelectedModule[] }) {
   if (modules.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
+    <div className="border-primary/15 bg-primary/5 rounded-2xl border p-4">
       <div className="mb-3 flex items-center gap-2 text-sm">
         <span className="font-medium">Modules actifs</span>
         <span className="text-muted-foreground">{modules.length}</span>
@@ -196,10 +198,7 @@ function ModuleDiscoveryList({
           return (
             <div
               key={module.id}
-              className={[
-                "flex items-center gap-3 p-4",
-                index > 0 ? "border-t" : "",
-              ].join(" ")}
+              className={["flex items-center gap-3 p-4", index > 0 ? "border-t" : ""].join(" ")}
             >
               <div className="bg-muted flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border">
                 <Icon className="text-primary h-5 w-5" />
@@ -231,6 +230,7 @@ function ModuleDiscoveryList({
 }
 
 export function StepModules({
+  christmasContext,
   giftMode,
   giftRecommendation,
   secretSantaEnabled,
@@ -249,6 +249,7 @@ export function StepModules({
   onChangeBudgetEnabled,
 }: Props) {
   const giftsEnabled = giftMode !== null;
+  const showGiftExchange = christmasContext !== null || secretSantaEnabled;
 
   const selectedModules: SelectedModule[] = [
     ...(timelineEnabled
@@ -342,7 +343,7 @@ export function StepModules({
           } satisfies ModuleCatalogCard,
         ]
       : []),
-    ...(!giftsEnabled
+    ...(!giftsEnabled && !showGiftExchange
       ? [
           {
             id: "gifts",
@@ -356,7 +357,7 @@ export function StepModules({
           } satisfies ModuleCatalogCard,
         ]
       : []),
-    ...(!secretSantaEnabled
+    ...(!secretSantaEnabled && !showGiftExchange
       ? [
           {
             id: "secretSanta",
@@ -371,9 +372,7 @@ export function StepModules({
 
   const recommendedIds = new Set<ModuleCardId>([
     ...(giftRecommendation && !giftsEnabled ? (["gifts"] as const) : []),
-    ...(secretSantaRecommendation && !secretSantaEnabled
-      ? (["secretSanta"] as const)
-      : []),
+    ...(secretSantaRecommendation && !secretSantaEnabled ? (["secretSanta"] as const) : []),
     ...(bringRecommendation && !bringEnabled ? (["bring"] as const) : []),
     ...(timelineRecommendation && !timelineEnabled ? (["timeline"] as const) : []),
     ...(budgetRecommendation && !budgetEnabled ? (["budget"] as const) : []),
@@ -387,22 +386,36 @@ export function StepModules({
   return (
     <div className="space-y-4">
       <StepHeading
-        title="Modules de pilotage"
-        subtitle="Ajoutez seulement les modules utiles pour coordonner cet événement."
+        title="Les options de votre événement"
+        subtitle="Choisissez les options utiles. Vous pourrez les ajuster avant et après la création."
       />
 
       <SelectedModulesStrip modules={selectedModules} />
 
+      {showGiftExchange ? (
+        <div className="space-y-2">
+          {secretSantaRecommendation && !secretSantaEnabled ? (
+            <p className="text-muted-foreground text-sm">{secretSantaRecommendation.reason}</p>
+          ) : null}
+          <GiftExchangeOptions
+            giftMode={giftMode}
+            secretSantaEnabled={secretSantaEnabled}
+            onChangeGiftMode={(mode) => (mode === null ? onRemoveGifts() : onChangeGiftMode(mode))}
+            onChangeSecretSantaEnabled={onChangeSecretSantaEnabled}
+          />
+        </div>
+      ) : null}
+
       <ModuleDiscoveryList
         modules={rankModules(businessModules)}
         recommendedIds={recommendedIds}
-        title="Modules de pilotage"
+        title="Organisation"
       />
 
       <ModuleDiscoveryList
         modules={rankModules(contextualModules)}
         recommendedIds={recommendedIds}
-        title="Modules contextuels"
+        title="Autres options"
       />
 
       {giftsEnabled ? (

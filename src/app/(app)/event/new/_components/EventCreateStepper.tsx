@@ -47,6 +47,8 @@ export type Draft = {
 type Props = {
   displayName: string;
   isAuthenticated: boolean;
+  christmasSeason?: boolean;
+  initialChristmasOccasion?: boolean;
 };
 
 type StepDef = {
@@ -60,14 +62,19 @@ export const STEPS: readonly StepDef[] = [
   { key: "title", chip: "Titre", title: "Nom de l’événement" },
   { key: "date", chip: "Date", title: "Quand ?" },
   { key: "place", chip: "Lieu", title: "Où ?" },
-  { key: "modules", chip: "Pilotage", title: "Modules" },
+  { key: "modules", chip: "Options", title: "Options" },
   { key: "review", chip: "Récap", title: "Résumé" },
 ] as const;
 
-export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
+export function EventCreateStepper({
+  displayName,
+  isAuthenticated,
+  christmasSeason = false,
+  initialChristmasOccasion = false,
+}: Props) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>({
-    theme: undefined,
+    theme: initialChristmasOccasion ? "christmas" : undefined,
     displayName,
     title: "",
     description: "",
@@ -231,6 +238,7 @@ export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
         >
           {step === 0 && (
             <StepType
+              christmasSeason={christmasSeason}
               value={draft.theme}
               onChange={(theme) => setDraft((current) => ({ ...current, theme }))}
               onNext={next}
@@ -274,6 +282,7 @@ export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
 
           {step === 4 && (
             <StepModules
+              christmasContext={moduleRecommendations.christmasContext}
               giftMode={draft.giftMode}
               giftRecommendation={giftRecommendation}
               secretSantaEnabled={draft.secretSantaEnabled}
@@ -305,6 +314,10 @@ export function EventCreateStepper({ displayName, isAuthenticated }: Props) {
             <div className="space-y-4">
               <StepReview
                 draft={draft}
+                showGiftExchange={
+                  moduleRecommendations.christmasContext !== null || draft.secretSantaEnabled
+                }
+                onGiftOptionsChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
                 disabled={isPending}
                 onAccessChange={({ enabled, domains }) =>
                   setDraft((current) => ({

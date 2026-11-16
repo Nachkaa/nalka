@@ -23,6 +23,7 @@ import { useMemo, useState, useTransition } from "react";
 import { EventDescriptionSection } from "./EventDescriptionSection";
 import { LeaveEventDialog } from "./LeaveEventDialog";
 import { RsvpBar } from "./RsvpBar";
+import { SecretSantaOverviewCard } from "./SecretSantaOverviewCard";
 import { WhatsNextSection } from "./whats-next";
 import type {
   EnableRsvpRequirementAction,
@@ -85,6 +86,7 @@ export function OverviewScreen({
   giftMode,
   giftsStats,
   potluckStats,
+  secretSantaOverview,
   programmeSummary,
   updateRsvpAction,
   enableRsvpRequirementAction,
@@ -125,6 +127,9 @@ export function OverviewScreen({
 
   return (
     <div className="space-y-6">
+      {secretSantaOverview ? (
+        <SecretSantaOverviewCard summary={secretSantaOverview} eventSlug={eventSlug} />
+      ) : null}
       {shouldShowRsvp ? (
         <section>
           <RsvpBar
@@ -195,10 +200,10 @@ export function OverviewScreen({
             >
               <div className="flex w-full items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold tracking-wide uppercase text-(--primary-700)">
+                  <p className="text-xs font-semibold tracking-wide text-(--primary-700) uppercase">
                     Programme
                   </p>
-                  <p className="text-foreground mt-1 text-base font-semibold leading-snug">
+                  <p className="text-foreground mt-1 text-base leading-snug font-semibold">
                     {programmeSummary.title}
                   </p>
                 </div>
@@ -221,8 +226,7 @@ export function OverviewScreen({
 
               {programmeSummary.next ? (
                 <div className="text-muted-foreground rounded-xl border border-white/80 bg-white/70 px-3 py-2 text-sm">
-                  <span className="font-medium">Ensuite :</span>{" "}
-                  {programmeSummary.next.title} ·{" "}
+                  <span className="font-medium">Ensuite :</span> {programmeSummary.next.title} ·{" "}
                   {formatProgrammeTimeRange(
                     programmeSummary.next.startsAt,
                     programmeSummary.next.endsAt,
