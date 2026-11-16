@@ -20,6 +20,7 @@ function fixture({
   assignments = 0,
   mine = 0,
   members = 2,
+  recipient = { name: "Camille", email: "camille@example.test" },
 } = {}) {
   const calls = [];
   let transactionOptions;
@@ -51,7 +52,11 @@ function fixture({
         secretSantaAssignment: {
           count: async (args) => {
             calls.push(args);
-            return args.where.giverId ? mine : assignments;
+            return assignments;
+          },
+          findUnique: async (args) => {
+            calls.push(args);
+            return mine ? { receiverId: "my-recipient" } : null;
           },
         },
         eventMember: {
@@ -60,9 +65,19 @@ function fixture({
             return members;
           },
         },
-        $transaction: async (queries, options) => {
+        user: {
+          findUnique: async (args) => {
+            calls.push(args);
+            assert.deepEqual(args, {
+              where: { id: "my-recipient" },
+              select: { name: true, email: true },
+            });
+            return recipient;
+          },
+        },
+        $transaction: async (read, options) => {
           transactionOptions = options;
-          return Promise.all(queries);
+          return read(mocks["@/lib/prisma"].prisma);
         },
       },
     },
@@ -104,7 +119,10 @@ for (const role of ["OWNER", "ADMIN", "MEMBER"]) {
     });
     assert.deepEqual(f.calls, [
       { where: { eventId: "authorized-event" } },
-      { where: { eventId: "authorized-event", giverId: "authorized-user" } },
+      {
+        where: { eventId_giverId: { eventId: "authorized-event", giverId: "authorized-user" } },
+        select: { receiverId: true },
+      },
       { where: { eventId: "authorized-event" } },
     ]);
     assert.deepEqual(f.options(), { isolationLevel: "RepeatableRead" });
@@ -115,13 +133,26 @@ test("assignment available means the current giver has one, never another member
   const f = fixture({ assignments: 8, mine: 1, members: 8 });
   const summary = await f.read();
   assert.equal(summary.state, "assigned");
+  assert.equal(summary.recipientLabel, "Camille");
   assert.deepEqual(Object.keys(summary).sort(), [
     "budgetCapCents",
     "canManage",
     "membersCount",
+    "recipientLabel",
     "state",
   ]);
 });
+
+for (const name of [null, "", "   "]) {
+  test(`uses the recipient email when the display name is ${JSON.stringify(name)}`, async () => {
+    const summary = await fixture({
+      assignments: 2,
+      mine: 1,
+      recipient: { name, email: "camille@example.test" },
+    }).read();
+    assert.equal(summary.recipientLabel, "camille@example.test");
+  });
+}
 
 test("a member joining after the draw is told that they have no assignment", async () => {
   const summary = await fixture({ assignments: 8, mine: 0, members: 9 }).read();

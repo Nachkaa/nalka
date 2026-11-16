@@ -1,17 +1,21 @@
-export type SecretSantaOverview = {
-  state: "waiting" | "assigned" | "not-assigned";
+type SecretSantaOverviewBase = {
   membersCount: number;
   canManage: boolean;
   budgetCapCents: number | null;
 };
 
+export type SecretSantaOverview = SecretSantaOverviewBase &
+  (
+    | { state: "assigned"; recipientLabel: string }
+    | { state: "waiting" | "not-assigned"; recipientLabel?: never }
+  );
+
 export function buildSecretSantaOverviewCard(summary: SecretSantaOverview) {
   if (summary.state === "assigned") {
     return {
-      title: "Votre attribution est prête",
-      description:
-        "Découvrez à qui offrir un cadeau dans votre espace privé. Gardez la surprise jusqu'à l'échange !",
-      action: "Voir mon attribution",
+      title: "Vous offrez un cadeau à",
+      description: "Gardez la surprise jusqu'à l'échange des cadeaux !",
+      action: "Voir le Secret Santa",
       badge: "Tirage effectué",
     };
   }

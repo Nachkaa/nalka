@@ -31,11 +31,16 @@ test("organizers with two registered participants can prepare the draw", () => {
   assert.match(card.description, /budget/);
 });
 
-test("assigned participants are sent to their private attribution", () => {
-  const card = buildSecretSantaOverviewCard({ ...base, state: "assigned" });
-  assert.equal(card.action, "Voir mon attribution");
+test("assigned participants see their recipient directly without a reveal step", () => {
+  const card = buildSecretSantaOverviewCard({
+    ...base,
+    state: "assigned",
+    recipientLabel: "Camille",
+  });
+  assert.equal(card.title, "Vous offrez un cadeau à");
+  assert.equal(card.action, "Voir le Secret Santa");
   assert.equal(card.badge, "Tirage effectué");
-  assert.match(card.description, /espace privé/);
+  assert.doesNotMatch(card.description, /Découvrez|espace privé/);
 });
 
 test("missing assignments after a draw do not suggest automatic reassignment", () => {

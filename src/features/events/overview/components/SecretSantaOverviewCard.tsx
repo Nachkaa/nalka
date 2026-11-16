@@ -46,6 +46,11 @@ export function SecretSantaOverviewCard({
             className="text-lg font-semibold tracking-tight sm:text-xl"
           >
             {content.title}
+            {summary.state === "assigned" ? (
+              <span className="mt-1 block text-2xl font-bold break-words sm:text-3xl">
+                {summary.recipientLabel}
+              </span>
+            ) : null}
           </h2>
           <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
             {content.description}
@@ -69,6 +74,7 @@ export function SecretSantaOverviewCard({
           <div className="flex flex-col items-start gap-3 pt-2 sm:flex-row sm:flex-wrap sm:items-center">
             <Button
               asChild
+              variant={summary.state === "assigned" ? "outline" : "default"}
               className="h-auto min-h-10 max-w-full py-2 text-center whitespace-normal"
             >
               <Link

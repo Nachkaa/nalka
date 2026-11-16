@@ -260,10 +260,36 @@ async function smokeSecretSantaOverview(ownerId: string, joinerId: string, event
   const drawnResponse = await get(`/event/${slug}`, joinerSessionToken);
   assert.equal(drawnResponse.status, 200);
   const drawnHtml = await drawnResponse.text();
-  assert.ok(drawnHtml.includes("Votre attribution est prête"));
-  assert.ok(drawnHtml.includes("Voir mon attribution"));
+  const recipientCard = (html: string) => {
+    const card = html.match(
+      /<section\b[^>]*aria-labelledby="secret-santa-overview-title"[^>]*>[\s\S]*?<\/section>/,
+    )?.[0];
+    assert.ok(card, "Secret Santa overview card must render in the initial HTML");
+    return card;
+  };
+  const joinerCard = recipientCard(drawnHtml);
+  assert.ok(joinerCard.includes("Vous offrez un cadeau à"));
+  assert.ok(
+    joinerCard.includes("CI Owner"),
+    "Recipient name must be visible without another click",
+  );
   assert.equal(
-    drawnHtml.includes('"receiverId"'),
+    joinerCard.includes("CI Joiner"),
+    false,
+    "Another giver's recipient must not appear in this card",
+  );
+  const drawnOwnerCard = recipientCard(
+    await (await get(`/event/${slug}`, ownerSessionToken)).text(),
+  );
+  assert.ok(drawnOwnerCard.includes("CI Joiner"));
+  assert.equal(drawnOwnerCard.includes("CI Owner"), false);
+
+  await prisma.user.update({ where: { id: ownerId }, data: { name: "   " } });
+  const emailCard = recipientCard(await (await get(`/event/${slug}`, joinerSessionToken)).text());
+  assert.ok(emailCard.includes(ownerEmail), "Nameless recipients must use their email as fallback");
+  await prisma.user.update({ where: { id: ownerId }, data: { name: "CI Owner" } });
+  assert.equal(
+    drawnHtml.includes("receiverId"),
     false,
     "Overview must not serialize draw mappings",
   );
