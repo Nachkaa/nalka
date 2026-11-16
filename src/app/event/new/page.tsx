@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { EventCreateStepper } from "@/app/(app)/event/new/_components/EventCreateStepper";
 import { auth } from "@/auth";
+import { isChristmasSeason } from "@/features/events/christmas-season";
 import { noIndexMetadata } from "@/lib/seo";
 
 export const metadata = noIndexMetadata;
@@ -17,7 +18,12 @@ function getDisplayName(name?: string | null, email?: string | null) {
   return "vous";
 }
 
-export default async function EventNewPage() {
+export default async function EventNewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ occasion?: string | string[] }>;
+}) {
+  const { occasion } = await searchParams;
   const session = await auth();
   const isAuthenticated = Boolean(session?.user);
   const displayName = getDisplayName(session?.user?.name, session?.user?.email);
@@ -39,14 +45,17 @@ export default async function EventNewPage() {
             Configurez votre espace événement
           </h1>
           {!isAuthenticated ? (
-            <p className="text-muted-foreground text-sm">
-              Aucun compte nécessaire pour commencer.
-            </p>
+            <p className="text-muted-foreground text-sm">Aucun compte nécessaire pour commencer.</p>
           ) : null}
         </div>
       </header>
 
-      <EventCreateStepper displayName={displayName} isAuthenticated={isAuthenticated} />
+      <EventCreateStepper
+        displayName={displayName}
+        isAuthenticated={isAuthenticated}
+        christmasSeason={isChristmasSeason(new Date())}
+        initialChristmasOccasion={occasion === "christmas"}
+      />
     </main>
   );
 }

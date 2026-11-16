@@ -7,6 +7,7 @@ import { EventEmailDomainFields } from "@/features/events/components/EventEmailD
 import { Calendar, Gift, MapPin, PackagePlus } from "lucide-react";
 import type { Draft } from "../EventCreateStepper";
 import { StepHeading } from "./StepHeading";
+import { GiftExchangeOptions } from "./GiftExchangeOptions";
 
 function giftLabel(mode: Draft["giftMode"]) {
   switch (mode) {
@@ -54,10 +55,14 @@ function StackedRow({
 export function StepReview({
   draft,
   onAccessChange,
+  showGiftExchange,
+  onGiftOptionsChange,
   disabled,
 }: {
   draft: Draft;
   onAccessChange: (value: { enabled: boolean; domains: string[] }) => void;
+  showGiftExchange: boolean;
+  onGiftOptionsChange: (patch: Partial<Pick<Draft, "giftMode" | "secretSantaEnabled">>) => void;
   disabled?: boolean;
 }) {
   const scheduleTime = draft.scheduleTime?.trim();
@@ -138,6 +143,18 @@ export function StepReview({
         </CardContent>
       </Card>
 
+      {showGiftExchange ? (
+        <GiftExchangeOptions
+          giftMode={draft.giftMode}
+          secretSantaEnabled={draft.secretSantaEnabled}
+          onChangeGiftMode={(giftMode) => onGiftOptionsChange({ giftMode })}
+          onChangeSecretSantaEnabled={(secretSantaEnabled) =>
+            onGiftOptionsChange({ secretSantaEnabled })
+          }
+          disabled={disabled}
+        />
+      ) : null}
+
       <EventEmailDomainFields
         enabled={draft.restrictEmailDomains}
         domains={draft.allowedEmailDomains}
@@ -155,7 +172,7 @@ export function StepReview({
         <CardContent className="text-muted-foreground space-y-2 text-sm">
           <div>- Partager un lien</div>
           <div>- Inviter par e-mail</div>
-          <div>- Ajuster les modules de pilotage et les modules contextuels</div>
+          <div>- Ajuster les options de l&apos;événement</div>
         </CardContent>
       </Card>
     </div>

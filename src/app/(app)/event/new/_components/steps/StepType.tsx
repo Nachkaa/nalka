@@ -6,6 +6,7 @@ import {
   Building2,
   Handshake,
   Sparkles,
+  TreePine,
   Users,
 } from "lucide-react";
 
@@ -13,13 +14,14 @@ import { Button } from "@/components/ui/button";
 
 import { StepHeading } from "./StepHeading";
 
-export type ThemeValue = "social" | "family" | "sport" | "trip" | "group" | "custom";
+export type ThemeValue = "social" | "family" | "sport" | "trip" | "group" | "custom" | "christmas";
 
 type Props = {
   value?: ThemeValue;
   onChange: (value: ThemeValue) => void;
   onNext?: () => void;
   autoAdvance?: boolean;
+  christmasSeason?: boolean;
 };
 
 const THEMES: Array<{
@@ -28,6 +30,12 @@ const THEMES: Array<{
   description: string;
   Icon: React.ComponentType<{ className?: string }>;
 }> = [
+  {
+    value: "christmas",
+    title: "Noël / Secret Santa",
+    description: "Un échange de cadeaux en famille, entre amis ou collègues.",
+    Icon: TreePine,
+  },
   {
     value: "social",
     title: "Séminaire",
@@ -66,7 +74,13 @@ const THEMES: Array<{
   },
 ];
 
-export function StepType({ value, onChange, onNext, autoAdvance = false }: Props) {
+export function StepType({
+  value,
+  onChange,
+  onNext,
+  autoAdvance = false,
+  christmasSeason = false,
+}: Props) {
   function pick(v: ThemeValue) {
     onChange(v);
     if (autoAdvance) onNext?.();
@@ -88,9 +102,10 @@ export function StepType({ value, onChange, onNext, autoAdvance = false }: Props
               key={`${v}-${title}`}
               type="button"
               variant="secondary"
+              aria-pressed={selected}
               onClick={() => pick(v)}
               className={[
-                "h-auto items-start justify-start p-4 text-left",
+                "h-auto items-start justify-start p-4 text-left whitespace-normal",
                 "rounded-2xl border bg-[var(--card)] hover:bg-[var(--card)]/80",
                 "transition-colors",
                 selected
@@ -110,8 +125,13 @@ export function StepType({ value, onChange, onNext, autoAdvance = false }: Props
                 </div>
 
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="leading-tight font-medium">{title}</span>
+                    {v === "christmas" && christmasSeason && !selected ? (
+                      <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-medium">
+                        C&apos;est la saison
+                      </span>
+                    ) : null}
                     {selected && (
                       <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5 text-[10px] font-medium text-[var(--sidebar-primary)]">
                         Sélectionné

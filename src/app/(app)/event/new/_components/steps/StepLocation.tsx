@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { EventLocationMode } from "@prisma/client";
-import { Building2, Globe, Hotel, Landmark, Plus, Utensils } from "lucide-react";
+import { Building2, Globe, Home, Hotel, Landmark, Plus, Utensils } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { StepHeading } from "./StepHeading";
 import type { ThemeValue } from "./StepType";
@@ -41,6 +41,12 @@ const PROFESSIONAL_SUGGESTIONS: Suggestion[] = [
 ];
 
 const BY_THEME: Record<ThemeValue, Suggestion[]> = {
+  christmas: [
+    { value: "À la maison", label: "À la maison", icon: Home },
+    { value: "Au bureau", label: "Au bureau", icon: Building2 },
+    { value: "Au restaurant", label: "Au restaurant", icon: Utensils },
+    { value: "En ligne", label: "En ligne", icon: Globe },
+  ],
   social: PROFESSIONAL_SUGGESTIONS,
   family: PROFESSIONAL_SUGGESTIONS,
   sport: PROFESSIONAL_SUGGESTIONS,

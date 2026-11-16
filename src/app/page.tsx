@@ -8,6 +8,8 @@ import { MarketingModulesSection } from "@/app/(app)/_components/MarketingModule
 import { MarketingPreviewSection } from "@/app/(app)/_components/MarketingPreviewSection";
 import { MarketingPrivacySection } from "@/app/(app)/_components/MarketingPrivacySection";
 import { auth } from "@/auth";
+import { isChristmasSeason } from "@/features/events/christmas-season";
+import { Sparkles } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { MarketingNavbar } from "@/components/marketing/MarketingNavbar";
 import { StructuredData } from "@/components/seo/StructuredData";
@@ -87,6 +89,33 @@ export default async function MarketingHomePage() {
       />
       <MarketingNavbar />
 
+      {isChristmasSeason(new Date()) ? (
+        <section
+          aria-labelledby="christmas-title"
+          className="border-primary/15 bg-primary/5 border-b"
+        >
+          <Container className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <Sparkles className="text-primary mt-1 h-5 w-5 shrink-0" aria-hidden />
+              <div className="space-y-1">
+                <p className="text-primary text-xs font-semibold tracking-wide uppercase">
+                  Noël approche
+                </p>
+                <h2 id="christmas-title" className="font-semibold">
+                  Un Secret Santa à organiser ?
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Famille, amis, collègues : un tirage privé et des listes de cadeaux en option.
+                </p>
+              </div>
+            </div>
+            <Button asChild className="shrink-0">
+              <Link href="/event/new?occasion=christmas">Préparer mon Secret Santa</Link>
+            </Button>
+          </Container>
+        </section>
+      ) : null}
+
       <section className="relative isolate overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(110%_70%_at_15%_20%,color-mix(in_oklch,var(--primary),white_86%)_0%,transparent_52%),radial-gradient(90%_60%_at_85%_0%,color-mix(in_oklch,var(--primary),white_90%)_0%,transparent_48%),linear-gradient(to_bottom,white_0%,color-mix(in_oklch,var(--background),black_2%)_55%,var(--background)_100%)]" />
 
@@ -99,8 +128,8 @@ export default async function MarketingHomePage() {
                 Pilotez vos événements, devis et décisions au même endroit.
               </h1>
               <p className="text-muted-foreground max-w-xl text-lg">
-                Centralisez participants, RSVP, programme, arbitrages, budget, devis prestataires
-                et paiements dans un espace opérationnel léger.
+                Centralisez participants, RSVP, programme, arbitrages, budget, devis prestataires et
+                paiements dans un espace opérationnel léger.
               </p>
 
               <div className="space-y-2.5">

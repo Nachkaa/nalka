@@ -9,6 +9,7 @@ export type ModuleRecommendation = {
 };
 
 export type ModuleRecommendationResult = {
+  christmasContext: "explicit" | "seasonal" | null;
   recommended: ModuleRecommendation[];
   available: EventModuleKey[];
 };
@@ -88,6 +89,7 @@ function normalize(value: string) {
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-\u2010-\u2015]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -112,17 +114,25 @@ function pushRecommendation(
 
 export function inferModuleRecommendations(draft: Draft): ModuleRecommendationResult {
   const text = normalize(
-    [draft.title, draft.displayName, draft.description, draft.location]
-      .filter(Boolean)
-      .join(" "),
+    [draft.title, draft.displayName, draft.description, draft.location].filter(Boolean).join(" "),
   );
   const theme = draft.theme;
   const recommended: ModuleRecommendation[] = [];
 
   const isProfessionalTheme = isOneOf(theme, PROFESSIONAL_THEMES);
   const hasStructuredProgramTheme = isOneOf(theme, STRUCTURED_EVENT_THEMES);
-  const hasGiftContext = containsAny(text, GIFT_KEYWORDS);
-  const hasSecretSantaContext = containsAny(text, SECRET_SANTA_KEYWORDS);
+  const occasionText = normalize([draft.title, draft.description].join(" "));
+  const hasSecretSantaContext =
+    draft.theme === "christmas" || containsAny(occasionText, SECRET_SANTA_KEYWORDS);
+  const hasChristmasDate =
+    draft.scheduleMode === EventScheduleMode.EXACT &&
+    /^\d{4}-(11|12)-\d{2}$/.test(draft.scheduleDate);
+  const christmasContext = hasSecretSantaContext
+    ? "explicit"
+    : hasChristmasDate
+      ? "seasonal"
+      : null;
+  const hasGiftContext = containsAny(occasionText, GIFT_KEYWORDS) || christmasContext !== null;
   const hasContributionContext = containsAny(text, CONTRIBUTION_KEYWORDS);
   const hasTimelineContext = containsAny(text, TIMELINE_KEYWORDS) || hasStructuredProgramTheme;
   const needsPollCoordination =
@@ -130,6 +140,17 @@ export function inferModuleRecommendations(draft: Draft): ModuleRecommendationRe
     draft.locationMode !== EventLocationMode.EXACT ||
     isOneOf(theme, ["trip", "group"]) ||
     containsAny(text, POLL_KEYWORDS);
+
+  if (christmasContext) {
+    pushRecommendation(
+      recommended,
+      EventModuleKey.SECRET_SANTA,
+      christmasContext === "explicit" ? "high" : "medium",
+      christmasContext === "explicit"
+        ? "Un échange de cadeaux en famille, entre amis ou collègues : chacun découvre en privé à qui offrir un cadeau."
+        : "Votre événement a lieu en fin d'année : vous pouvez proposer un échange de cadeaux Secret Santa.",
+    );
+  }
 
   if (isProfessionalTheme) {
     pushRecommendation(
@@ -153,7 +174,8 @@ export function inferModuleRecommendations(draft: Draft): ModuleRecommendationRe
     pushRecommendation(
       recommended,
       EventModuleKey.POLLS,
-      draft.scheduleMode !== EventScheduleMode.EXACT || draft.locationMode !== EventLocationMode.EXACT
+      draft.scheduleMode !== EventScheduleMode.EXACT ||
+        draft.locationMode !== EventLocationMode.EXACT
         ? "high"
         : "medium",
       "Recommandé pour trancher une date, un lieu ou une décision d'organisation.",
@@ -174,22 +196,16 @@ export function inferModuleRecommendations(draft: Draft): ModuleRecommendationRe
       recommended,
       EventModuleKey.GIFTS,
       "medium",
-      "Utile uniquement si cet événement inclut une liste de cadeaux ou de recommandations.",
-    );
-  }
-
-  if (hasSecretSantaContext) {
-    pushRecommendation(
-      recommended,
-      EventModuleKey.SECRET_SANTA,
-      "medium",
-      "Utile uniquement pour un rituel d'équipe de type Secret Santa.",
+      christmasContext
+        ? "En option, une liste par personne pour partager ses envies. Fonctionne avec ou sans Secret Santa."
+        : "Utile si cet événement inclut une liste de cadeaux ou de recommandations.",
     );
   }
 
   const recommendedKeys = new Set(recommended.map((item) => item.moduleKey));
 
   return {
+    christmasContext,
     recommended,
     available: AVAILABLE_MODULES.filter((moduleKey) => !recommendedKeys.has(moduleKey)),
   };
