@@ -10,12 +10,12 @@ import {
 } from "@/features/events/shell-navigation";
 import type { EventRouteModuleProps } from "@/features/events/route-module-props";
 import { buildOverviewModuleProps } from "@/features/events/overview/build-overview-module-props";
+import { getSecretSantaOverview } from "@/features/secret-santa/server/queries/get-secret-santa-overview";
 import { requireEventForUser } from "@/features/events/permissions";
 import { getEventGiftsScreenData } from "@/features/gifts/server/queries/get-event-gifts-screen-data";
 import { getEventPotluckData } from "@/features/potluck/server/queries/get-event-potluck-data";
 import { getEventPollsVM } from "@/features/polls/server/queries/get-event-polls-vm";
 import type { EventPollVM } from "@/features/polls/types";
-import { getSecretSantaOverview } from "@/features/secret-santa/server/queries/get-secret-santa-overview";
 import { getEventTimelineData } from "@/features/timeline/server/queries/get-event-timeline-data";
 import type {
   ProgrammeLiveData,
