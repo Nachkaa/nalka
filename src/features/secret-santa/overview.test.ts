@@ -22,11 +22,13 @@ test("organizers are guided to gather participants before preparing a draw", () 
   const card = buildSecretSantaOverviewCard({ ...base, canManage: true });
   assert.match(card.title, /Invitez/);
   assert.match(card.description, /deux participants/);
+  assert.equal(card.action, "Inviter des participants");
 });
 
 test("organizers with two registered participants can prepare the draw", () => {
   const card = buildSecretSantaOverviewCard({ ...base, canManage: true, membersCount: 2 });
   assert.equal(card.action, "Préparer le tirage");
+  assert.match(card.description, /budget/);
 });
 
 test("assigned participants are sent to their private attribution", () => {

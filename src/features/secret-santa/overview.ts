@@ -33,13 +33,15 @@ export function buildSecretSantaOverviewCard(summary: SecretSantaOverview) {
           title: "Invitez les participants avant le tirage",
           description:
             "Au moins deux participants inscrits sont nécessaires. Invitez votre groupe, puis préparez le tirage.",
-          action: "Préparer le Secret Santa",
+          action: "Inviter des participants",
           badge: "Participants attendus",
         }
       : {
           title: "Votre Secret Santa attend son tirage",
           description:
-            "Vérifiez que votre groupe est au complet, puis lancez le tirage. Chacun recevra son attribution en privé.",
+            summary.budgetCapCents === null
+              ? "Convenez d'un budget si besoin et vérifiez que votre groupe est au complet, puis lancez le tirage."
+              : "Vérifiez que votre groupe est au complet, puis lancez le tirage. Chacun recevra son attribution en privé.",
           action: "Préparer le tirage",
           badge: "Tirage à lancer",
         };

@@ -98,7 +98,7 @@ function WhatsNextCard({
 export function WhatsNextSection({
   input,
   onItemClick,
-  title = "Les prochaines étapes pour que tout soit prêt.",
+  title = "À préparer pour l'événement",
   subtitle = "Les prochaines étapes pour que tout soit prêt.",
   className,
   clickable = false,

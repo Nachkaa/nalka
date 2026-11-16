@@ -17,6 +17,8 @@ export function SecretSantaOverviewCard({
   eventSlug: string;
 }) {
   const content = buildSecretSantaOverviewCard(summary);
+  const needsParticipants =
+    summary.canManage && summary.state === "waiting" && summary.membersCount < 2;
 
   return (
     <section
@@ -69,7 +71,13 @@ export function SecretSantaOverviewCard({
               asChild
               className="h-auto min-h-10 max-w-full py-2 text-center whitespace-normal"
             >
-              <Link href={buildEventModulePath(eventSlug, "secret-santa")}>
+              <Link
+                href={
+                  needsParticipants
+                    ? `/event/${eventSlug}/participants`
+                    : buildEventModulePath(eventSlug, "secret-santa")
+                }
+              >
                 {content.action}
                 <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
               </Link>
