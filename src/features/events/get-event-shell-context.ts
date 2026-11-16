@@ -15,6 +15,7 @@ import { getEventGiftsScreenData } from "@/features/gifts/server/queries/get-eve
 import { getEventPotluckData } from "@/features/potluck/server/queries/get-event-potluck-data";
 import { getEventPollsVM } from "@/features/polls/server/queries/get-event-polls-vm";
 import type { EventPollVM } from "@/features/polls/types";
+import { readDrawRevision } from "@/features/secret-santa/server/draw-revision";
 import { getEventTimelineData } from "@/features/timeline/server/queries/get-event-timeline-data";
 import type {
   ProgrammeLiveData,
@@ -410,6 +411,7 @@ export async function getEventRouteContext(args: {
       budgetCapCents: frame.secretSantaSettings.budgetCapCents,
       isSecondHandOk: frame.giftsSettings.isSecondHandOk,
       isHandmadeOk: frame.giftsSettings.isHandmadeOk,
+      drawRevision: frame.isAdmin ? await readDrawRevision(frame.event.id) : null,
     };
   }
 

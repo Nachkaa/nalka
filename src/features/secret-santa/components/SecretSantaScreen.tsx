@@ -52,34 +52,60 @@ export function SecretSantaScreen({
   budgetCapCents,
   isSecondHandOk,
   isHandmadeOk,
+  drawRevision: initialDrawRevision,
   meEndpoint,
 }: SecretSantaScreenProps) {
   const router = useRouter();
   const [isDrawing, startDrawTransition] = useTransition();
   const [isBudgetSaving, startBudgetTransition] = useTransition();
   const [target, setTarget] = useState<SecretSantaMeView | null>(null);
-  const [hasDraw, setHasDraw] = useState(false);
+  const [drawRevision, setDrawRevision] = useState(initialDrawRevision);
+  const [hasDraw, setHasDraw] = useState(
+    initialDrawRevision !== null && initialDrawRevision !== "none",
+  );
   const [confirmDrawOpen, setConfirmDrawOpen] = useState(false);
   const [drawError, setDrawError] = useState<string | null>(null);
+  const [drawNotice, setDrawNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDrawRevision(initialDrawRevision);
+    if (initialDrawRevision !== null) setHasDraw(initialDrawRevision !== "none");
+  }, [initialDrawRevision]);
 
   const runDraw = (confirmReplace: boolean) => {
-    if (!isAdmin || isDrawing) return;
+    if (!isAdmin || isDrawing || drawRevision === null) return;
     setDrawError(null);
+    setDrawNotice(null);
     startDrawTransition(async () => {
       try {
         const formData = new FormData();
         formData.set("eventId", eventId);
         formData.set("slug", slug);
         formData.set("confirmReplace", String(confirmReplace));
+        formData.set("expectedRevision", drawRevision);
         const result = await launchDraw(formData);
-        if (result.requiresConfirmation) {
+        if (result.status === "busy") {
+          setDrawError("Un tirage est déjà en cours. Attends sa fin, puis actualise la page.");
+          return;
+        }
+        setDrawRevision(result.drawRevision);
+        if (result.status === "requiresConfirmation") {
           setHasDraw(true);
           setConfirmDrawOpen(true);
           return;
         }
         setTarget(await fetchMyTarget(meEndpoint));
-        setHasDraw(true);
+        setHasDraw(result.drawRevision !== "none");
         setConfirmDrawOpen(false);
+        if (result.status === "stale") {
+          setDrawError(
+            "Le tirage a changé depuis l’ouverture de cette page. Vérifie le tirage actuel avant de le relancer.",
+          );
+        } else if (result.notificationFailures > 0) {
+          setDrawNotice(
+            "Le tirage est enregistré, mais certains e-mails n’ont pas pu être confirmés. Les attributions restent disponibles dans Nalka. Ne relance pas le tirage pour renvoyer les e-mails.",
+          );
+        }
         router.refresh();
         emitGlobalRefresh();
       } catch (error) {
@@ -279,7 +305,7 @@ export function SecretSantaScreen({
                 <AlertDialogTrigger asChild>
                   <Button
                     type="button"
-                    disabled={membersCount < 2 || isDrawing}
+                    disabled={membersCount < 2 || isDrawing || drawRevision === null}
                     onClick={(event) => {
                       setDrawError(null);
                       if (!hasDraw) {
@@ -306,6 +332,11 @@ export function SecretSantaScreen({
                 {drawError && !confirmDrawOpen ? (
                   <p role="alert" className="text-sm text-red-600">
                     {drawError}
+                  </p>
+                ) : null}
+                {drawNotice ? (
+                  <p role="status" className="text-sm text-amber-800 dark:text-amber-300">
+                    {drawNotice}
                   </p>
                 ) : null}
 

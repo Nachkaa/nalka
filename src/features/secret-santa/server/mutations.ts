@@ -10,10 +10,14 @@ import { requireEnabledModule } from "@/features/events/access";
 import { sendMail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 
+import { withDrawLock } from "./draw-lock";
+import { readDrawRevision } from "./draw-revision";
+
 const Input = z.object({
   eventId: z.string().min(1),
   slug: z.string().min(1),
   confirmReplace: z.boolean(),
+  expectedRevision: z.string().regex(/^(none|[a-f0-9]{64})$/),
 });
 
 const BudgetInput = z.object({
@@ -60,109 +64,110 @@ function parseBudgetEuroToCents(raw: string | undefined): number | null {
   return clamped * 100;
 }
 
-export async function launchDraw(formData: FormData) {
+type DrawResult =
+  | { status: "busy" }
+  | { status: "stale"; drawRevision: string }
+  | { status: "requiresConfirmation"; drawRevision: string }
+  | { status: "completed"; drawRevision: string; notificationFailures: number };
+
+export async function launchDraw(formData: FormData): Promise<DrawResult> {
   const parsed = Input.safeParse({
     eventId: formData.get("eventId"),
     slug: formData.get("slug"),
     confirmReplace: formData.get("confirmReplace") === "true",
+    expectedRevision: formData.get("expectedRevision"),
   });
-  if (!parsed.success) throw new Error("Champs requis");
+  if (!parsed.success) throw new Error("Actualise la page avant de lancer le tirage.");
 
-  const { eventId } = parsed.data;
   const access = await requireEnabledModule({
-    eventId,
+    eventId: parsed.data.eventId,
     key: EventModuleKey.SECRET_SANTA,
     requireOrganizer: true,
   });
 
-  const eventRow = await prisma.event.findUnique({
-    where: { id: access.event.id },
-    select: {
-      title: true,
-      memberships: {
-        select: {
-          userId: true,
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-            },
+  const result = await withDrawLock(
+    access.event.id,
+    async ({ assertHeld }): Promise<DrawResult> => {
+      const draw = await prisma.$transaction(async (tx) => {
+        // Serialize the revision check and writes even if the lock session disconnects.
+        const modules = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "EventModule" WHERE "id" = ${access.eventModule.id} AND "enabled" = TRUE FOR UPDATE`;
+        if (!modules.length) throw new Error("Module Secret Santa inactif");
+        const currentRevision = await readDrawRevision(access.event.id, tx);
+        if (currentRevision !== parsed.data.expectedRevision) {
+          return { status: "stale" as const, drawRevision: currentRevision };
+        }
+        if (currentRevision !== "none" && !parsed.data.confirmReplace) {
+          return { status: "requiresConfirmation" as const, drawRevision: currentRevision };
+        }
+
+        const eventRow = await tx.event.findUnique({
+          where: { id: access.event.id },
+          select: {
+            title: true,
+            memberships: { select: { user: { select: { id: true, email: true, name: true } } } },
           },
-        },
-      },
-    },
-  });
-  if (!eventRow) throw new Error("Événement introuvable");
+        });
+        if (!eventRow) throw new Error("Événement introuvable");
+        const participants = eventRow.memberships.map(({ user }) => user);
+        const participantIds = participants.map(({ id }) => id);
+        if (participantIds.length < 2) throw new Error("Au moins 2 participants requis");
+        const receivers = makeDerangement(participantIds);
+        const receiversByGiver = new Map(participantIds.map((id, index) => [id, receivers[index]]));
 
-  const participants = eventRow.memberships
-    .map((membership) => membership.user)
-    .filter((user): user is NonNullable<typeof user> => Boolean(user));
-
-  const participantIds = participants.map((participant) => participant.id);
-  if (participantIds.length < 2) {
-    throw new Error("Au moins 2 participants requis");
-  }
-
-  const receivers = makeDerangement(participantIds);
-  const receiversByGiver = new Map<string, string>();
-  participantIds.forEach((giverId, index) => {
-    receiversByGiver.set(giverId, receivers[index]);
-  });
-
-  const result = await prisma.$transaction(async (tx) => {
-    const existing = await tx.secretSantaAssignment.findFirst({
-      where: { eventId: access.event.id },
-      select: { id: true },
-    });
-    if (existing && !parsed.data.confirmReplace) {
-      return { requiresConfirmation: true };
-    }
-    await tx.secretSantaAssignment.deleteMany({ where: { eventId: access.event.id } });
-    await tx.secretSantaAssignment.createMany({
-      data: participantIds.map((giverId) => ({
-        eventId: access.event.id,
-        giverId,
-        receiverId: receiversByGiver.get(giverId)!,
-      })),
-    });
-    return { requiresConfirmation: false };
-  });
-  if (result.requiresConfirmation) return result;
-
-  const baseUrl =
-    process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const byId = new Map(participants.map((participant) => [participant.id, participant]));
-
-  for (const giver of participants) {
-    const receiverId = receiversByGiver.get(giver.id);
-    if (!receiverId) continue;
-
-    const receiver = byId.get(receiverId);
-    if (!giver.email || !receiver) continue;
-
-    try {
-      const html = await render(
-        SecretSantaAssignedEmail({
-          eventTitle: eventRow.title,
-          eventUrl: `${baseUrl}/event/${access.event.slug}`,
-          giverName: giver.name ?? giver.email,
-          receiverName: receiver.name?.trim() || receiver.email || "un proche",
-        }),
-      );
-
-      await sendMail({
-        to: giver.email,
-        subject: `Ton tirage Secret Santa pour ${eventRow.title}`,
-        html,
+        await assertHeld();
+        await tx.secretSantaAssignment.deleteMany({ where: { eventId: access.event.id } });
+        await tx.secretSantaAssignment.createMany({
+          data: participantIds.map((giverId) => ({
+            eventId: access.event.id,
+            giverId,
+            receiverId: receiversByGiver.get(giverId)!,
+          })),
+        });
+        const revision = await readDrawRevision(access.event.id, tx);
+        await assertHeld();
+        return {
+          status: "saved" as const,
+          participants,
+          receiversByGiver,
+          title: eventRow.title,
+          revision,
+        };
       });
-    } catch (error) {
-      console.error("[SecretSanta] Échec d’envoi de mail pour", giver.email, error);
-    }
-  }
+      if (draw.status !== "saved") return draw;
 
-  revalidatePath(`/event/${access.event.slug}`);
-  return { requiresConfirmation: false };
+      const baseUrl =
+        process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const byId = new Map(draw.participants.map((participant) => [participant.id, participant]));
+      let notificationFailures = 0;
+      for (const giver of draw.participants) {
+        const receiver = byId.get(draw.receiversByGiver.get(giver.id)!);
+        if (!giver.email || !receiver) continue;
+        try {
+          const html = await render(
+            SecretSantaAssignedEmail({
+              eventTitle: draw.title,
+              eventUrl: `${baseUrl}/event/${access.event.slug}`,
+              giverName: giver.name ?? giver.email,
+              receiverName: receiver.name?.trim() || receiver.email || "un proche",
+            }),
+          );
+          await assertHeld();
+          await sendMail({
+            to: giver.email,
+            subject: `Ton tirage Secret Santa pour ${draw.title}`,
+            html,
+          });
+        } catch {
+          notificationFailures += 1;
+          console.error("[SecretSanta] Une notification n'a pas pu être confirmée.");
+        }
+      }
+      revalidatePath(`/event/${access.event.slug}`);
+      return { status: "completed", drawRevision: draw.revision, notificationFailures };
+    },
+  );
+  return result ?? { status: "busy" };
 }
 
 export async function setSecretSantaBudget(formData: FormData) {
