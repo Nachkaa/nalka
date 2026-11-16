@@ -86,6 +86,11 @@ jobs:
       - name: Run analytics privacy regression tests
         run: pnpm exec tsx --test src/lib/analytics/sanitizePageViewUrl.test.ts
 
+      - name: Run Secret Santa overview privacy tests
+        run: |
+          pnpm exec tsx --test src/features/secret-santa/overview.test.ts
+          node --test src/features/secret-santa/server/queries/get-secret-santa-overview.test.mjs
+
       - name: Run module recommendation regression tests
         run: pnpm exec tsx --test "src/app/(app)/event/new/_components/steps/moduleRecommendations.test.ts"
 

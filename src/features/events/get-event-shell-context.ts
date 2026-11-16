@@ -15,6 +15,7 @@ import { getEventGiftsScreenData } from "@/features/gifts/server/queries/get-eve
 import { getEventPotluckData } from "@/features/potluck/server/queries/get-event-potluck-data";
 import { getEventPollsVM } from "@/features/polls/server/queries/get-event-polls-vm";
 import type { EventPollVM } from "@/features/polls/types";
+import { getSecretSantaOverview } from "@/features/secret-santa/server/queries/get-secret-santa-overview";
 import { getEventTimelineData } from "@/features/timeline/server/queries/get-event-timeline-data";
 import type {
   ProgrammeLiveData,
@@ -279,6 +280,15 @@ export async function getEventRouteContext(args: {
     ? args.activeModule
     : DEFAULT_EVENT_MODULE_ROUTE_KEY;
 
+  const secretSantaOverview =
+    activeModule === "overview" && enabledKeys.includes("secret-santa")
+      ? await getSecretSantaOverview({
+          eventId: frame.event.id,
+          userId: frame.meId,
+          budgetCapCents: frame.secretSantaSettings.budgetCapCents,
+        })
+      : undefined;
+
   const giftsData = await getEventGiftsScreenData({
     eventId: frame.event.id,
     slug: frame.event.slug,
@@ -344,6 +354,7 @@ export async function getEventRouteContext(args: {
       userRole: frame.userRole,
       giftsStats: giftsData.giftsStats,
       potluckStats,
+      secretSantaOverview,
       programmeSummary,
       programmeLive,
       membersCount: frame.membersCount,
@@ -372,6 +383,7 @@ export async function getEventRouteContext(args: {
         userRole: frame.userRole,
         giftsStats: giftsData.giftsStats,
         potluckStats,
+        secretSantaOverview,
         programmeSummary,
         programmeLive,
         canonicalPolls,

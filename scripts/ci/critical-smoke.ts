@@ -188,6 +188,8 @@ async function seedCriticalEvent() {
 }
 
 async function cleanup() {
+  const event = await prisma.event.findUnique({ where: { slug }, select: { id: true } });
+  if (event) await prisma.secretSantaAssignment.deleteMany({ where: { eventId: event.id } });
   await prisma.event.deleteMany({ where: { slug } });
   await prisma.user.deleteMany({ where: { email: { in: [ownerEmail, joinerEmail] } } });
 }
@@ -196,11 +198,23 @@ async function smokeAuthAndEventCreation(eventId: string, expectedModuleCount: n
   assert.equal((await get("/login")).status, 200, "Login page must render");
   assertRedirect(await get("/event"), "/login");
   assert.equal((await get("/event", ownerSessionToken)).status, 200, "Event list must render");
-  assert.equal((await get("/event/new", ownerSessionToken)).status, 200, "Event creation UI must render");
-  assert.equal((await get(`/event/${slug}`, ownerSessionToken)).status, 200, "Created event must render");
+  assert.equal(
+    (await get("/event/new", ownerSessionToken)).status,
+    200,
+    "Event creation UI must render",
+  );
+  assert.equal(
+    (await get(`/event/${slug}`, ownerSessionToken)).status,
+    200,
+    "Created event must render",
+  );
 
   const moduleCount = await prisma.eventModule.count({ where: { eventId } });
-  assert.equal(moduleCount, expectedModuleCount, "Created event must seed the complete module registry");
+  assert.equal(
+    moduleCount,
+    expectedModuleCount,
+    "Created event must seed the complete module registry",
+  );
 }
 
 async function smokeInviteJoin(joinerId: string, eventId: string) {
@@ -219,6 +233,61 @@ async function smokeInviteJoin(joinerId: string, eventId: string) {
   });
   assert.equal(invite?.remainingUses, 0, "Invite must be consumed once");
   assert.equal((await get(`/event/${slug}`, joinerSessionToken)).status, 200);
+}
+
+async function smokeSecretSantaSetup(eventId: string) {
+  await prisma.eventModule.update({
+    where: { eventId_key: { eventId, key: EventModuleKey.SECRET_SANTA } },
+    data: { enabled: true },
+  });
+  const response = await get(`/event/${slug}`, ownerSessionToken);
+  assert.equal(response.status, 200);
+  assert.ok((await response.text()).includes("Invitez les participants avant le tirage"));
+}
+
+async function smokeSecretSantaOverview(ownerId: string, joinerId: string, eventId: string) {
+  const ownerHtml = await (await get(`/event/${slug}`, ownerSessionToken)).text();
+  const memberHtml = await (await get(`/event/${slug}`, joinerSessionToken)).text();
+  assert.ok(ownerHtml.includes("Votre Secret Santa attend son tirage"));
+  assert.ok(memberHtml.includes("En attente du tirage"));
+
+  await prisma.secretSantaAssignment.createMany({
+    data: [
+      { eventId, giverId: ownerId, receiverId: joinerId },
+      { eventId, giverId: joinerId, receiverId: ownerId },
+    ],
+  });
+  const drawnResponse = await get(`/event/${slug}`, joinerSessionToken);
+  assert.equal(drawnResponse.status, 200);
+  const drawnHtml = await drawnResponse.text();
+  assert.ok(drawnHtml.includes("Votre attribution est prête"));
+  assert.ok(drawnHtml.includes("Voir mon attribution"));
+  assert.equal(
+    drawnHtml.includes('"receiverId"'),
+    false,
+    "Overview must not serialize draw mappings",
+  );
+  assert.equal(
+    drawnHtml.includes(giftTitle),
+    false,
+    "Overview must not serialize the recipient's gift ideas",
+  );
+
+  await prisma.secretSantaAssignment.deleteMany({ where: { eventId, giverId: joinerId } });
+  const unassignedHtml = await (await get(`/event/${slug}`, joinerSessionToken)).text();
+  assert.ok(
+    unassignedHtml.includes("pas encore d’attribution") ||
+      unassignedHtml.includes("pas encore d&#x27;attribution") ||
+      unassignedHtml.includes("pas encore d'attribution"),
+  );
+
+  await prisma.eventModule.update({
+    where: { eventId_key: { eventId, key: EventModuleKey.SECRET_SANTA } },
+    data: { enabled: false },
+  });
+  const disabledHtml = await (await get(`/event/${slug}`, joinerSessionToken)).text();
+  assert.equal(disabledHtml.includes("secret-santa-overview-title"), false);
+  await prisma.secretSantaAssignment.deleteMany({ where: { eventId } });
 }
 
 async function smokeModuleLifecycle(eventId: string) {
@@ -244,14 +313,21 @@ async function smokeQuoteWorkflow(budgetLineId: string, quoteId: string, alterna
     decisionNote: "CI selected",
   });
   await prisma.$transaction(async (tx) => {
-    await tx.quote.updateMany({ where: select.demoteSelectedWhere, data: select.demoteSelectedData });
+    await tx.quote.updateMany({
+      where: select.demoteSelectedWhere,
+      data: select.demoteSelectedData,
+    });
     await tx.quote.update({ where: select.selectQuoteWhere, data: select.selectQuoteData });
     await tx.budgetLine.update({ where: select.updateLineWhere, data: select.updateLineData });
   });
 
   const selected = await prisma.budgetLine.findUniqueOrThrow({
     where: { id: budgetLineId },
-    select: { selectedQuoteId: true, sourcingStatus: true, quotes: { select: { id: true, status: true } } },
+    select: {
+      selectedQuoteId: true,
+      sourcingStatus: true,
+      quotes: { select: { id: true, status: true } },
+    },
   });
   assert.equal(selected.selectedQuoteId, quoteId);
   assert.equal(selected.sourcingStatus, BudgetLineSourcingStatus.SELECTED);
@@ -320,7 +396,10 @@ async function smokePaymentReversal(ownerId: string, budgetLineId: string, quote
 
   const reversed = await prisma.paymentEntry.findUniqueOrThrow({
     where: { id: payment.id },
-    select: { paidAt: true, logs: { select: { action: true, previousPaidAt: true, newPaidAt: true } } },
+    select: {
+      paidAt: true,
+      logs: { select: { action: true, previousPaidAt: true, newPaidAt: true } },
+    },
   });
   assert.equal(reversed.paidAt, null, "Payment reversal must clear paidAt");
   assert.ok(
@@ -356,7 +435,11 @@ async function smokeGiftSecrecy(ownerId: string, joinerId: string, eventId: stri
   const ownerItem = ownerResult.screenData?.myList?.items.find((item) => item.title === giftTitle);
   assert.ok(ownerItem, "Gift owner item must exist");
   assert.equal(ownerItem.reservation.hideReservationState, true);
-  assert.equal(ownerItem.reservation.isReserved, false, "Gift owner must not see reservation state");
+  assert.equal(
+    ownerItem.reservation.isReserved,
+    false,
+    "Gift owner must not see reservation state",
+  );
   assert.equal(ownerItem.reservation.reservedByName, null);
   assert.deepEqual(ownerItem.reservation.reservedByNames, []);
 
@@ -370,7 +453,11 @@ async function smokeGiftSecrecy(ownerId: string, joinerId: string, eventId: stri
     .find((item) => item.title === giftTitle);
   assert.ok(participantItem, "Participant must see host gift item");
   assert.equal(participantItem.reservation.isReserved, true);
-  assert.equal(participantItem.reservation.reservedByName, null, "Anonymous reservation must hide identity");
+  assert.equal(
+    participantItem.reservation.reservedByName,
+    null,
+    "Anonymous reservation must hide identity",
+  );
   assert.deepEqual(participantItem.reservation.reservedByNames, []);
 
   assert.equal((await get(`/event/${slug}/gifts`, ownerSessionToken)).status, 200);
@@ -381,13 +468,15 @@ async function main() {
   const seeded = await seedCriticalEvent();
   try {
     await smokeAuthAndEventCreation(seeded.event.id, seeded.moduleSeeds.length);
+    await smokeSecretSantaSetup(seeded.event.id);
     await smokeInviteJoin(seeded.joiner.id, seeded.event.id);
+    await smokeSecretSantaOverview(seeded.owner.id, seeded.joiner.id, seeded.event.id);
     await smokeModuleLifecycle(seeded.event.id);
     await smokeQuoteWorkflow(seeded.budgetLine.id, seeded.quoteA.id, seeded.quoteB.id);
     await smokePaymentReversal(seeded.owner.id, seeded.budgetLine.id, seeded.quoteA.id);
     await smokeGiftSecrecy(seeded.owner.id, seeded.joiner.id, seeded.event.id);
     console.log(
-      "Critical smoke passed: login, invite join, event creation, module lifecycle, quote workflow, payment reversal, gift secrecy.",
+      "Critical smoke passed: login, invite join, event creation, Secret Santa overview, module lifecycle, quote workflow, payment reversal, gift secrecy.",
     );
   } finally {
     await cleanup();
