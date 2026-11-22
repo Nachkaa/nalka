@@ -2,11 +2,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, ExternalLink, Heart, Image as ImageIcon, Lock } from "lucide-react";
-import Image from "next/image";
+import { CheckCircle2, ExternalLink, Heart, Lock } from "lucide-react";
 
 import { GiftItemActions } from "./GiftItemActions";
-import { RemoteGiftImage } from "./RemoteGiftImage";
+import { GiftItemImage } from "./GiftItemImage";
 
 type GiftItem = {
   id: string;
@@ -44,21 +43,6 @@ function getUrlHost(url: string) {
   }
 }
 
-function isRemoteImageUrl(value: string | null | undefined) {
-  if (!value) return false;
-
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function isLocalImagePath(value: string | null | undefined) {
-  return typeof value === "string" && value.startsWith("/");
-}
-
 export function GiftItemCard({
   item,
   slug,
@@ -72,9 +56,6 @@ export function GiftItemCard({
   deleteGift,
 }: Props) {
   const host = item.url ? getUrlHost(item.url) : null;
-  const hasLocalImage = isLocalImagePath(item.imagePath);
-  const hasRemoteImage = isRemoteImageUrl(item.imagePath);
-  const hasImage = hasLocalImage || hasRemoteImage;
   const showReservation = item.isReserved && !item.hideReservationState;
 
   return (
@@ -86,39 +67,8 @@ export function GiftItemCard({
       )}
     >
       <CardContent className="flex h-full flex-col p-0">
-        <div
-          className={cn(
-            "relative aspect-[16/10] w-full overflow-hidden",
-            hasImage ? "bg-white" : "bg-gradient-to-br from-primary/15 to-primary/5",
-          )}
-        >
-          {hasImage ? (
-            <>
-              <div className="grid h-full w-full place-items-center">
-                <ImageIcon className="text-primary/50 h-7 w-7" />
-              </div>
-
-              {hasLocalImage ? (
-                <Image
-                  src={item.imagePath!}
-                  alt={item.title}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-200 group-hover:scale-[1.03]"
-                />
-              ) : hasRemoteImage ? (
-                <RemoteGiftImage
-                  src={item.imagePath!}
-                  alt={item.title}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
-                />
-              ) : null}
-            </>
-          ) : (
-            <div className="grid h-full w-full place-items-center">
-              <ImageIcon className="text-primary/50 h-7 w-7" />
-            </div>
-          )}
+        <div className="relative aspect-[16/10] w-full overflow-hidden">
+          <GiftItemImage key={item.imagePath} src={item.imagePath} alt={item.title} />
 
           {showReservation && (isMyList || item.isReservedByMe) ? (
             <div className="absolute top-2 left-2">
