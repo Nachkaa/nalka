@@ -121,8 +121,8 @@ function ModeCard({
       aria-checked={selected}
     >
       <div className="flex items-start gap-3">
-        <div className="bg-background mt-0.5 rounded-lg border p-2">
-          <Icon className="h-4 w-4" />
+        <div className="border-primary/15 bg-primary/5 text-primary mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full border">
+          <Icon className="size-5" aria-hidden="true" />
         </div>
         <div className="min-w-0">
           <div className="font-medium">{title}</div>

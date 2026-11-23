@@ -20,6 +20,7 @@ import {
   buildSelectQuoteTransaction,
 } from "@/features/budget/server/workflow";
 import { buildEventModuleSeeds } from "@/features/events/module-registry";
+import { getEventDateKey } from "@/features/events/event-dates";
 import { getEventGiftsScreenData } from "@/features/gifts/server/queries/get-event-gifts-screen-data";
 
 const prisma = new PrismaClient();
@@ -233,6 +234,80 @@ async function smokeInviteJoin(joinerId: string, eventId: string) {
   });
   assert.equal(invite?.remainingUses, 0, "Invite must be consumed once");
   assert.equal((await get(`/event/${slug}`, joinerSessionToken)).status, 200);
+}
+
+async function smokeUpcomingEventCount(ownerId: string, joinerId: string) {
+  async function readCount(sessionToken?: string) {
+    const response = await get("/api/events/upcoming-count", sessionToken);
+    assert.equal(response.status, 200);
+    const data: unknown = await response.json();
+    assert.ok(
+      data && typeof data === "object" && "count" in data && typeof data.count === "number",
+      "Event count must be a number",
+    );
+    return data.count;
+  }
+
+  assert.equal(await readCount(), 0, "Signed-out visitors must not receive a user's count");
+  const baseline = await readCount(ownerSessionToken);
+  const today = new Date(`${getEventDateKey()}T00:00:00.000Z`);
+  const past = new Date(today);
+  past.setUTCDate(past.getUTCDate() - 1);
+  const future = new Date(today);
+  future.setUTCDate(future.getUTCDate() + 7);
+  const prefix = `ci-count-${suffix}-`;
+  const fixtures = [
+    { ownerId, eventOn: past, member: false },
+    { ownerId, eventOn: today, member: false },
+    { ownerId, eventOn: future, member: true },
+    { ownerId, eventOn: null, member: false },
+    { ownerId: joinerId, eventOn: future, member: true },
+    { ownerId: joinerId, eventOn: past, member: true },
+    { ownerId: joinerId, eventOn: null, member: true },
+    { ownerId: joinerId, eventOn: future, member: false },
+  ];
+
+  try {
+    for (const [index, fixture] of fixtures.entries()) {
+      await prisma.event.create({
+        data: {
+          ownerId: fixture.ownerId,
+          title: `CI event count ${index}`,
+          slug: `${prefix}${index}`,
+          eventOn: fixture.eventOn,
+          ...(fixture.member
+            ? { memberships: { create: { userId: ownerId, role: EventMemberRole.MEMBER } } }
+            : {}),
+        },
+      });
+    }
+
+    assert.equal(
+      await readCount(ownerSessionToken),
+      baseline + 5,
+      "Count must include today, future and undated owned/member events once, excluding past and unrelated events",
+    );
+    await prisma.event.updateMany({
+      where: { slug: { startsWith: prefix } },
+      data: { eventOn: past },
+    });
+    assert.equal(
+      await readCount(ownerSessionToken),
+      baseline,
+      "Rescheduled past events must leave the counter",
+    );
+    await prisma.event.updateMany({
+      where: { slug: { startsWith: prefix } },
+      data: { eventOn: null },
+    });
+    assert.equal(
+      await readCount(ownerSessionToken),
+      baseline + 7,
+      "Dates to define must enter the counter without including unrelated events",
+    );
+  } finally {
+    await prisma.event.deleteMany({ where: { slug: { startsWith: prefix } } });
+  }
 }
 
 async function smokeSecretSantaSetup(eventId: string) {
@@ -496,13 +571,14 @@ async function main() {
     await smokeAuthAndEventCreation(seeded.event.id, seeded.moduleSeeds.length);
     await smokeSecretSantaSetup(seeded.event.id);
     await smokeInviteJoin(seeded.joiner.id, seeded.event.id);
+    await smokeUpcomingEventCount(seeded.owner.id, seeded.joiner.id);
     await smokeSecretSantaOverview(seeded.owner.id, seeded.joiner.id, seeded.event.id);
     await smokeModuleLifecycle(seeded.event.id);
     await smokeQuoteWorkflow(seeded.budgetLine.id, seeded.quoteA.id, seeded.quoteB.id);
     await smokePaymentReversal(seeded.owner.id, seeded.budgetLine.id, seeded.quoteA.id);
     await smokeGiftSecrecy(seeded.owner.id, seeded.joiner.id, seeded.event.id);
     console.log(
-      "Critical smoke passed: login, invite join, event creation, Secret Santa overview, module lifecycle, quote workflow, payment reversal, gift secrecy.",
+      "Critical smoke passed: login, invite join, event creation, upcoming event count, Secret Santa overview, module lifecycle, quote workflow, payment reversal, gift secrecy.",
     );
   } finally {
     await cleanup();

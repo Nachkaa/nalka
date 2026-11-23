@@ -8,6 +8,7 @@ import {
   Sparkles,
   TreePine,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ const THEMES: Array<{
   value: ThemeValue;
   title: string;
   description: string;
-  Icon: React.ComponentType<{ className?: string }>;
+  Icon: LucideIcon;
 }> = [
   {
     value: "christmas",
@@ -116,15 +117,15 @@ export function StepType({
               <div className="flex w-full items-start gap-3">
                 <div
                   className={[
-                    "mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl border",
-                    selected ? "border-[var(--ring)]" : "border-[var(--border)]",
+                    "text-primary mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-full border",
+                    selected ? "border-primary/30 bg-primary/10" : "border-primary/15 bg-primary/5",
                   ].join(" ")}
                   aria-hidden="true"
                 >
-                  <Icon className="h-4.5 w-4.5" aria-hidden={true} />
+                  <Icon className="size-5" aria-hidden="true" />
                 </div>
 
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="leading-tight font-medium">{title}</span>
                     {v === "christmas" && christmasSeason && !selected ? (
@@ -133,7 +134,7 @@ export function StepType({
                       </span>
                     ) : null}
                     {selected && (
-                      <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5 text-[10px] font-medium text-[var(--sidebar-primary)]">
+                      <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-medium">
                         Sélectionné
                       </span>
                     )}

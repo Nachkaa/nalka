@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
+import { getEventDateKey } from "@/features/events/event-dates";
 import type { EventSummary } from "@/features/events/types";
 import { cn } from "@/lib/utils";
 import { EventRsvpStatus } from "@prisma/client";
@@ -22,7 +23,7 @@ export function EventList({ initialEvents }: Props) {
   const [activeRsvpId, setActiveRsvpId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayISO = useMemo(() => getEventDateKey(), []);
 
   const { heroEvent, upcomingList, past } = useMemo(() => {
     const datedUpcoming = events

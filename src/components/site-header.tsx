@@ -6,6 +6,7 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { listenGlobalRefresh } from "@/lib/refresh";
 
 import {
   DropdownMenu,
@@ -33,7 +34,7 @@ export default function SiteHeader() {
 
     const loadCount = async () => {
       try {
-        const res = await fetch("/api/events/upcoming-count");
+        const res = await fetch("/api/events/upcoming-count", { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as { count?: number };
         if (!cancelled && typeof data.count === "number") setUpcomingCount(data.count);
@@ -43,17 +44,21 @@ export default function SiteHeader() {
     };
 
     loadCount();
+    window.addEventListener("focus", loadCount);
+    const stopListening = listenGlobalRefresh(loadCount);
     return () => {
       cancelled = true;
+      window.removeEventListener("focus", loadCount);
+      stopListening();
     };
-  }, [status]);
+  }, [status, pathname, session?.user?.id, session?.user?.email]);
 
   const isEvents = pathname === "/event" || pathname.startsWith("/event/");
 
   if (pathname === "/") return null;
 
   return (
-    <header className="border-border text-foreground sticky top-0 z-40 border-b bg-white">
+    <header className="border-border bg-background text-foreground sticky top-0 z-40 border-b">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href={homeHref} className="flex items-center gap-2">
           <span className="bg-linear-to-r from-[var(--primary-500)] to-[var(--primary-600)] bg-clip-text text-lg font-semibold tracking-tight text-transparent">
@@ -72,7 +77,7 @@ export default function SiteHeader() {
           {status !== "loading" && !session && (
             <Link
               href="/login?reset=1"
-              className="rounded-md border border-[var(--header-border)] px-3 py-2 text-sm hover:bg-[color-mix(in_oklch,var(--header),black_4%)]"
+              className="border-border hover:bg-accent rounded-md border px-3 py-2 text-sm"
             >
               Se connecter
             </Link>
@@ -85,13 +90,17 @@ export default function SiteHeader() {
                 href="/event"
                 className={[
                   "hidden items-center gap-2 rounded-md px-3 py-2 text-sm sm:inline-flex",
-                  "hover:bg-[color-mix(in_oklch,var(--header),black_4%)]",
-                  isEvents ? "bg-[color-mix(in_oklch,var(--header),black_6%)]" : "",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  isEvents ? "bg-primary/10 text-primary" : "",
                 ].join(" ")}
               >
                 <span>Mes événements</span>
                 {typeof upcomingCount === "number" && upcomingCount > 0 && (
-                  <span className="rounded-full bg-[color-mix(in_oklch,var(--primary),white_85%)] px-2 py-0.5 text-xs font-medium text-[var(--primary)]">
+                  <span
+                    className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium"
+                    title="Événements à venir ou à définir"
+                    aria-label={`${upcomingCount} événement${upcomingCount > 1 ? "s" : ""} à venir ou à définir`}
+                  >
                     {upcomingCount}
                   </span>
                 )}
@@ -100,7 +109,7 @@ export default function SiteHeader() {
               {/* Mobile shortcut */}
               <Link
                 href="/event"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--header-border)] hover:bg-[color-mix(in_oklch,var(--header),black_4%)] sm:hidden"
+                className="border-border hover:bg-accent inline-flex h-9 w-9 items-center justify-center rounded-full border sm:hidden"
                 aria-label="Mes événements"
               >
                 <CalendarDays size={18} />
@@ -111,7 +120,7 @@ export default function SiteHeader() {
                 href="/event/new"
                 aria-label="Créer un événement"
                 title="Créer un événement"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--primary)] text-[var(--background)] hover:bg-[color-mix(in_oklch,var(--primary),black_6%)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:outline-none"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring inline-flex h-9 w-9 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none"
               >
                 <Plus size={18} />
               </Link>
@@ -120,8 +129,9 @@ export default function SiteHeader() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
+                    type="button"
                     aria-label="Ouvrir le menu du compte"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-(--header-border) bg-(--header) text-sm font-semibold text-(--header-foreground) hover:bg-[color-mix(in_oklch,var(--header),black_4%)] focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:outline-none"
+                    className="border-border bg-muted text-foreground hover:bg-accent focus-visible:ring-ring inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-semibold focus-visible:ring-2 focus-visible:outline-none"
                   >
                     {initial(session.user?.name, session.user?.email)}
                   </button>
@@ -129,7 +139,7 @@ export default function SiteHeader() {
 
                 <DropdownMenuContent
                   align="end"
-                  className="border-border bg-background text-foreground w-56 rounded-xl border p-1 shadow-md"
+                  className="border-border w-56 rounded-xl border p-1 shadow-md"
                 >
                   {session.user?.name && (
                     <>

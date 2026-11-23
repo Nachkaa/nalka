@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { getEventDateKey } from "@/features/events/event-dates";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -17,9 +18,13 @@ export async function GET() {
     return Response.json({ count: 0 });
   }
 
+  const today = new Date(`${getEventDateKey()}T00:00:00.000Z`);
   const count = await prisma.event.count({
     where: {
-      OR: [{ ownerId: userId }, { memberships: { some: { userId } } }],
+      AND: [
+        { OR: [{ ownerId: userId }, { memberships: { some: { userId } } }] },
+        { OR: [{ eventOn: null }, { eventOn: { gte: today } }] },
+      ],
     },
   });
 

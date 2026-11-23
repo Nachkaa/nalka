@@ -77,7 +77,7 @@ jobs:
 
       - name: Run event email-domain regression tests
         run: |
-          pnpm exec tsx --test src/features/events/email-domain-policy.test.ts
+          pnpm exec tsx --test src/features/events/email-domain-policy.test.ts src/features/events/event-dates.test.ts
           node --test src/features/events/actions/email-domain-access.test.mjs
 
       - name: Run Secret Santa redraw regression tests
