@@ -6,7 +6,7 @@ import { assertCompatibleMigrations } from "./migrations.mjs";
 
 export const SHARED_BUDGET_MIGRATION = "20261125120000_shared_expense_budget";
 export const SHARED_BUDGET_SQL_SHA256 =
-  "7e535582145fa999bdd52ba205a54071bbf5707b12592a00d0bce66e277b3930";
+  "93b3167b918983ada2808ac4adae826da368cc1bc5866303e079bb5bf9c5799d";
 
 /** This is a single reviewed additive migration, never a general pending-migration runner. */
 export function reviewSharedBudgetMigration(manifest, actual, sql) {

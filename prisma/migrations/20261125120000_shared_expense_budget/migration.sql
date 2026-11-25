@@ -86,22 +86,22 @@ ALTER TABLE "SharedBudgetParticipant" ADD CONSTRAINT "SharedBudgetParticipant_re
 ALTER TABLE "SharedExpense" ADD CONSTRAINT "SharedExpense_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "SharedExpense" ADD CONSTRAINT "SharedExpense_payerId_eventId_fkey" FOREIGN KEY ("payerId", "eventId") REFERENCES "SharedBudgetParticipant"("id", "eventId") ON DELETE NO ACTION ON UPDATE CASCADE;
+ALTER TABLE "SharedExpense" ADD CONSTRAINT "SharedExpense_payerId_eventId_fkey" FOREIGN KEY ("payerId", "eventId") REFERENCES "SharedBudgetParticipant"("id", "eventId") ON DELETE NO ACTION ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
 -- AddForeignKey
 ALTER TABLE "SharedExpenseShare" ADD CONSTRAINT "SharedExpenseShare_expenseId_eventId_fkey" FOREIGN KEY ("expenseId", "eventId") REFERENCES "SharedExpense"("id", "eventId") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "SharedExpenseShare" ADD CONSTRAINT "SharedExpenseShare_participantId_eventId_fkey" FOREIGN KEY ("participantId", "eventId") REFERENCES "SharedBudgetParticipant"("id", "eventId") ON DELETE NO ACTION ON UPDATE CASCADE;
+ALTER TABLE "SharedExpenseShare" ADD CONSTRAINT "SharedExpenseShare_participantId_eventId_fkey" FOREIGN KEY ("participantId", "eventId") REFERENCES "SharedBudgetParticipant"("id", "eventId") ON DELETE NO ACTION ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
 -- AddForeignKey
 ALTER TABLE "SharedRepayment" ADD CONSTRAINT "SharedRepayment_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "SharedRepayment" ADD CONSTRAINT "SharedRepayment_fromId_eventId_fkey" FOREIGN KEY ("fromId", "eventId") REFERENCES "SharedBudgetParticipant"("id", "eventId") ON DELETE NO ACTION ON UPDATE CASCADE;
+ALTER TABLE "SharedRepayment" ADD CONSTRAINT "SharedRepayment_fromId_eventId_fkey" FOREIGN KEY ("fromId", "eventId") REFERENCES "SharedBudgetParticipant"("id", "eventId") ON DELETE NO ACTION ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
 -- AddForeignKey
-ALTER TABLE "SharedRepayment" ADD CONSTRAINT "SharedRepayment_toId_eventId_fkey" FOREIGN KEY ("toId", "eventId") REFERENCES "SharedBudgetParticipant"("id", "eventId") ON DELETE NO ACTION ON UPDATE CASCADE;
+ALTER TABLE "SharedRepayment" ADD CONSTRAINT "SharedRepayment_toId_eventId_fkey" FOREIGN KEY ("toId", "eventId") REFERENCES "SharedBudgetParticipant"("id", "eventId") ON DELETE NO ACTION ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
 -- Keep monetary invariants enforceable outside the application as well.
 ALTER TABLE "SharedExpense" ADD CONSTRAINT "SharedExpense_amount_check" CHECK ("amountCents" > 0 AND "amountCents" <= 100000000);

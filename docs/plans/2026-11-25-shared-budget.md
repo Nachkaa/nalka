@@ -22,6 +22,7 @@ Make /budget a shared-expense ledger for every event member: add an expense, spl
 - Membership and enabled BUDGET are enforced inside every query/mutation. Participant IDs must belong to this event.
 - Serialize mutations on the event row, use idempotent UUID creation and version checks for edits. Repayment checks use balances under the same lock to reject double settlement.
 - Soft deletion/cancellation preserves the ledger. Removing a membership or relative never removes financial history.
+- Participant reference checks are deferred to transaction commit so full event cascades complete before referential checks, while isolated participant deletion remains blocked.
 - Keep all gift and reservation data outside this feature.
 
 ## Verification

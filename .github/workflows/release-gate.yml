@@ -72,6 +72,11 @@ jobs:
       - name: Apply database migrations
         run: pnpm exec prisma migrate deploy
 
+      - name: Verify reviewed shared-budget schema application and rollback
+        env:
+          NALKA_TEST_DATABASE: "1"
+        run: node scripts/ci/shared-budget-migration-smoke.mjs
+
       - name: Run auth regression tests
         run: pnpm test:auth-routes
 
@@ -135,7 +140,6 @@ jobs:
           pnpm exec tsx scripts/ci/anonymous-event-draft-smoke.ts
           pnpm exec tsx scripts/ci/event-email-domain-smoke.ts
           NALKA_TEST_DATABASE=1 pnpm exec tsx scripts/ci/shared-budget-smoke.ts
-          NALKA_TEST_DATABASE=1 node scripts/ci/shared-budget-migration-smoke.mjs
 
       - name: Show server log on failure
         if: failure()
