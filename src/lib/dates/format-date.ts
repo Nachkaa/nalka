@@ -1,4 +1,11 @@
 // src/lib/dates/format-date.ts
+export function formatIsoToFrenchDate(dateLike?: string | Date | null) {
+  if (!dateLike || (dateLike instanceof Date && Number.isNaN(dateLike.getTime()))) return "";
+  const iso = typeof dateLike === "string" ? dateLike : dateLike.toISOString();
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.slice(0, 10));
+  return parts ? `${parts[3]}/${parts[2]}/${parts[1]}` : "";
+}
+
 export function formatIsoToFrenchDayMonth(isoLike: string) {
   const iso = (isoLike ?? "").slice(0, 10); // accepte "YYYY-MM-DD" ou "YYYY-MM-DDTHH..."
   const [y, m, d] = iso.split("-").map(Number);
@@ -17,8 +24,7 @@ export function formatIsoToFrenchDayMonth(isoLike: string) {
 }
 
 export function formatEventDateTime(dateLike?: string | Date | null, time?: string | null) {
-  const isoLike = typeof dateLike === "string" ? dateLike : dateLike?.toISOString();
-  const dateLabel = isoLike ? formatIsoToFrenchDayMonth(isoLike) : "";
+  const dateLabel = formatIsoToFrenchDate(dateLike);
   const t = typeof time === "string" ? time.trim() : "";
 
   if (dateLabel && t) return `${dateLabel} · ${t}`;

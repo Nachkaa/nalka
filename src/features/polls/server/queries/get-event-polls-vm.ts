@@ -1,11 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { EventPollType } from "@prisma/client";
+import { formatIsoToFrenchDate } from "@/lib/dates/format-date";
 
 import type { EventPollVM } from "../../types";
 
-function labelFor(type: EventPollType, option: { dateValue: Date | null; textValue: string | null }) {
+function labelFor(
+  type: EventPollType,
+  option: { dateValue: Date | null; textValue: string | null },
+) {
   if (type === EventPollType.SCHEDULE) {
-    return option.dateValue ? option.dateValue.toISOString().slice(0, 10) : "—";
+    return formatIsoToFrenchDate(option.dateValue) || "—";
   }
 
   const text = option.textValue?.trim();
@@ -93,6 +97,7 @@ export async function getEventPollsVM(eventId: string, meId: string): Promise<Ev
         return {
           id: option.id,
           label: labelFor(poll.type, option),
+          dateISO: option.dateValue?.toISOString().slice(0, 10) ?? null,
           count: countByOptionId.get(option.id) ?? 0,
           checked: myOptionIds.has(option.id),
           voters,

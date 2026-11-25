@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePickerISO } from "@/components/ui/date-picker";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,7 +53,7 @@ export function PollOptionsManage({
   const beginEdit = (option: Option) => {
     if (!canManage) return;
     setEditingId(option.id);
-    setDraft(option.label);
+    setDraft(poll.type === "SCHEDULE" ? (option.dateISO ?? "") : option.label);
   };
 
   const cancelEdit = () => {
@@ -63,7 +64,8 @@ export function PollOptionsManage({
   const save = (option: Option) => {
     if (!canManage) return;
     const next = draft.trim();
-    if (!next || next === option.label) return cancelEdit();
+    const current = poll.type === "SCHEDULE" ? option.dateISO : option.label;
+    if (!next || next === current) return cancelEdit();
 
     startTransition(async () => {
       await renamePollOption({ slug, pollOptionId: option.id, label: next });
@@ -91,9 +93,6 @@ export function PollOptionsManage({
     }
   }, [showAddRow, canManage]);
 
-  const placeholder =
-    poll.type === "SCHEDULE" ? "Ex: 2026-01-16" : "Ex: Le Bistrot d’Antoine, Nice…";
-
   const submit = async () => {
     const next = value.trim();
     if (!next) return;
@@ -120,23 +119,33 @@ export function PollOptionsManage({
       {creating && isOpen ? (
         <div className="bg-background rounded-xl border px-4 py-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Input
-              ref={inputRef}
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-              placeholder={placeholder}
-              disabled={!canManage}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  setCreating(false);
-                  setValue("");
-                }
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void submit();
-                }
-              }}
-            />
+            {poll.type === "SCHEDULE" ? (
+              <DatePickerISO
+                value={value}
+                onChange={(iso) => setValue(iso ?? "")}
+                placeholder="Sélectionner une date"
+                disabled={!canManage}
+                autoOpen
+              />
+            ) : (
+              <Input
+                ref={inputRef}
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+                placeholder="Ex: Le Bistrot d’Antoine, Nice…"
+                disabled={!canManage}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    setCreating(false);
+                    setValue("");
+                  }
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void submit();
+                  }
+                }}
+              />
+            )}
 
             <div className="flex gap-2 sm:justify-end">
               <Button type="button" variant="ghost" disabled={!canManage} onClick={cancelCreate}>
@@ -154,7 +163,7 @@ export function PollOptionsManage({
           </div>
 
           {poll.type === "SCHEDULE" ? (
-            <p className="text-muted-foreground mt-2 text-xs">Format attendu: YYYY-MM-DD</p>
+            <p className="text-muted-foreground mt-2 text-xs">Format : JJ/MM/AAAA</p>
           ) : null}
         </div>
       ) : null}
@@ -164,11 +173,21 @@ export function PollOptionsManage({
         const isEditing = editingId === option.id;
 
         return (
-          <li key={option.id} className={cn("bg-card rounded-xl border", "px-3 py-2 sm:px-4 sm:py-3")}>
+          <li
+            key={option.id}
+            className={cn("bg-card rounded-xl border", "px-3 py-2 sm:px-4 sm:py-3")}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  {isEditing ? (
+                  {isEditing && poll.type === "SCHEDULE" ? (
+                    <DatePickerISO
+                      value={draft}
+                      onChange={(iso) => setDraft(iso ?? "")}
+                      disabled={busy}
+                      autoOpen
+                    />
+                  ) : isEditing ? (
                     <Input
                       value={draft}
                       onChange={(event) => setDraft(event.target.value)}
@@ -263,7 +282,8 @@ export function PollOptionsManage({
                           <AlertDialogHeader>
                             <AlertDialogTitle>Supprimer cette option ?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              “{option.label}” sera retiré du sondage. Cette action est irréversible.
+                              “{option.label}” sera retiré du sondage. Cette action est
+                              irréversible.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

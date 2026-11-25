@@ -10,6 +10,7 @@ export type EventPollVoterVM = {
 export type EventPollOptionVM = {
   id: string;
   label: string;
+  dateISO: string | null;
   count: number;
   checked: boolean;
   voters: EventPollVoterVM[];

@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { EventRsvpStatus } from "@prisma/client";
 import type { EventSummary } from "./types";
+import { formatIsoToFrenchDate } from "@/lib/dates/format-date";
 
 /**
  * Events where the user is owner or member.
@@ -89,11 +90,7 @@ export async function getUserEventSummaries(userId: string): Promise<EventSummar
 
     const time = e.eventTime ? e.eventTime.trim() : null;
     const dateISO = e.eventOn ? e.eventOn.toISOString().slice(0, 10) : null;
-    const baseDateLabel = e.eventOn
-      ? new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long", year: "numeric" }).format(
-          e.eventOn,
-        )
-      : null;
+    const baseDateLabel = formatIsoToFrenchDate(e.eventOn) || null;
     const dateLabel = baseDateLabel
       ? time
         ? `${baseDateLabel} · ${time}`

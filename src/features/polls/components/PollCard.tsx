@@ -8,6 +8,7 @@ import { EventPollStatus, EventPollType } from "@prisma/client";
 import { BarChart3, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
+import { formatIsoToFrenchDate } from "@/lib/dates/format-date";
 
 import { getDefineLabel, getRecommendedOptionId, isRecommendationStrong } from "../lib/poll-utils";
 import { applyPollOptionToEvent, closePollById, togglePollVote } from "../server/mutations";
@@ -36,8 +37,7 @@ function addMonthsISO(base: Date, months: number) {
 }
 
 function fmtIsoFR(iso: string) {
-  const value = new Date(`${iso}T00:00:00`);
-  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit" }).format(value);
+  return formatIsoToFrenchDate(iso);
 }
 
 export function PollCard({
@@ -87,7 +87,10 @@ export function PollCard({
 
   const decisionEnabled = canEdit && isOpen && poll.options.length > 0;
   const recommendedOptionId = useMemo(
-    () => getRecommendedOptionId(poll.options.map((option) => ({ id: option.id, count: option.count }))),
+    () =>
+      getRecommendedOptionId(
+        poll.options.map((option) => ({ id: option.id, count: option.count })),
+      ),
     [poll.options],
   );
   const recommendedCount =

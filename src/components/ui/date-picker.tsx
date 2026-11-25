@@ -28,7 +28,7 @@ export function DatePicker({
   disabled,
   disablePast = false,
   autoOpen = false,
-  displayFormat = "PPP",
+  displayFormat = "dd/MM/yyyy",
 }: DatePickerProps) {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(date ?? undefined);
   const [open, setOpen] = React.useState(false);
@@ -128,7 +128,7 @@ export function DatePickerISO({
   disabled,
   disablePast = false,
   autoOpen = false,
-  displayFormat = "PPP",
+  displayFormat = "dd/MM/yyyy",
 }: DatePickerISOProps) {
   const date = value ? isoToDate(value) : undefined;
 

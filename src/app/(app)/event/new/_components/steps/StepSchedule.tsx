@@ -18,6 +18,7 @@ import type { EventScheduleMode } from "@prisma/client";
 import { Check, ChevronDown, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { StepHeading } from "./StepHeading";
+import { formatIsoToFrenchDate } from "@/lib/dates/format-date";
 
 type Props = {
   mode: EventScheduleMode;
@@ -35,12 +36,7 @@ type Props = {
 };
 
 function fmtPollDate(iso: string) {
-  const d = new Date(`${iso}T00:00:00`);
-  return new Intl.DateTimeFormat("fr-FR", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-  }).format(d);
+  return formatIsoToFrenchDate(iso);
 }
 
 function buildTimes(stepMinutes = 15) {
@@ -139,7 +135,8 @@ export function StepSchedule({
 
         <TabsContent value="POLL" className="mt-4 space-y-3">
           <p className="text-muted-foreground text-sm">
-            Ajoutez quelques dates possibles. Les participants voteront ensuite dans l&apos;événement.
+            Ajoutez quelques dates possibles. Les participants voteront ensuite dans
+            l&apos;événement.
           </p>
 
           <div ref={chipsRef} className="flex flex-wrap gap-2">
@@ -194,8 +191,8 @@ export function StepSchedule({
         </TabsContent>
 
         <TabsContent value="TBD" className="text-muted-foreground mt-4 text-sm">
-          L&apos;événement sera créé en mode planification. Vous pourrez définir la date plus tard depuis
-          la page de l&apos;événement.
+          L&apos;événement sera créé en mode planification. Vous pourrez définir la date plus tard
+          depuis la page de l&apos;événement.
         </TabsContent>
 
         <div className="space-y-2 pt-4">

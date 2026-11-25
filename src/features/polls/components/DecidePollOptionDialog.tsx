@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { formatIsoToFrenchDayMonth } from "@/lib/dates/format-date";
+import { formatIsoToFrenchDate } from "@/lib/dates/format-date";
 import { cn } from "@/lib/utils";
 import { EventPollType } from "@prisma/client";
 import { Check } from "lucide-react";
@@ -64,19 +64,21 @@ export function DecidePollOptionDialog({
   const renderOptionLabel = (label: string) => {
     if (poll.type !== EventPollType.SCHEDULE) return label;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(label)) return label;
-    return formatIsoToFrenchDayMonth(label);
+    return formatIsoToFrenchDate(label);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent key={dialogKey}>
         <DialogHeader>
-          <DialogTitle>{isLocation ? "Gérer le sondage - Lieu" : "Gérer le sondage - Date"}</DialogTitle>
+          <DialogTitle>
+            {isLocation ? "Gérer le sondage - Lieu" : "Gérer le sondage - Date"}
+          </DialogTitle>
         </DialogHeader>
 
         {currentFinalValue ? (
-          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide">Sondage en cours</div>
+          <div className="bg-muted/30 rounded-lg border px-3 py-2 text-sm">
+            <div className="text-xs font-semibold tracking-wide uppercase">Sondage en cours</div>
             <span className="text-muted-foreground">{currentLabel}: </span>
             <span className="font-medium">{currentFinalValue}</span>
           </div>
@@ -186,12 +188,14 @@ export function DecidePollOptionDialog({
                   disabled={isPending}
                   disablePast
                   autoOpen={false}
-                  displayFormat="EEEE d MMMM"
+                  displayFormat="dd/MM/yyyy"
                 />
               )}
             </div>
 
-            <p className="text-muted-foreground text-xs">Le sondage sera clôturé automatiquement.</p>
+            <p className="text-muted-foreground text-xs">
+              Le sondage sera clôturé automatiquement.
+            </p>
           </div>
         </div>
 
