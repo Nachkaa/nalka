@@ -9,29 +9,30 @@ datasource db {
 }
 
 model User {
-  id                  String                    @id @default(cuid())
-  name                String?
-  email               String                    @unique
-  emailVerified       DateTime?
-  image               String?
-  createdAt           DateTime                  @default(now())
-  updatedAt           DateTime                  @updatedAt
-  isAdmin             Boolean                   @default(false)
-  accounts            Account[]
-  ownedEvents         Event[]                   @relation("OwnedEvents")
-  bringItems          EventBringItem[]
-  bringParticipations EventBringParticipation[]
-  eventInvitesSent    EventInvite[]             @relation("InvitedBy")
-  eventMemberships    EventMember[]
-  pollVotes           EventPollVote[]
-  eventRelatives      EventRelative[]
-  giftSuggestions     GiftItem[]                @relation("GiftItemSuggestedBy")
-  giftLists           GiftList[]
-  ideas               Idea[]
-  managedProfiles     ManagedProfile[]
-  reservations        Reservation[]
-  sessions            Session[]
-  paymentLogs         PaymentLog[]
+  id                       String                    @id @default(cuid())
+  name                     String?
+  email                    String                    @unique
+  emailVerified            DateTime?
+  image                    String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  isAdmin                  Boolean                   @default(false)
+  accounts                 Account[]
+  ownedEvents              Event[]                   @relation("OwnedEvents")
+  bringItems               EventBringItem[]
+  bringParticipations      EventBringParticipation[]
+  eventInvitesSent         EventInvite[]             @relation("InvitedBy")
+  eventMemberships         EventMember[]
+  pollVotes                EventPollVote[]
+  eventRelatives           EventRelative[]
+  giftSuggestions          GiftItem[]                @relation("GiftItemSuggestedBy")
+  giftLists                GiftList[]
+  ideas                    Idea[]
+  managedProfiles          ManagedProfile[]
+  reservations             Reservation[]
+  sessions                 Session[]
+  paymentLogs              PaymentLog[]
+  sharedBudgetParticipants SharedBudgetParticipant[]
 }
 
 model Account {
@@ -81,29 +82,29 @@ model EventDraft {
 }
 
 model Event {
-  id                  String                @id @default(cuid())
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  id                  String                    @id @default(cuid())
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
   ownerId             String
   title               String
   description         String?
   eventOn             DateTime?
   location            String?
-  colorHex            String                @default("#0ea5e9")
-  linkEnabled         Boolean               @default(false)
-  joinCode            String?               @unique
-  allowedEmailDomains String[]              @default([])
-  slug                String                @unique
-  budgetMode          EventBudgetMode       @default(NONE)
+  colorHex            String                    @default("#0ea5e9")
+  linkEnabled         Boolean                   @default(false)
+  joinCode            String?                   @unique
+  allowedEmailDomains String[]                  @default([])
+  slug                String                    @unique
+  budgetMode          EventBudgetMode           @default(NONE)
   budgetCents         Int?
-  memberLimit         Int                   @default(50)
-  imagePath           String?               @db.VarChar(512)
-  giftMode            EventGiftMode         @default(HOST_LIST)
-  status              EventStatus           @default(PLANNING)
-  locationMode        EventLocationMode     @default(TBD)
-  scheduleMode        EventScheduleMode     @default(TBD)
-  eventTime           String?               @db.VarChar(5)
-  owner               User                  @relation("OwnedEvents", fields: [ownerId], references: [id], onDelete: Cascade)
+  memberLimit         Int                       @default(50)
+  imagePath           String?                   @db.VarChar(512)
+  giftMode            EventGiftMode             @default(HOST_LIST)
+  status              EventStatus               @default(PLANNING)
+  locationMode        EventLocationMode         @default(TBD)
+  scheduleMode        EventScheduleMode         @default(TBD)
+  eventTime           String?                   @db.VarChar(5)
+  owner               User                      @relation("OwnedEvents", fields: [ownerId], references: [id], onDelete: Cascade)
   budget              Budget?
   bringItems          EventBringItem[]
   invites             EventInvite[]
@@ -113,8 +114,11 @@ model Event {
   timelineMoments     EventTimelineMoment[]
   relatives           EventRelative[]
   lists               GiftList[]
-  inviteTokens        InviteToken[]         @relation("Event_InviteTokens")
+  inviteTokens        InviteToken[]             @relation("Event_InviteTokens")
   vendors             Vendor[]
+  sharedParticipants  SharedBudgetParticipant[]
+  sharedExpenses      SharedExpense[]
+  sharedRepayments    SharedRepayment[]
 
   @@index([ownerId, status])
   @@index([ownerId, eventOn])
@@ -196,6 +200,75 @@ model EventExpensesSettings {
   id            String      @id @default(cuid())
   eventModuleId String      @unique
   eventModule   EventModule @relation(fields: [eventModuleId], references: [id], onDelete: Cascade)
+}
+
+model SharedBudgetParticipant {
+  id         String               @id @default(cuid())
+  eventId    String
+  userId     String?
+  relativeId String?
+  name       String
+  createdAt  DateTime             @default(now())
+  event      Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user       User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  relative   EventRelative?       @relation(fields: [relativeId], references: [id], onDelete: SetNull)
+  expenses   SharedExpense[]
+  shares     SharedExpenseShare[]
+  sent       SharedRepayment[]    @relation("SharedRepaymentFrom")
+  received   SharedRepayment[]    @relation("SharedRepaymentTo")
+
+  @@unique([id, eventId])
+  @@unique([eventId, userId])
+  @@unique([eventId, relativeId])
+}
+
+model SharedExpense {
+  id            String                  @id @default(uuid())
+  eventId       String
+  payerId       String
+  description   String                  @db.VarChar(160)
+  amountCents   Int
+  createdById   String
+  createdByName String
+  version       Int                     @default(1)
+  deletedAt     DateTime?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  event         Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  payer         SharedBudgetParticipant @relation(fields: [payerId, eventId], references: [id, eventId], onDelete: NoAction)
+  shares        SharedExpenseShare[]
+
+  @@unique([id, eventId])
+  @@index([eventId, createdAt])
+}
+
+model SharedExpenseShare {
+  expenseId     String
+  eventId       String
+  participantId String
+  amountCents   Int
+  expense       SharedExpense           @relation(fields: [expenseId, eventId], references: [id, eventId], onDelete: Cascade)
+  participant   SharedBudgetParticipant @relation(fields: [participantId, eventId], references: [id, eventId], onDelete: NoAction)
+
+  @@id([expenseId, participantId])
+  @@index([participantId, eventId])
+}
+
+model SharedRepayment {
+  id            String                  @id @default(uuid())
+  eventId       String
+  fromId        String
+  toId          String
+  amountCents   Int
+  createdById   String
+  createdByName String
+  cancelledAt   DateTime?
+  createdAt     DateTime                @default(now())
+  event         Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  from          SharedBudgetParticipant @relation("SharedRepaymentFrom", fields: [fromId, eventId], references: [id, eventId], onDelete: NoAction)
+  to            SharedBudgetParticipant @relation("SharedRepaymentTo", fields: [toId, eventId], references: [id, eventId], onDelete: NoAction)
+
+  @@index([eventId, createdAt])
 }
 
 model Budget {
@@ -524,18 +597,19 @@ model ManagedProfile {
 }
 
 model EventRelative {
-  id               String          @id @default(cuid())
-  eventId          String
-  createdById      String
-  managedProfileId String?
-  firstName        String
-  birthYear        Int?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  createdBy        User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  event            Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  managedProfile   ManagedProfile? @relation(fields: [managedProfileId], references: [id])
-  giftList         GiftList?
+  id                       String                    @id @default(cuid())
+  eventId                  String
+  createdById              String
+  managedProfileId         String?
+  firstName                String
+  birthYear                Int?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  createdBy                User                      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  event                    Event                     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  managedProfile           ManagedProfile?           @relation(fields: [managedProfileId], references: [id])
+  giftList                 GiftList?
+  sharedBudgetParticipants SharedBudgetParticipant[]
 
   @@index([eventId])
   @@index([managedProfileId])

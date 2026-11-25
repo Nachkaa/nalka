@@ -34,7 +34,7 @@ function makeDraft(theme: Draft["theme"]): Draft {
 }
 
 for (const theme of PROFESSIONAL_THEMES) {
-  test(`recommends Provider Cockpit for professional theme ${theme}`, () => {
+  test(`recommends Budget for professional theme ${theme}`, () => {
     const draft = makeDraft(theme);
     const result = inferModuleRecommendations(draft);
     const recommendation = result.recommended.find(
@@ -43,13 +43,13 @@ for (const theme of PROFESSIONAL_THEMES) {
 
     assert.ok(recommendation);
     assert.equal(recommendation.confidence, "high");
-    assert.match(recommendation.reason, /prestataires/i);
+    assert.match(recommendation.reason, /dépenses/i);
     assert.equal(result.available.includes(EventModuleKey.BUDGET), false);
     assert.equal(draft.budgetEnabled, false);
   });
 }
 
-test("does not falsely recommend Provider Cockpit for association/group", () => {
+test("does not falsely recommend Budget for association/group", () => {
   const result = inferModuleRecommendations(makeDraft("group"));
 
   assert.equal(
@@ -59,7 +59,7 @@ test("does not falsely recommend Provider Cockpit for association/group", () => 
   assert.equal(result.available.includes(EventModuleKey.BUDGET), true);
 });
 
-test("does not falsely recommend Provider Cockpit for custom events", () => {
+test("does not falsely recommend Budget for custom events", () => {
   const result = inferModuleRecommendations(makeDraft("custom"));
 
   assert.equal(

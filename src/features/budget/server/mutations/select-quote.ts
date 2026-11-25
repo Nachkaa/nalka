@@ -74,7 +74,7 @@ export async function selectQuote(input: unknown): Promise<QuoteDecisionResult> 
     });
   }, { isolationLevel: "Serializable" });
 
-  revalidatePath(`/event/${eventSlug}/budget`);
+  revalidatePath(`/event/${eventSlug}/budget/providers`);
   revalidatePath(`/event/${eventSlug}/budget/lines`);
   revalidatePath(`/event/${eventSlug}/budget/quotes`);
   revalidatePath(`/event/${eventSlug}/budget/quotes/${budgetLineId}`);

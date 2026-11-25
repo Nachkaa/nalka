@@ -21,9 +21,18 @@ await cp(path.join(root, "public"), path.join(release, "public"), {
 });
 await cp(path.join(root, ".next/static"), path.join(release, ".next/static"), { recursive: true });
 await mkdir(path.join(release, ".deploy"), { recursive: true });
-for (const file of ["migrations.mjs", "verify-release.mjs", "health-check.mjs"]) {
+for (const file of [
+  "migrations.mjs",
+  "verify-release.mjs",
+  "health-check.mjs",
+  "migrate-shared-budget.mjs",
+]) {
   await cp(path.join(root, "scripts/deploy", file), path.join(release, ".deploy", file));
 }
+await cp(
+  path.join(root, "prisma/migrations/20261125120000_shared_expense_budget/migration.sql"),
+  path.join(release, ".deploy/20261125120000_shared_expense_budget.sql"),
+);
 
 const migrations = [];
 for (const entry of await readdir(path.join(root, "prisma/migrations"), { withFileTypes: true })) {

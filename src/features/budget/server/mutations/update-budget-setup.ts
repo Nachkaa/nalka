@@ -35,7 +35,7 @@ export type BudgetSetupMutationResult = {
 };
 
 function revalidateBudgetPaths(eventSlug: string) {
-  revalidatePath(`/event/${eventSlug}/budget`);
+  revalidatePath(`/event/${eventSlug}/budget/providers`);
   revalidatePath(`/event/${eventSlug}/budget/lines`);
   revalidatePath(`/event/${eventSlug}/budget/quotes`);
 }

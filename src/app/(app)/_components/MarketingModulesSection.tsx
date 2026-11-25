@@ -48,7 +48,7 @@ const modules: Module[] = [
   },
   {
     name: "Budget",
-    description: "Postes, devis, engagement et reste à allouer",
+    description: "Dépenses du groupe et remboursements simplifiés",
     status: "OPTIONAL",
     icon: ReceiptEuro,
   },

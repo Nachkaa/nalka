@@ -142,7 +142,7 @@ export function buildWhatsNextItems(input: WhatsNextInput): WhatsNextItem[] {
       key: "expenses",
       order: 70,
       title: "Suivre le budget",
-      description: "Consulte les dépenses prévues et garde un œil sur les frais à venir.",
+      description: "Ajoute une dépense et retrouve les remboursements entre participants.",
       status: "info",
       statusLabel: "Budget",
       icon: "expenses",

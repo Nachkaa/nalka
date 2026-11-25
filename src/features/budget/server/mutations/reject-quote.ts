@@ -56,7 +56,7 @@ export async function rejectQuote(input: unknown): Promise<QuoteDecisionResult> 
     data: buildRejectQuoteUpdate(decisionNote),
   });
 
-  revalidatePath(`/event/${eventSlug}/budget`);
+  revalidatePath(`/event/${eventSlug}/budget/providers`);
   revalidatePath(`/event/${eventSlug}/budget/lines`);
   revalidatePath(`/event/${eventSlug}/budget/quotes`);
   revalidatePath(`/event/${eventSlug}/budget/quotes/${budgetLineId}`);

@@ -5,13 +5,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
-  { key: "summary", label: "Vue d'ensemble", href: (slug: string) => `/event/${slug}/budget` },
+  { key: "shared", label: "Dépenses partagées", href: (slug: string) => `/event/${slug}/budget` },
+  {
+    key: "summary",
+    label: "Budget organisateur",
+    href: (slug: string) => `/event/${slug}/budget/providers`,
+  },
   { key: "lines", label: "Postes", href: (slug: string) => `/event/${slug}/budget/lines` },
   { key: "quotes", label: "Devis", href: (slug: string) => `/event/${slug}/budget/quotes` },
 ] as const;
 
-export function BudgetLocalNav(props: { eventSlug: string; hasLines: boolean }) {
+export function BudgetLocalNav(props: {
+  eventSlug: string;
+  isOrganizer: boolean;
+  hasProviderBudget: boolean;
+}) {
   const pathname = usePathname();
+  if (
+    !props.isOrganizer ||
+    (!props.hasProviderBudget && pathname === `/event/${props.eventSlug}/budget`)
+  )
+    return null;
 
   return (
     <nav aria-label="Navigation du budget" className="border-border border-b bg-white">

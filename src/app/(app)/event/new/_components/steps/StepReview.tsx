@@ -96,7 +96,7 @@ export function StepReview({
 
   const modules: string[] = [];
   if (draft.timelineEnabled) modules.push("Programme");
-  if (draft.budgetEnabled) modules.push("Provider Cockpit");
+  if (draft.budgetEnabled) modules.push("Budget");
   if (draft.bringEnabled) modules.push("Contributions");
   if (giftsValue) modules.push("Cadeaux");
   if (draft.secretSantaEnabled) modules.push("Secret Santa");

@@ -56,7 +56,7 @@ export async function createBudgetLine(input: unknown): Promise<BudgetLineMutati
     }),
   ]);
 
-  revalidatePath(`/event/${eventSlug}/budget`);
+  revalidatePath(`/event/${eventSlug}/budget/providers`);
   revalidatePath(`/event/${eventSlug}/budget/lines`);
   revalidatePath(`/event/${eventSlug}/budget/quotes`);
 

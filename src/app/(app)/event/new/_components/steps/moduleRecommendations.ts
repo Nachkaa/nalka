@@ -157,7 +157,7 @@ export function inferModuleRecommendations(draft: Draft): ModuleRecommendationRe
       recommended,
       EventModuleKey.BUDGET,
       "high",
-      "Recommandé pour centraliser prestataires, devis, échéances et paiements dans un même espace.",
+      "Utile pour répartir les dépenses du groupe et simplifier les remboursements.",
     );
   }
 

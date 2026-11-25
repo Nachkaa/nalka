@@ -1,6 +1,8 @@
 import { Container } from "@/components/layout/Container";
 import { BudgetLocalNav } from "@/features/budget/components/budget-local-nav";
-import { getBudgetRouteContext } from "@/features/budget/server/get-budget-route-context";
+import { getEventShellFrame } from "@/features/events/get-event-shell-context";
+import { prisma } from "@/lib/prisma";
+import { notFound, redirect } from "next/navigation";
 import { EventShellClient } from "../_components/shell/EventShellClient";
 import { EventHeader } from "../_components/header";
 
@@ -12,7 +14,18 @@ export default async function BudgetLayout(props: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await props.params;
-  const context = await getBudgetRouteContext(slug);
+  const context = await getEventShellFrame({ slug });
+  if (context.unauthorized) redirect(`/login?from=${encodeURIComponent(`/event/${slug}/budget`)}`);
+  if (!context.modules.some((module) => module.key === "BUDGET" && module.enabled)) notFound();
+  const providerBudget = context.isAdmin
+    ? await prisma.budget.findUnique({
+        where: { eventId: context.eventId },
+        select: { setupStatus: true, _count: { select: { lines: true } } },
+      })
+    : null;
+  const hasProviderBudget =
+    !!providerBudget &&
+    (providerBudget.setupStatus === "STARTED" || providerBudget._count.lines > 0);
 
   return (
     <div>
@@ -47,7 +60,11 @@ export default async function BudgetLayout(props: {
           <div className="space-y-6">
             <div className="border-border relative right-1/2 left-1/2 -mr-[50vw] -ml-[50vw] w-screen border-b bg-white">
               <Container>
-                <BudgetLocalNav eventSlug={slug} hasLines={context.hasLines} />
+                <BudgetLocalNav
+                  eventSlug={slug}
+                  isOrganizer={context.isAdmin}
+                  hasProviderBudget={hasProviderBudget}
+                />
               </Container>
             </div>
 

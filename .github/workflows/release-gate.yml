@@ -99,10 +99,13 @@ jobs:
       - name: Run module recommendation regression tests
         run: pnpm exec tsx --test "src/app/(app)/event/new/_components/steps/moduleRecommendations.test.ts"
 
+      - name: Run shared budget accounting regression tests
+        run: pnpm exec tsx --test src/features/budget/shared/calculations.test.ts
+
       - name: Test deployment guardrails
         run: |
           bash -n scripts/deploy/*.sh
-          node --test scripts/deploy/deployment.test.mjs
+          node --test scripts/deploy/deployment.test.mjs scripts/deploy/migrate-shared-budget.test.mjs
 
       - name: Typecheck
         run: pnpm exec tsc --noEmit
@@ -131,6 +134,8 @@ jobs:
           pnpm exec tsx scripts/ci/critical-smoke.ts
           pnpm exec tsx scripts/ci/anonymous-event-draft-smoke.ts
           pnpm exec tsx scripts/ci/event-email-domain-smoke.ts
+          NALKA_TEST_DATABASE=1 pnpm exec tsx scripts/ci/shared-budget-smoke.ts
+          NALKA_TEST_DATABASE=1 node scripts/ci/shared-budget-migration-smoke.mjs
 
       - name: Show server log on failure
         if: failure()
@@ -212,12 +217,14 @@ jobs:
           tar -xzf "$RUNNER_TEMP/nalka-release.tar.gz" -C "$RUNNER_TEMP/nalka-release"
           node -e 'require("node:module").createRequire(require("node:path").join(process.env.RUNNER_TEMP, "nalka-release/package.json"))("pg")'
           node "$RUNNER_TEMP/nalka-release/.deploy/verify-release.mjs" "$GITHUB_SHA"
+          node "$RUNNER_TEMP/nalka-release/.deploy/migrate-shared-budget.mjs" "$GITHUB_SHA" --apply-reviewed-shared-budget
           HOSTNAME=127.0.0.1 PORT=3000 node "$RUNNER_TEMP/nalka-release/server.js" > /tmp/nalka-release.log 2>&1 &
           echo $! > /tmp/nalka-release.pid
           node scripts/deploy/health-check.mjs http://127.0.0.1:3000 "$GITHUB_SHA"
           pnpm exec tsx scripts/ci/critical-smoke.ts
           pnpm exec tsx scripts/ci/anonymous-event-draft-smoke.ts
           pnpm exec tsx scripts/ci/event-email-domain-smoke.ts
+          NALKA_TEST_DATABASE=1 pnpm exec tsx scripts/ci/shared-budget-smoke.ts
       - name: Show release log on failure
         if: failure()
         run: cat /tmp/nalka-release.log || true
@@ -299,5 +306,7 @@ jobs:
           ssh "${ssh_options[@]}" -p "$DEPLOY_PORT" "$target" "test -L $deploy_root/current && test -r $deploy_root/shared/runtime.env && test -x /usr/local/sbin/nalka-release-service"
           scp "${ssh_options[@]}" -P "$DEPLOY_PORT" "$archive" "$target:$deploy_root/incoming/$release_id.tar.gz"
           scp "${ssh_options[@]}" -P "$DEPLOY_PORT" scripts/deploy/activate-release.sh "$target:$deploy_root/incoming/$release_id.sh"
+          scp "${ssh_options[@]}" -P "$DEPLOY_PORT" scripts/deploy/apply-shared-budget-schema.sh "$target:$deploy_root/incoming/$release_id-schema.sh"
+          ssh "${ssh_options[@]}" -p "$DEPLOY_PORT" "$target" "bash $deploy_root/incoming/$release_id-schema.sh $GITHUB_SHA $release_id $checksum"
           ssh "${ssh_options[@]}" -p "$DEPLOY_PORT" "$target" "bash $deploy_root/incoming/$release_id.sh $GITHUB_SHA $release_id $checksum"
-          ssh "${ssh_options[@]}" -p "$DEPLOY_PORT" "$target" "rm -f $deploy_root/incoming/$release_id.sh $deploy_root/incoming/$release_id.tar.gz"
+          ssh "${ssh_options[@]}" -p "$DEPLOY_PORT" "$target" "rm -f $deploy_root/incoming/$release_id.sh $deploy_root/incoming/$release_id-schema.sh $deploy_root/incoming/$release_id.tar.gz"

@@ -11,7 +11,7 @@ The repository currently has CI only. The VPS, its SSH credentials, sudo policy 
 1. Build a separate production standalone artifact after the existing release gate, using production public configuration and fixture-only database credentials.
 2. Exercise the extracted artifact in CI, including the existing critical smoke tests.
 3. Deploy only `main`, with a pinned SSH host key, serialized activation and release-specific health checks.
-4. Keep runtime secrets on the VPS. Check migration history read-only; require a separately reviewed migration when the histories differ.
+4. Keep runtime secrets on the VPS. Check migration history read-only; require a separately reviewed migration when the histories differ. The shared-budget schema has the explicit, narrowly scoped command documented below.
 5. Stage before switching, preserve a legacy rollback target, and document configuration and recovery.
 
 ## Verification plan
@@ -20,7 +20,15 @@ Run the existing typecheck, lint, production build and smoke gate. Add focused d
 
 ## Rollback and risks
 
-Code rollback cannot undo database migrations; automated deployment must not execute them. Runtime secrets and uploaded files must remain outside immutable artifacts. A first deployment can be blocked by unapplied migrations or missing server configuration, and must leave the running legacy app available.
+Code rollback cannot undo database migrations; general pending migrations are never automatically executed. Runtime secrets and uploaded files must remain outside immutable artifacts. A deployment blocked by an unreviewed migration or missing configuration leaves the running app available.
+
+## Reviewed shared-budget schema
+
+The shared-expense feature adds four tables without changing existing application data. Before activation, the workflow explicitly runs `apply-shared-budget-schema.sh`, separately from the read-only activation gate. This command uses the existing deployment lock, the verified archive checksum and the server's runtime environment.
+
+`migrate-shared-budget.mjs` can apply only `20261125120000_shared_expense_budget`, whose exact SQL SHA-256 is pinned in the source and must match the release manifest. Every previous migration must already match. The SQL and its new `_prisma_migrations` completion record commit in one PostgreSQL transaction; any error rolls both back. An already completed migration is verified and skipped. Missing, modified or unresolved migrations other than this reviewed addition still block deployment. No existing migration history is rewritten.
+
+CI verifies the packaged command, real PostgreSQL application, repeat execution and rollback after an induced DDL failure in isolated fixture schemas. The following activation command retains its original read-only history check, preview and rollback behavior. The previous application remains compatible with these additive tables if code rollback is required.
 
 ## Release flow
 

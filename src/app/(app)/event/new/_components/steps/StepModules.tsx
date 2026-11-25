@@ -266,7 +266,7 @@ export function StepModules({
       ? [
           {
             id: "budget",
-            title: "Provider Cockpit",
+            title: "Budget",
             icon: ReceiptEuro,
             onRemove: () => onChangeBudgetEnabled(false),
           } satisfies SelectedModule,
@@ -320,10 +320,10 @@ export function StepModules({
       ? [
           {
             id: "budget",
-            title: "Provider Cockpit",
+            title: "Budget",
             description:
               budgetRecommendation?.reason ??
-              "Centralisez prestations, devis prestataires, échéances et paiements.",
+              "Notez les dépenses du groupe et découvrez qui doit rembourser qui.",
             icon: ReceiptEuro,
             onClick: () => onChangeBudgetEnabled(true),
           } satisfies ModuleCatalogCard,

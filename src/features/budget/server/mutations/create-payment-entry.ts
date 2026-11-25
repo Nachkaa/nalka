@@ -125,7 +125,7 @@ export async function createPaymentEntry(input: unknown): Promise<BudgetPaymentM
     throw error;
   }
 
-  revalidatePath(`/event/${eventSlug}/budget`);
+  revalidatePath(`/event/${eventSlug}/budget/providers`);
   revalidatePath(`/event/${eventSlug}/budget/lines`);
   revalidatePath(`/event/${eventSlug}/budget/quotes`);
   revalidatePath(`/event/${eventSlug}/budget/quotes/${budgetLineId}`);
