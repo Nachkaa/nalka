@@ -3,6 +3,26 @@ import { parseDateOrThrow, startOfTodayLocal } from "@/lib/dates/parseDateOrThro
 import { EventScheduleMode, EventLocationMode } from "@prisma/client";
 import { EmailDomainListSchema } from "@/features/events/email-domain-policy";
 
+export const EVENT_TITLE_MAX_LENGTH = 120;
+export const EVENT_DESCRIPTION_MAX_LENGTH = 1000;
+
+export const EventDetailsSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "Indiquez un nom pour l’événement.")
+    .max(EVENT_TITLE_MAX_LENGTH, `Le nom est limité à ${EVENT_TITLE_MAX_LENGTH} caractères.`),
+  description: z
+    .string()
+    .max(
+      EVENT_DESCRIPTION_MAX_LENGTH,
+      `La description est limitée à ${EVENT_DESCRIPTION_MAX_LENGTH} caractères.`,
+    )
+    .optional()
+    .nullable()
+    .transform((value) => value || null),
+});
+
 const checkboxFromForm = z
   .union([z.string(), z.boolean(), z.null(), z.undefined()])
   .transform((v) => v === true || v === "on" || v === "true" || v === "1");
@@ -63,38 +83,28 @@ const locationSchema = z.discriminatedUnion("mode", [
   }),
 ]);
 
-export const EventCreateSchema = z
-  .object({
-    title: z.string().min(1).max(120),
-    allowedEmailDomains: EmailDomainListSchema.default([]),
-    description: z
-      .string()
-      .max(500)
-      .optional()
-      .nullable()
-      .transform((v) => v || null),
+export const EventCreateSchema = EventDetailsSchema.extend({
+  allowedEmailDomains: EmailDomainListSchema.default([]),
+  location: locationSchema,
+  schedule: scheduleSchema.and(z.object({ time: TimeHHmm })),
 
-    location: locationSchema,
-    schedule: scheduleSchema.and(z.object({ time: TimeHHmm })),
+  giftMode: giftModeSchema,
+  giftsEnabled: checkboxFromForm.optional(),
 
-    giftMode: giftModeSchema,
-    giftsEnabled: checkboxFromForm.optional(),
+  secretSantaEnabled: checkboxFromForm.optional(),
+  bringEnabled: checkboxFromForm.optional(),
+  timelineEnabled: checkboxFromForm.optional(),
+  budgetEnabled: checkboxFromForm.optional(),
 
-    secretSantaEnabled: checkboxFromForm.optional(),
-    bringEnabled: checkboxFromForm.optional(),
-    timelineEnabled: checkboxFromForm.optional(),
-    budgetEnabled: checkboxFromForm.optional(),
+  isNoSpoil: checkboxFromForm,
+  isAnonReservations: checkboxFromForm,
+  isSecondHandOk: checkboxFromForm,
+  isHandmadeOk: checkboxFromForm,
 
-    isNoSpoil: checkboxFromForm,
-    isAnonReservations: checkboxFromForm,
-    isSecondHandOk: checkboxFromForm,
-    isHandmadeOk: checkboxFromForm,
-
-    budgetCap: z.union([z.string(), z.number(), z.null(), z.undefined()]).transform((v) => {
-      if (v === null || v === undefined || v === "") return null;
-      const s = String(v).replace(/\s/g, "").replace(",", ".");
-      const n = Number.parseFloat(s);
-      return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null;
-    }),
-  })
-  .transform((d) => d);
+  budgetCap: z.union([z.string(), z.number(), z.null(), z.undefined()]).transform((v) => {
+    if (v === null || v === undefined || v === "") return null;
+    const s = String(v).replace(/\s/g, "").replace(",", ".");
+    const n = Number.parseFloat(s);
+    return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null;
+  }),
+}).transform((d) => d);

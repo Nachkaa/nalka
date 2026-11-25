@@ -5,7 +5,6 @@ import { createEventFromFormData } from "@/features/events/server/create-event";
 import { limit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/req";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 export async function createEvent(formData: FormData) {
   const ownerId = await requireCurrentUserId();
@@ -17,5 +16,5 @@ export async function createEvent(formData: FormData) {
   const event = await createEventFromFormData(ownerId, formData);
 
   revalidatePath("/event");
-  redirect(`/event/${event.slug}`);
+  return { slug: event.slug };
 }

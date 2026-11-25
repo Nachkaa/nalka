@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { EVENT_DESCRIPTION_MAX_LENGTH, EVENT_TITLE_MAX_LENGTH } from "@/domain/events";
 import { getTitleSuggestions } from "./titleSuggestions";
 import type { Draft } from "../EventCreateStepper";
 import { StepHeading } from "./StepHeading";
@@ -33,6 +34,7 @@ export function StepTitle({ draft, onChange, onNext, autoAdvance = false }: Prop
         <Input
           id="title"
           value={draft.title}
+          maxLength={EVENT_TITLE_MAX_LENGTH}
           onChange={(e) => onChange({ title: e.target.value })}
           aria-label="Nom de l'événement"
           placeholder={
@@ -64,11 +66,16 @@ export function StepTitle({ draft, onChange, onNext, autoAdvance = false }: Prop
         <Textarea
           id="desc"
           value={draft.description}
+          maxLength={EVENT_DESCRIPTION_MAX_LENGTH}
+          aria-describedby="desc-help"
           onChange={(e) => onChange({ description: e.target.value })}
           placeholder="Objectif, format, informations utiles aux participants..."
         />
-        <p className="text-muted-foreground text-xs">
+        <p id="desc-help" className="text-muted-foreground text-xs">
           Indiquez les informations utiles aux participants. La date et le lieu viennent ensuite.
+          <span className="mt-1 block">
+            {draft.description.length} / {EVENT_DESCRIPTION_MAX_LENGTH} caractères
+          </span>
         </p>
       </div>
     </div>

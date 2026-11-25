@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { EVENT_DESCRIPTION_MAX_LENGTH, EVENT_TITLE_MAX_LENGTH } from "@/domain/events";
 import { Check, ChevronDown, X } from "lucide-react";
 import { toast } from "sonner";
 import { updateBasicInfo } from "../actions";
@@ -98,7 +99,7 @@ export function BasicEventForm({ eventId, slug, defaultValues }: Props) {
           required
           placeholder="Ex. Noël en famille"
           defaultValue={defaultValues.title}
-          maxLength={100}
+          maxLength={EVENT_TITLE_MAX_LENGTH}
           autoComplete="off"
         />
       </div>
@@ -112,10 +113,13 @@ export function BasicEventForm({ eventId, slug, defaultValues }: Props) {
           rows={4}
           placeholder="Quelques mots sur l'événement (optionnel)"
           defaultValue={defaultValues.description}
-          maxLength={500}
+          maxLength={EVENT_DESCRIPTION_MAX_LENGTH}
+          aria-describedby="description-help"
           className="resize-none"
         />
-        <p className="text-muted-foreground text-xs">Décrivez brièvement votre événement</p>
+        <p id="description-help" className="text-muted-foreground text-xs">
+          Décrivez brièvement votre événement ({EVENT_DESCRIPTION_MAX_LENGTH} caractères maximum).
+        </p>
       </div>
 
       {/* Date avec le nouveau DatePicker */}

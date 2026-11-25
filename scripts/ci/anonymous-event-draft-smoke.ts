@@ -10,6 +10,9 @@ const baseUrl = (process.env.NEXTAUTH_URL ?? "http://127.0.0.1:3000").replace(/\
 const suffix = `${Date.now()}-${randomUUID().slice(0, 8)}`;
 const ownerEmail = `ci-draft-owner-${suffix}@nalka.local`;
 const ownerSessionToken = `ci-draft-session-${randomUUID()}`;
+const draftDescription = "Une semaine au ski entre amis, avec du fromage et des jeux. ".repeat(12);
+const pollDates = ["2099-01-09", "2099-01-16", "2099-01-23", "2099-01-30", "2099-02-06"];
+const pollLocations = ["🏔️ Serre Chevalier", "🎿 Tignes", "💡 Autre station"];
 
 let draftTokenHash: string | null = null;
 let claimedEventId: string | null = null;
@@ -39,10 +42,12 @@ function redirectLocation(response: Response) {
 function buildDraftFormData() {
   const formData = new FormData();
   formData.set("title", `CI anonymous draft ${suffix}`);
-  formData.set("description", "Created before authentication by the release gate.");
-  formData.set("schedule.mode", "TBD");
+  formData.set("description", draftDescription);
+  formData.set("schedule.mode", "POLL");
+  for (const date of pollDates) formData.append("schedule.options", date);
   formData.set("schedule.time", "");
-  formData.set("location.mode", "TBD");
+  formData.set("location.mode", "POLL");
+  for (const location of pollLocations) formData.append("location.options", location);
   formData.set("modules.secretSantaEnabled", "on");
   formData.set("modules.giftsEnabled", "on");
   formData.set("giftMode", "PERSONAL_LISTS");
@@ -102,6 +107,18 @@ async function main() {
       select: {
         id: true,
         ownerId: true,
+        description: true,
+        scheduleMode: true,
+        locationMode: true,
+        polls: {
+          select: {
+            type: true,
+            options: {
+              orderBy: { sort: "asc" },
+              select: { dateValue: true, textValue: true },
+            },
+          },
+        },
         allowedEmailDomains: true,
         giftMode: true,
         modules: { select: { key: true, enabled: true } },
@@ -114,6 +131,23 @@ async function main() {
     claimedEventId = claimedEvent.id;
 
     assert.equal(claimedEvent.ownerId, owner.id, "Verified user must own the claimed event");
+    assert.equal(claimedEvent.description, draftDescription);
+    assert.equal(claimedEvent.scheduleMode, "POLL");
+    assert.equal(claimedEvent.locationMode, "POLL");
+    assert.deepEqual(
+      claimedEvent.polls
+        .find((poll) => poll.type === "SCHEDULE")
+        ?.options.map((option) => option.dateValue?.toISOString().slice(0, 10)),
+      pollDates,
+      "All date choices must survive event creation",
+    );
+    assert.deepEqual(
+      claimedEvent.polls
+        .find((poll) => poll.type === "LOCATION")
+        ?.options.map((option) => option.textValue),
+      pollLocations,
+      "All destination choices, including emoji, must survive event creation",
+    );
     assert.equal(claimedEvent.memberships[0]?.role, EventMemberRole.OWNER);
     assert.equal(claimedEvent.giftMode, "PERSONAL_LISTS");
     assert.ok(
@@ -144,7 +178,7 @@ async function main() {
     );
 
     console.log(
-      "Anonymous event draft smoke passed: public wizard, auth handoff, verified ownership, idempotent claim.",
+      "Anonymous event draft smoke passed: public wizard, long description, date and destination polls, auth handoff, verified ownership, idempotent claim.",
     );
   } finally {
     await cleanup();

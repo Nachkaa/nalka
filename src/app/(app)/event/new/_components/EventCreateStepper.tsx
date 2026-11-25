@@ -2,6 +2,7 @@
 
 import { createEvent } from "@/app/(app)/event/actions";
 import { Button } from "@/components/ui/button";
+import { EventDetailsSchema } from "@/domain/events";
 import { saveAnonymousEventDraft } from "@/features/events/event-draft-actions";
 import {
   EventModuleKey,
@@ -131,7 +132,7 @@ export function EventCreateStepper({
   );
 
   const canNext = useMemo(() => {
-    if (step === 1) return draft.title.trim().length > 0;
+    if (step === 1) return EventDetailsSchema.safeParse(draft).success;
     if (step === 2 && draft.scheduleMode === "EXACT") return !!draft.scheduleDate;
     return true;
   }, [step, draft]);
@@ -195,6 +196,12 @@ export function EventCreateStepper({
 
   function submit() {
     setSubmitError("");
+    const details = EventDetailsSchema.safeParse(draft);
+    if (!details.success) {
+      setStep(1);
+      setSubmitError(details.error.issues[0].message);
+      return;
+    }
     if (draft.restrictEmailDomains && draft.allowedEmailDomains.length === 0) {
       setSubmitError("Ajoutez au moins un domaine autorisé.");
       return;
@@ -204,7 +211,8 @@ export function EventCreateStepper({
     startTransition(async () => {
       try {
         if (isAuthenticated) {
-          await createEvent(formData);
+          const { slug } = await createEvent(formData);
+          router.push(`/event/${slug}`);
           return;
         }
 
