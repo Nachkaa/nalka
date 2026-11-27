@@ -76,8 +76,8 @@ export function EventList({ initialEvents }: Props) {
         <div className="space-y-3">
           <h2 className="text-foreground text-xl font-semibold">On se retrouve bientôt ?</h2>
           <p className="text-muted-foreground text-sm">
-            Un anniversaire, un repas ou un week-end entre amis : créez votre premier événement et
-            invitez vos proches à le préparer avec vous.
+            Un Secret Santa entre collègues, un repas entre amis ou une fête en famille : créez
+            votre premier événement et invitez votre groupe à le préparer avec vous.
           </p>
           <div className="pt-2">
             <Button asChild>

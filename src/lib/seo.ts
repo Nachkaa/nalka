@@ -5,7 +5,7 @@ const DEFAULT_OG_IMAGE = "/images/hero-dinner.webp";
 
 export const siteName = "Nalka";
 export const siteDescription =
-  "Nalka vous aide à préparer vos moments en famille et entre amis : listes de cadeaux, Secret Santa, repas partagés et dépenses du groupe au même endroit.";
+  "Entre amis, entre collègues ou en famille, Nalka rassemble vos listes de cadeaux, votre Secret Santa et les préparatifs du groupe au même endroit.";
 
 export type PublicRoute = {
   path: string;

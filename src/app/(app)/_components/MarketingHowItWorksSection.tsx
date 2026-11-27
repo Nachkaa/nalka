@@ -1,100 +1,47 @@
-import { Plus, Share2, SlidersHorizontal } from "lucide-react";
-
 import { Container } from "@/components/layout/Container";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const steps = [
   {
-    step: "1",
-    title: "Lancez les préparatifs",
-    description: "Donnez un nom à votre événement. La date et le lieu peuvent encore attendre.",
-    icon: Plus,
+    title: "Donnez-lui un nom",
+    description:
+      "Un Secret Santa de l’équipe, Noël entre amis… La date et le lieu peuvent encore attendre.",
   },
   {
-    step: "2",
-    title: "Invitez vos proches",
-    description: "Partagez le lien d'invitation avec votre famille ou vos amis.",
-    icon: Share2,
+    title: "Invitez votre groupe",
+    description:
+      "Partagez votre lien avec vos amis, vos collègues ou votre famille. Chacun rejoint le même événement.",
   },
   {
-    step: "3",
     title: "Préparez-le ensemble",
     description:
-      "Choisissez vos options : cadeaux, Secret Santa, repas partagé ou dépenses du groupe.",
-    icon: SlidersHorizontal,
+      "Choisissez vos options : cadeaux, tirage au sort, repas partagé ou dépenses du groupe.",
   },
 ] as const;
 
 export function MarketingHowItWorksSection() {
   return (
-    <section id="fonctionnement" className="relative py-10 md:py-14">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,var(--primary-100),transparent_70%)]"
-      />
-      <div aria-hidden className="bg-background/80 pointer-events-none absolute inset-0" />
-
-      <Container className="relative flex flex-col gap-10 md:gap-12">
-        <div className="space-y-3 text-center">
-          <h2 className="text-foreground text-3xl font-semibold tracking-tight md:text-4xl">
-            Comment ça fonctionne
-          </h2>
-          <p className="text-muted-foreground text-base md:text-lg">
-            De la première idée aux préparatifs partagés.
+    <section id="fonctionnement" className="bg-background py-16 md:py-24">
+      <Container className="space-y-12 px-5 md:px-6">
+        <div className="mx-auto max-w-xl space-y-3 text-center">
+          <p className="text-primary text-xs font-semibold tracking-[0.15em] uppercase">
+            De l’idée au bon moment
           </p>
+          <h2 className="text-foreground font-serif text-3xl leading-tight text-balance md:text-[2.6rem]">
+            On commence simplement.
+          </h2>
         </div>
-
-        <div className="relative grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-          {steps.map((step) => {
-            const Icon = step.icon;
-
-            return (
-              <div key={step.step} className="relative h-full">
-                <Card
-                  className={[
-                    "border-border/70 h-full rounded-2xl border bg-white!",
-                    "shadow-[0_10px_30px_-20px_rgba(0,0,0,0.25)] transition-all duration-200 ease-out",
-                    "hover:border-primary/35",
-                    "hover:bg-(--primary-100)! hover:shadow-[0_14px_36px_-20px_rgba(0,0,0,0.35)]",
-                  ].join(" ")}
-                >
-                  <CardHeader className="space-y-5">
-                    <div className="flex flex-col items-start gap-2">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-(--primary-600) to-(--primary-500) text-xs font-semibold text-white shadow-sm">
-                        {step.step}
-                      </span>
-
-                      <span className="bg-primary/10 text-primary ring-primary/15 flex h-11 w-11 items-center justify-center rounded-xl ring-1">
-                        <Icon className="h-5 w-5" aria-hidden />
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 text-left">
-                      <CardTitle className="text-foreground text-lg font-semibold">
-                        {step.title}
-                      </CardTitle>
-                      <CardDescription className="text-muted-foreground text-sm leading-relaxed">
-                        {step.description}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                </Card>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-2 flex w-full justify-center">
-          <div className="border-primary/15 bg-primary/10 text-foreground/90 flex w-full max-w-3xl items-center justify-center gap-3 rounded-2xl border px-5 py-3 text-sm">
-            <span className="text-center">
-              <span className="text-foreground font-semibold">Vous gardez les choses simples</span>
-              <span className="text-muted-foreground mx-2">-</span>
-              <span className="text-muted-foreground">
-                ajoutez seulement les options utiles à votre groupe.
-              </span>
-            </span>
-          </div>
-        </div>
+        <ol className="grid gap-8 md:grid-cols-3 md:gap-12">
+          {steps.map(({ title, description }, index) => (
+            <li key={title} className="space-y-4 border-t pt-6">
+              <span className="text-primary/60 block font-serif text-3xl">0{index + 1}</span>
+              <h3 className="text-foreground text-base font-semibold">{title}</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+            </li>
+          ))}
+        </ol>
+        <p className="text-muted-foreground text-center text-xs">
+          Vous ajoutez seulement les options utiles à votre groupe.
+        </p>
       </Container>
     </section>
   );

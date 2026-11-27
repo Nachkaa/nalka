@@ -15,7 +15,7 @@ import { absoluteUrl, buildPublicMetadata } from "@/lib/seo";
 
 const homeTitle = "Cadeaux, Secret Santa et moments à partager";
 const homeDescription =
-  "Préparez Noël, un anniversaire ou un week-end en famille et entre amis : listes de cadeaux, Secret Santa et organisation à plusieurs avec Nalka.";
+  "Organisez un Secret Santa entre collègues, Noël entre amis ou une fête en famille : listes de cadeaux, tirage privé et préparatifs partagés avec Nalka.";
 
 export const metadata: Metadata = buildPublicMetadata({
   title: homeTitle,

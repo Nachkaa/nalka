@@ -34,13 +34,13 @@ const THEMES: Array<{
   {
     value: "christmas",
     title: "Noël / Secret Santa",
-    description: "Cadeaux et retrouvailles en famille ou entre amis.",
+    description: "Cadeaux et retrouvailles entre amis, collègues ou en famille.",
     Icon: TreePine,
   },
   {
     value: "social",
-    title: "Entre amis",
-    description: "Anniversaire, soirée, dîner, barbecue…",
+    title: "Amis et collègues",
+    description: "Anniversaire, soirée, dîner, pot de départ…",
     Icon: PartyPopper,
   },
   {

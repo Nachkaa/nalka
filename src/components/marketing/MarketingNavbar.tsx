@@ -19,16 +19,13 @@ export function MarketingNavbar() {
           className="text-muted-foreground hidden items-center gap-8 text-sm lg:flex"
         >
           <Link href="#modules-evenement" className="hover:text-foreground">
-            Cadeaux et préparatifs
+            Les préparatifs
           </Link>
           <Link href="#fonctionnement" className="hover:text-foreground">
-            Fonctionnement
-          </Link>
-          <Link href="#confidentialite-privee" className="hover:text-foreground">
-            Les surprises
+            Comment ça marche
           </Link>
           <Link href="#idees-evenements" className="hover:text-foreground">
-            Nos moments ensemble
+            Pour votre groupe
           </Link>
         </nav>
 
@@ -36,7 +33,7 @@ export function MarketingNavbar() {
           <Button asChild variant="link" className="text-foreground px-0 text-sm font-medium">
             <Link href="/login">Se connecter</Link>
           </Button>
-          <Button asChild size="sm" className="shadow-soft hidden text-sm sm:inline-flex">
+          <Button asChild size="sm" className="hidden rounded-full px-4 text-sm sm:inline-flex">
             <Link href="/event/new">Créer un événement</Link>
           </Button>
         </div>

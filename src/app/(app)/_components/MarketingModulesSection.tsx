@@ -4,67 +4,71 @@ import { Container } from "@/components/layout/Container";
 
 const features = [
   {
-    name: "Des cadeaux qui font plaisir",
+    name: "Les envies de chacun",
     description:
-      "Chacun partage ses envies. Les proches réservent les cadeaux en gardant la surprise.",
+      "Partagez vos idées de cadeaux. Les autres peuvent réserver une attention en gardant la surprise.",
     icon: Gift,
   },
   {
-    name: "Un Secret Santa entre proches",
+    name: "La magie du tirage",
     description:
-      "Lancez le tirage au sort. Chaque personne découvre en privé à qui offrir un cadeau.",
+      "Entre amis ou collègues, chacun découvre en privé à qui offrir un cadeau. Le Secret Santa peut commencer.",
     icon: Sparkles,
   },
   {
-    name: "Qui apporte quoi ?",
-    description: "Le dessert, les boissons, les jeux… Répartissez ce que chacun apporte.",
+    name: "Les préparatifs à plusieurs",
+    description:
+      "Qui apporte le dessert, les boissons ou les jeux ? Chacun choisit ce qu'il apporte au bon moment.",
     icon: Utensils,
   },
-  {
-    name: "Savoir qui sera là",
-    description: "Invitez vos proches et retrouvez leurs réponses sans multiplier les relances.",
-    icon: Users,
-  },
-  {
-    name: "Choisir ensemble",
-    description: "Une hésitation sur la date ou le lieu ? Proposez un sondage au groupe.",
-    icon: BarChart3,
-  },
-  {
-    name: "Partager les dépenses",
-    description: "Notez qui a payé quoi et retrouvez les remboursements à faire entre vous.",
-    icon: ReceiptEuro,
-  },
+] as const;
+
+const extras = [
+  { label: "Invitations et réponses", icon: Users },
+  { label: "Sondages de date ou de lieu", icon: BarChart3 },
+  { label: "Dépenses partagées", icon: ReceiptEuro },
 ] as const;
 
 export function MarketingModulesSection() {
   return (
-    <section id="modules-evenement" className="bg-background py-12 md:py-20">
-      <Container className="space-y-10">
-        <div className="mx-auto max-w-2xl space-y-3 text-center">
-          <h2 className="text-foreground text-3xl font-semibold tracking-tight text-balance md:text-4xl">
-            Un peu moins à gérer. Un peu plus à partager.
-          </h2>
-          <p className="text-muted-foreground text-base md:text-lg">
-            Les préparatifs avancent à plusieurs, avec les options dont votre groupe a besoin.
+    <section id="modules-evenement" className="dark:bg-card/30 bg-[#f8f7fa] py-16 md:py-24">
+      <Container className="space-y-12 px-5 md:px-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+          <div className="max-w-xl space-y-3">
+            <p className="text-primary text-xs font-semibold tracking-[0.15em] uppercase">
+              Les préparatifs, tout simplement
+            </p>
+            <h2 className="text-foreground font-serif text-3xl leading-tight text-balance md:text-[2.6rem]">
+              Tout ce qu’il faut pour se retrouver.
+            </h2>
+          </div>
+          <p className="text-muted-foreground max-w-sm text-sm leading-relaxed">
+            Un événement, les bonnes options, et chacun qui participe à sa façon.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-10 md:grid-cols-3 md:gap-12">
           {features.map(({ name, description, icon: Icon }) => (
-            <div key={name} className="bg-card space-y-4 rounded-2xl border p-6">
-              <span className="bg-primary/10 text-primary flex size-11 items-center justify-center rounded-xl">
-                <Icon className="size-5" aria-hidden />
-              </span>
-              <div className="space-y-2">
-                <h3 className="text-foreground font-semibold">{name}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
-              </div>
+            <div key={name} className="border-primary/15 space-y-4 border-t pt-6">
+              <Icon className="text-primary size-6" strokeWidth={1.5} aria-hidden />
+              <h3 className="text-foreground text-lg font-semibold">{name}</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
             </div>
           ))}
         </div>
-        <p className="text-muted-foreground text-center text-sm">
-          Listes de cadeaux et Secret Santa fonctionnent ensemble ou séparément. Vous choisissez.
-        </p>
+        <div className="space-y-5 border-t pt-6">
+          <ul className="text-muted-foreground flex flex-wrap gap-x-8 gap-y-4 text-xs sm:text-sm">
+            {extras.map(({ label, icon: Icon }) => (
+              <li key={label} className="flex items-center gap-2">
+                <Icon className="size-4" aria-hidden />
+                {label}
+              </li>
+            ))}
+          </ul>
+          <p className="text-muted-foreground text-xs">
+            Listes de cadeaux et Secret Santa fonctionnent ensemble ou séparément. Vous choisissez
+            vos options.
+          </p>
+        </div>
       </Container>
     </section>
   );

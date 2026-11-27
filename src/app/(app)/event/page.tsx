@@ -35,7 +35,7 @@ export default async function Page() {
             Mes événements
           </h1>
           <p className="text-muted-foreground text-sm">
-            Vos prochains moments à partager avec vos proches.
+            Vos prochains moments à partager avec votre groupe.
           </p>
         </div>
 

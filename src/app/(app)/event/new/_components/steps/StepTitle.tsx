@@ -39,7 +39,7 @@ export function StepTitle({ draft, onChange, onNext, autoAdvance = false }: Prop
           aria-label="Nom de l'événement"
           placeholder={
             draft.theme === "christmas"
-              ? "Ex. Noël en famille, Secret Santa entre amis…"
+              ? "Ex. Secret Santa entre collègues, Noël entre amis…"
               : "Ex. Anniversaire de Camille, week-end au ski…"
           }
           autoFocus
@@ -69,7 +69,7 @@ export function StepTitle({ draft, onChange, onNext, autoAdvance = false }: Prop
           maxLength={EVENT_DESCRIPTION_MAX_LENGTH}
           aria-describedby="desc-help"
           onChange={(e) => onChange({ description: e.target.value })}
-          placeholder="Un petit mot pour vos proches, une idée pour ce moment ensemble…"
+          placeholder="Un petit mot pour votre groupe, une idée pour ce moment ensemble…"
         />
         <p id="desc-help" className="text-muted-foreground text-xs">
           Indiquez les informations utiles aux participants. La date et le lieu viennent ensuite.

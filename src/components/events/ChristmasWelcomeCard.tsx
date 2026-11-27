@@ -8,36 +8,36 @@ export function ChristmasWelcomeCard() {
   return (
     <section
       aria-labelledby="christmas-welcome-title"
-      className="dark:bg-card mb-8 grid overflow-hidden rounded-3xl border bg-[#fcf8f3] md:grid-cols-[1fr_240px]"
+      className="bg-card mb-8 grid overflow-hidden rounded-2xl border md:grid-cols-[1fr_280px]"
     >
       <div className="space-y-3 p-6 sm:p-8">
         <p className="text-primary flex items-center gap-2 text-sm font-semibold">
           <TreePine className="size-4" aria-hidden />
-          Noël en famille ou entre amis
+          Entre amis, entre collègues, en famille
         </p>
         <h2
           id="christmas-welcome-title"
-          className="text-foreground text-2xl font-semibold tracking-tight"
+          className="text-foreground font-serif text-2xl leading-tight"
         >
-          Et si on préparait Noël ensemble ?
+          Un Secret Santa avec votre groupe ?
         </h2>
         <p className="text-muted-foreground max-w-xl text-sm leading-relaxed">
-          Les idées de cadeaux, un Secret Santa, le repas à partager : créez votre événement et
-          invitez vos proches à participer aux préparatifs.
+          Un tirage privé, les idées de cadeaux de chacun et un moment à partager. Invitez votre
+          groupe et préparez les fêtes à plusieurs.
         </p>
-        <Button asChild className="mt-1 rounded-xl">
+        <Button asChild className="mt-1 rounded-full">
           <Link href="/event/new?occasion=christmas">
-            Préparer mon Noël
+            Organiser un Secret Santa
             <ArrowRight className="size-4" aria-hidden />
           </Link>
         </Button>
       </div>
       <div className="relative hidden md:block" aria-hidden>
         <Image
-          src="/images/usecases/christmas.webp"
+          src="/images/christmas-gift-exchange.webp"
           alt=""
           fill
-          sizes="240px"
+          sizes="280px"
           className="object-cover"
         />
       </div>

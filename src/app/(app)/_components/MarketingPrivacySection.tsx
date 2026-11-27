@@ -1,104 +1,45 @@
-import { EyeOff, Lock, Shield, UserCheck } from "lucide-react";
+import { EyeOff, Gift, LockKeyhole } from "lucide-react";
 
 import { Container } from "@/components/layout/Container";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const items = [
+const protections = [
   {
-    icon: Lock,
-    title: "Les cadeaux gardent leur surprise",
+    icon: Gift,
+    title: "Des cadeaux qui gardent leur surprise",
     description: "La personne qui reçoit un cadeau ne voit pas les réservations de sa liste.",
   },
   {
-    icon: UserCheck,
-    title: "Un espace pour votre groupe",
-    description: "Vos proches rejoignent l'événement grâce à votre invitation.",
-  },
-  {
     icon: EyeOff,
-    title: "Un tirage au sort privé",
-    description: "Pour le Secret Santa, chacun découvre uniquement à qui offrir un cadeau.",
+    title: "Des réservations anonymes",
+    description: "Le nom de la personne qui réserve un cadeau n’est pas affiché.",
   },
   {
-    icon: Shield,
-    title: "Les réservations restent anonymes",
-    description: "Le nom de la personne qui réserve un cadeau n'est pas affiché.",
+    icon: LockKeyhole,
+    title: "Un Secret Santa vraiment privé",
+    description: "Chaque personne découvre uniquement sa propre attribution.",
   },
 ] as const;
 
 export function MarketingPrivacySection() {
   return (
-    <section
-      id="confidentialite-privee"
-      className="relative isolate overflow-hidden bg-[#0b0b10] py-10 md:py-18"
-    >
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div
-          className="absolute -top-20 left-[25%] h-[520px] w-[720px] opacity-45"
-          style={{
-            background:
-              "radial-gradient(60% 60% at 35% 35%, var(--primary-600) 0%, transparent 65%)",
-          }}
-        />
-
-        <div
-          className="absolute -bottom-56 left-[55%] h-[560px] w-[760px] opacity-45"
-          style={{
-            background:
-              "radial-gradient(55% 55% at 60% 55%, var(--primary-500) 0%, transparent 70%)",
-          }}
-        />
-      </div>
-
-      <Container className="relative flex flex-col gap-10 md:gap-12">
-        <div className="space-y-3 text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
-            On partage les préparatifs. On garde les surprises.
-          </h2>
-          <p className="text-base text-white/75 md:text-lg">
-            Les idées circulent dans votre groupe, les petits secrets restent à leur place.
+    <section id="confidentialite-privee" className="bg-[#172b26] py-16 text-white md:py-20">
+      <Container className="space-y-10 px-5 md:px-6">
+        <div className="max-w-2xl space-y-4">
+          <p className="text-xs font-semibold tracking-[0.15em] text-white/65 uppercase">
+            Les petits secrets sont bien gardés
           </p>
+          <h2 className="font-serif text-3xl leading-tight text-balance md:text-[2.6rem]">
+            Le plaisir d’organiser. La surprise en plus.
+          </h2>
         </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {items.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Card
-                key={item.title}
-                className="group h-full rounded-2xl border border-white/10 bg-white/5! text-white shadow-[0_12px_40px_rgba(0,0,0,0.35)] transition-all duration-200 ease-out hover:border-white/20 hover:bg-white/10! hover:shadow-[0_18px_60px_rgba(0,0,0,0.45)]"
-              >
-                <CardHeader className="space-y-4">
-                  <div className="space-y-3 text-left">
-                    <span
-                      className={[
-                        "relative flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-lg",
-                        "bg-linear-to-br from-(--primary-600) to-(--primary-500)",
-                        "transition-all duration-200",
-                        "group-hover:shadow-[0_14px_22px_-16px_rgba(127,34,254,0.55)]",
-                      ].join(" ")}
-                    >
-                      <Icon className="h-[15px] w-[15px]" aria-hidden />
-                    </span>
-
-                    <div className="space-y-2">
-                      <CardTitle className="text-lg font-semibold text-white">
-                        {item.title}
-                      </CardTitle>
-                      <CardDescription className="text-sm leading-relaxed text-white/75">
-                        {item.description}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-            );
-          })}
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-center text-sm text-white/90">
-          <span className="font-semibold text-white">Chacun peut partager ses envies.</span> Les
-          réservations gardent la surprise pour la personne qui reçoit.
+        <div className="grid gap-8 md:grid-cols-3 md:gap-12">
+          {protections.map(({ icon: Icon, title, description }) => (
+            <div key={title} className="space-y-4 border-t border-white/20 pt-6">
+              <Icon className="size-5 text-white/80" strokeWidth={1.5} aria-hidden />
+              <h3 className="text-sm font-semibold">{title}</h3>
+              <p className="text-sm leading-relaxed text-white/75">{description}</p>
+            </div>
+          ))}
         </div>
       </Container>
     </section>

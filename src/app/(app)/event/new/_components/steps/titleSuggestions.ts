@@ -1,8 +1,13 @@
 import type { Draft } from "../EventCreateStepper";
 
 const byTheme: Record<NonNullable<Draft["theme"]>, string[]> = {
-  christmas: ["Noël en famille", "Secret Santa entre amis", "Repas de Noël", "Noël entre amis"],
-  social: ["Anniversaire entre amis", "Dîner entre amis", "Barbecue du week-end", "Soirée jeux"],
+  christmas: [
+    "Secret Santa entre collègues",
+    "Secret Santa entre amis",
+    "Noël en famille",
+    "Repas de Noël",
+  ],
+  social: ["Anniversaire entre amis", "Dîner entre amis", "Pot de départ", "Soirée jeux"],
   family: ["Repas de famille", "Anniversaire en famille", "Cousinade", "Retrouvailles en famille"],
   sport: ["Randonnée entre amis", "Sortie à vélo", "Tournoi du week-end", "Journée en plein air"],
   trip: ["Week-end au ski", "Vacances entre amis", "Escapade en famille", "Un week-end ensemble"],
