@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { MarketingExamplesSection } from "@/app/(app)/_components/MarketingExamplesSection";
-import { MarketingHowItWorksSection } from "@/app/(app)/_components/MarketingHowItWorksSection";
-import { MarketingModulesSection } from "@/app/(app)/_components/MarketingModulesSection";
-import { MarketingPreviewSection } from "@/app/(app)/_components/MarketingPreviewSection";
-import { MarketingPrivacySection } from "@/app/(app)/_components/MarketingPrivacySection";
 import { auth } from "@/auth";
-import { Hero } from "@/components/home/Hero";
-import { MarketingNavbar } from "@/components/marketing/MarketingNavbar";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { isChristmasSeason } from "@/features/events/christmas-season";
+import { Homepage } from "@/features/marketing/homepage/Homepage";
 import { absoluteUrl, buildPublicMetadata } from "@/lib/seo";
 
 const homeTitle = "Cadeaux, Secret Santa et moments à partager";
@@ -41,13 +35,7 @@ export default async function MarketingHomePage() {
           description: homeDescription,
         }}
       />
-      <MarketingNavbar />
-      <Hero christmasSeason={isChristmasSeason(new Date())} />
-      <MarketingModulesSection />
-      <MarketingPreviewSection />
-      <MarketingHowItWorksSection />
-      <MarketingPrivacySection />
-      <MarketingExamplesSection />
+      <Homepage christmasSeason={isChristmasSeason(new Date())} />
     </>
   );
 }

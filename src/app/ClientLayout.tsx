@@ -16,7 +16,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   // Home = FULL WIDTH
   if (isHome) {
-    return <main className="min-h-dvh">{children}</main>;
+    return <div className="min-h-dvh">{children}</div>;
   }
 
   // Other pages = boxed layout
