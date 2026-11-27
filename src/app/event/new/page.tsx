@@ -42,7 +42,9 @@ export default async function EventNewPage({
 
         <div className="space-y-1">
           <h1 className="text-2xl leading-tight font-semibold tracking-tight text-pretty md:text-3xl">
-            Configurez votre espace événement
+            {occasion === "christmas"
+              ? "Préparons votre Noël"
+              : "Préparons votre prochain bon moment"}
           </h1>
           {!isAuthenticated ? (
             <p className="text-muted-foreground text-sm">Aucun compte nécessaire pour commencer.</p>

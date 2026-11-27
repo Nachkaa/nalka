@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { EventLocationMode } from "@prisma/client";
-import { Building2, Globe, Home, Hotel, Landmark, Plus, Utensils } from "lucide-react";
+import { Globe, Home, Hotel, Landmark, MapPin, Plus, Trees, Utensils } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { StepHeading } from "./StepHeading";
 import type { ThemeValue } from "./StepType";
@@ -31,28 +31,36 @@ type Suggestion = {
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 };
 
-const PROFESSIONAL_SUGGESTIONS: Suggestion[] = [
-  { value: "Chez le client", label: "Chez le client", icon: Building2 },
-  { value: "Salle interne", label: "Salle interne", icon: Landmark },
-  { value: "Hôtel", label: "Hôtel", icon: Hotel },
-  { value: "Restaurant privatisé", label: "Restaurant privatisé", icon: Utensils },
-  { value: "Centre de conférence", label: "Centre de conférence", icon: Building2 },
+const SHARED_SUGGESTIONS: Suggestion[] = [
+  { value: "À la maison", label: "À la maison", icon: Home },
+  { value: "Chez des proches", label: "Chez des proches", icon: Home },
+  { value: "Au restaurant", label: "Au restaurant", icon: Utensils },
+  { value: "Salle des fêtes", label: "Salle des fêtes", icon: Landmark },
+  { value: "En plein air", label: "En plein air", icon: Trees },
   { value: "En ligne", label: "En ligne", icon: Globe },
 ];
 
 const BY_THEME: Record<ThemeValue, Suggestion[]> = {
   christmas: [
     { value: "À la maison", label: "À la maison", icon: Home },
-    { value: "Au bureau", label: "Au bureau", icon: Building2 },
+    { value: "Chez des proches", label: "Chez des proches", icon: Home },
     { value: "Au restaurant", label: "Au restaurant", icon: Utensils },
     { value: "En ligne", label: "En ligne", icon: Globe },
   ],
-  social: PROFESSIONAL_SUGGESTIONS,
-  family: PROFESSIONAL_SUGGESTIONS,
-  sport: PROFESSIONAL_SUGGESTIONS,
-  trip: PROFESSIONAL_SUGGESTIONS,
-  group: PROFESSIONAL_SUGGESTIONS,
-  custom: PROFESSIONAL_SUGGESTIONS,
+  social: SHARED_SUGGESTIONS,
+  family: SHARED_SUGGESTIONS,
+  sport: [
+    { value: "Au parc", label: "Au parc", icon: Trees },
+    { value: "Au club", label: "Au club", icon: Landmark },
+    { value: "Point de rendez-vous", label: "Point de rendez-vous", icon: MapPin },
+  ],
+  trip: [
+    { value: "Au chalet", label: "Au chalet", icon: Home },
+    { value: "À l'hôtel", label: "À l'hôtel", icon: Hotel },
+    { value: "En location", label: "En location", icon: Home },
+  ],
+  group: SHARED_SUGGESTIONS,
+  custom: SHARED_SUGGESTIONS,
 };
 
 function normalize(s: string) {
@@ -69,7 +77,7 @@ export function StepLocation({
   autoAdvance = false,
 }: Props) {
   const [adding, setAdding] = useState(false);
-  const suggestions = BY_THEME[theme] ?? PROFESSIONAL_SUGGESTIONS;
+  const suggestions = BY_THEME[theme];
 
   const [pollInput, setPollInput] = useState("");
   const pollRef = useRef<HTMLInputElement | null>(null);
@@ -148,7 +156,7 @@ export function StepLocation({
             id="location"
             value={location}
             onChange={(e) => onChange({ location: e.target.value })}
-            placeholder="Ex. Salle interne, hôtel, lieu client..."
+            placeholder="Ex. À la maison, au restaurant, au chalet…"
           />
 
           <div className="space-y-2">
@@ -250,7 +258,7 @@ export function StepLocation({
                       setAdding(false);
                     }
                   }}
-                  placeholder="Ex. Salle interne, hôtel, lieu client..."
+                  placeholder="Ex. À la maison, au restaurant, au chalet…"
                 />
 
                 <p className="text-muted-foreground text-xs">Conseil : 2 à 5 options max.</p>

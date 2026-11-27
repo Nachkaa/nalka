@@ -2,12 +2,12 @@
 
 import {
   BadgeCheck,
-  BriefcaseBusiness,
-  Building2,
-  Handshake,
+  Bike,
+  Heart,
+  PartyPopper,
   Sparkles,
   TreePine,
-  Users,
+  Luggage,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,43 +34,43 @@ const THEMES: Array<{
   {
     value: "christmas",
     title: "Noël / Secret Santa",
-    description: "Un échange de cadeaux en famille, entre amis ou collègues.",
+    description: "Cadeaux et retrouvailles en famille ou entre amis.",
     Icon: TreePine,
   },
   {
     value: "social",
-    title: "Séminaire",
-    description: "Équipe, client, formation, conférence...",
-    Icon: BriefcaseBusiness,
+    title: "Entre amis",
+    description: "Anniversaire, soirée, dîner, barbecue…",
+    Icon: PartyPopper,
   },
   {
     value: "family",
-    title: "Événement client",
-    description: "Réception, atelier, rendez-vous invité...",
-    Icon: Handshake,
+    title: "En famille",
+    description: "Repas, anniversaire, fête de famille…",
+    Icon: Heart,
   },
   {
     value: "sport",
-    title: "Soirée partenaire",
-    description: "Cocktail, networking, activation marque...",
-    Icon: Building2,
+    title: "Sport et sorties",
+    description: "Randonnée, tournoi, sortie à vélo…",
+    Icon: Bike,
   },
   {
     value: "trip",
-    title: "Offsite interne",
-    description: "Déplacement, séjour, journée d'équipe...",
-    Icon: Users,
+    title: "Week-end et vacances",
+    description: "Séjour au ski, escapade, vacances à plusieurs…",
+    Icon: Luggage,
   },
   {
     value: "group",
     title: "Association / groupe",
-    description: "Club, communauté, équipe projet...",
+    description: "Club, association, retrouvailles de groupe…",
     Icon: BadgeCheck,
   },
   {
     value: "custom",
-    title: "Sur-mesure",
-    description: "Je configure moi-même.",
+    title: "Autre occasion",
+    description: "Votre idée, votre façon de vous retrouver.",
     Icon: Sparkles,
   },
 ];
@@ -91,7 +91,7 @@ export function StepType({
     <div className="space-y-4">
       <StepHeading
         title="Quel type d'événement organisez-vous ?"
-        subtitle="Ce choix sert uniquement à personnaliser les suggestions. Vous pourrez ajuster les modules ensuite."
+        subtitle="Choisissez l'occasion. Vous pourrez ensuite ajouter les options qui vous sont utiles."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">

@@ -6,23 +6,23 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 const items = [
   {
     icon: Lock,
-    title: "Budget et devis restent côté organisateur",
-    description: "Les participants ne voient pas les montants, notes internes ou arbitrages.",
+    title: "Les cadeaux gardent leur surprise",
+    description: "La personne qui reçoit un cadeau ne voit pas les réservations de sa liste.",
   },
   {
     icon: UserCheck,
-    title: "Accès événement contrôlé",
-    description: "Les invitations et modules actifs cadrent ce que chaque personne peut consulter.",
+    title: "Un espace pour votre groupe",
+    description: "Vos proches rejoignent l'événement grâce à votre invitation.",
   },
   {
     icon: EyeOff,
-    title: "Pas d'activité inutilement exposée",
-    description: "Nalka évite les signaux qui pourraient révéler des informations sensibles.",
+    title: "Un tirage au sort privé",
+    description: "Pour le Secret Santa, chacun découvre uniquement à qui offrir un cadeau.",
   },
   {
     icon: Shield,
-    title: "Confidentialité des réservations préservée",
-    description: "Les flux cadeaux gardent leurs protections anti-spoiler et anonymes.",
+    title: "Les réservations restent anonymes",
+    description: "Le nom de la personne qui réserve un cadeau n'est pas affiché.",
   },
 ] as const;
 
@@ -53,11 +53,10 @@ export function MarketingPrivacySection() {
       <Container className="relative flex flex-col gap-10 md:gap-12">
         <div className="space-y-3 text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
-            Confidentialité opérationnelle par défaut.
+            On partage les préparatifs. On garde les surprises.
           </h2>
           <p className="text-base text-white/75 md:text-lg">
-            Un événement professionnel mélange participants, prestataires et décisions internes.
-            Nalka garde ces niveaux séparés.
+            Les idées circulent dans votre groupe, les petits secrets restent à leur place.
           </p>
         </div>
 
@@ -98,9 +97,8 @@ export function MarketingPrivacySection() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-center text-sm text-white/90">
-          <span className="font-semibold text-white">Les informations sensibles restent cadrées.</span>{" "}
-          Les modules publics et les modules organisateur ne racontent pas la même chose aux mêmes
-          personnes.
+          <span className="font-semibold text-white">Chacun peut partager ses envies.</span> Les
+          réservations gardent la surprise pour la personne qui reçoit.
         </div>
       </Container>
     </section>

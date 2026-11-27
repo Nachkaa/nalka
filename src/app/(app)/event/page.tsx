@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { EventList } from "@/components/events/event-list";
+import { ChristmasWelcomeCard } from "@/components/events/ChristmasWelcomeCard";
 import { getUserEventSummaries } from "@/features/events/queries";
+import { isChristmasSeason } from "@/features/events/christmas-season";
 import { getAuthEntryUrl } from "@/features/auth/routes";
 import { Plus } from "lucide-react";
 
@@ -28,9 +30,14 @@ export default async function Page() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 pb-[calc(88px+env(safe-area-inset-bottom))] md:py-12 md:pb-12">
       <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-pretty text-[var(--foreground)] md:text-3xl">
-          Mes événements
-        </h1>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-pretty text-[var(--foreground)] md:text-3xl">
+            Mes événements
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Vos prochains moments à partager avec vos proches.
+          </p>
+        </div>
 
         {/* Desktop/tablet CTA */}
         <Link
@@ -43,6 +50,7 @@ export default async function Page() {
         </Link>
       </header>
 
+      {isChristmasSeason(new Date()) ? <ChristmasWelcomeCard /> : null}
       <EventList initialEvents={events} />
 
       {/* Mobile FAB */}

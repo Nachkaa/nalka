@@ -6,20 +6,21 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 const steps = [
   {
     step: "1",
-    title: "Créez l'espace événement",
-    description: "Ajoutez le brief, la date, le lieu et les premiers participants.",
+    title: "Lancez les préparatifs",
+    description: "Donnez un nom à votre événement. La date et le lieu peuvent encore attendre.",
     icon: Plus,
   },
   {
     step: "2",
-    title: "Cadrez les accès",
-    description: "Invitez l'équipe, les participants ou les parties prenantes par lien sécurisé.",
+    title: "Invitez vos proches",
+    description: "Partagez le lien d'invitation avec votre famille ou vos amis.",
     icon: Share2,
   },
   {
     step: "3",
-    title: "Activez les modules utiles",
-    description: "Programme, décisions, budget, devis et paiements uniquement quand le suivi le demande.",
+    title: "Préparez-le ensemble",
+    description:
+      "Choisissez vos options : cadeaux, Secret Santa, repas partagé ou dépenses du groupe.",
     icon: SlidersHorizontal,
   },
 ] as const;
@@ -39,7 +40,7 @@ export function MarketingHowItWorksSection() {
             Comment ça fonctionne
           </h2>
           <p className="text-muted-foreground text-base md:text-lg">
-            Trois étapes pour passer du brief au pilotage.
+            De la première idée aux préparatifs partagés.
           </p>
         </div>
 
@@ -55,7 +56,6 @@ export function MarketingHowItWorksSection() {
                     "shadow-[0_10px_30px_-20px_rgba(0,0,0,0.25)] transition-all duration-200 ease-out",
                     "hover:border-primary/35",
                     "hover:bg-(--primary-100)! hover:shadow-[0_14px_36px_-20px_rgba(0,0,0,0.35)]",
-                    "hover:cursor-pointer",
                   ].join(" ")}
                 >
                   <CardHeader className="space-y-5">
@@ -87,10 +87,10 @@ export function MarketingHowItWorksSection() {
         <div className="mt-2 flex w-full justify-center">
           <div className="border-primary/15 bg-primary/10 text-foreground/90 flex w-full max-w-3xl items-center justify-center gap-3 rounded-2xl border px-5 py-3 text-sm">
             <span className="text-center">
-              <span className="text-foreground font-semibold">Les modules sont optionnels</span>
+              <span className="text-foreground font-semibold">Vous gardez les choses simples</span>
               <span className="text-muted-foreground mx-2">-</span>
               <span className="text-muted-foreground">
-                commencez par le socle, puis ajoutez budget, programme ou décisions.
+                ajoutez seulement les options utiles à votre groupe.
               </span>
             </span>
           </div>

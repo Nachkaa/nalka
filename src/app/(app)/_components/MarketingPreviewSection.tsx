@@ -1,125 +1,66 @@
-import { Activity, Calendar, Lock, Map } from "lucide-react";
+import { Calendar, Gift, LockKeyhole, MapPin, Utensils } from "lucide-react";
 
 import { Container } from "@/components/layout/Container";
 
-const previewTabs = [
-  { label: "Aperçu", private: false, active: true },
-  { label: "Participants", private: false, active: false },
-  { label: "Programme", private: false, active: false },
-  { label: "Décisions", private: false, active: false },
-  { label: "Budget", private: true, active: false },
-  { label: "Devis", private: true, active: false },
-] as const;
-
-const eventInfo = [
-  { icon: Calendar, label: "Jeudi 18 juin 2026 à 09h30" },
-  { icon: Map, label: "Lieu : Centre de conférence Lyon" },
-] as const;
-
-const guarantees = [
+const preparations = [
   {
-    title: "Budget réservé aux organisateurs",
-    description: "Les participants ne voient pas les montants, devis ou notes internes.",
+    icon: Gift,
+    title: "Les idées de cadeaux",
+    description: "Chacun complète sa liste d'envies pour aider ses proches.",
   },
   {
-    title: "Accès limité par module",
-    description: "Chaque personne consulte uniquement les informations utiles à son rôle.",
+    icon: Utensils,
+    title: "Le repas se prépare à plusieurs",
+    description: "Une entrée, le dessert, les boissons : chacun peut apporter quelque chose.",
+  },
+  {
+    icon: LockKeyhole,
+    title: "Le Secret Santa reste secret",
+    description: "Chaque personne consulte uniquement sa propre attribution.",
   },
 ] as const;
-
-function ActiveBadge() {
-  return (
-    <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
-      <Activity className="h-3.5 w-3.5" aria-hidden />
-      Actif
-    </span>
-  );
-}
 
 export function MarketingPreviewSection() {
   return (
-    <section id="espace-prive" className="bg-background py-20 md:py-28">
-      <Container className="flex flex-col items-center gap-10 text-center">
-        <div className="space-y-3">
-          <h2 className="text-foreground text-3xl font-semibold tracking-tight md:text-5xl">
-            Un hub clair pour piloter l&apos;événement.
+    <section id="espace-prive" className="dark:bg-background bg-[#fcf8f3] py-12 md:py-20">
+      <Container className="grid items-center gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+        <div className="space-y-4">
+          <p className="text-primary text-sm font-semibold">Par exemple, pour Noël</p>
+          <h2 className="text-foreground text-3xl font-semibold tracking-tight text-balance md:text-4xl">
+            « On a mis toutes les infos sur Nalka. »
           </h2>
-          <p className="text-muted-foreground max-w-2xl text-base md:text-lg">
-            Simple pour les organisateurs, lisible pour les participants, strict sur les données
-            sensibles.
+          <p className="text-muted-foreground text-lg leading-relaxed">
+            La date, le lieu, les cadeaux et ce que chacun apporte : vos proches savent où retrouver
+            les informations. La personne qui organise peut aussi souffler un peu.
           </p>
         </div>
-
-        <div className="w-full max-w-5xl">
-          <div className="bg-card overflow-hidden rounded-3xl border text-left shadow-lg">
-            <div className="border-b px-6 py-7 sm:px-10">
-              <h3 className="text-foreground text-xl font-semibold sm:text-2xl">
-                Séminaire client Q3
-              </h3>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Piloté par l&apos;équipe opérations - Jeu. 18 juin 2026
-              </p>
-            </div>
-
-            <div className="border-b bg-neutral-50 px-6 sm:px-10">
-              <div
-                role="tablist"
-                aria-label="Apercu des fonctionnalites"
-                className="flex flex-wrap items-center gap-x-6 gap-y-2"
-              >
-                {previewTabs.map((tab) => (
-                  <div
-                    key={tab.label}
-                    role="tab"
-                    aria-selected={tab.active ?? false}
-                    className={[
-                      "relative inline-flex items-center gap-2 pt-4 pb-4 text-sm",
-                      tab.active
-                        ? "text-foreground after:bg-primary after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-10 after:rounded-full"
-                        : "text-muted-foreground",
-                    ].join(" ")}
-                  >
-                    <span>{tab.label}</span>
-                    {tab.private ? <ActiveBadge /> : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-neutral-50 px-6 py-8 sm:px-10">
-              <p className="text-foreground text-sm font-semibold">Informations</p>
-              <div className="mt-4 space-y-3">
-                {eventInfo.map((item) => (
-                  <div
-                    key={item.label}
-                    className="border-border/60 bg-muted/25 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-sm"
-                  >
-                    <span className="flex h-8 w-8 items-center justify-center">
-                      <item.icon className="text-primary h-4.5 w-4.5" aria-hidden />
-                    </span>
-                    <span className="text-muted-foreground">{item.label}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-                {guarantees.map((g) => (
-                  <div
-                    key={g.title}
-                    className="border-primary/10 bg-primary/10 flex items-start gap-4 rounded-xl border px-5 py-4"
-                  >
-                    <span className="bg-background ring-primary/15 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1">
-                      <Lock className="text-primary h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
-                    </span>
-                    <div className="space-y-1">
-                      <p className="text-foreground font-semibold">{g.title}</p>
-                      <p className="text-muted-foreground text-sm">{g.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        <div className="bg-card overflow-hidden rounded-3xl border shadow-sm">
+          <div className="border-b p-6 sm:p-8">
+            <p className="text-muted-foreground text-xs">Exemple d&apos;événement</p>
+            <h3 className="text-foreground mt-2 text-2xl font-semibold">Noël en famille</h3>
+            <div className="text-muted-foreground mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+              <span className="flex items-center gap-2">
+                <Calendar className="size-4" aria-hidden />
+                24/12 · 19 h
+              </span>
+              <span className="flex items-center gap-2">
+                <MapPin className="size-4" aria-hidden />À la maison
+              </span>
             </div>
           </div>
+          <ul className="divide-y px-6 sm:px-8">
+            {preparations.map(({ icon: Icon, title, description }) => (
+              <li key={title} className="flex items-start gap-4 py-5">
+                <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
+                  <Icon className="size-5" aria-hidden />
+                </span>
+                <div className="space-y-1">
+                  <p className="text-foreground text-sm font-semibold">{title}</p>
+                  <p className="text-muted-foreground text-sm">{description}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </Container>
     </section>

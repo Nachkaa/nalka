@@ -5,7 +5,7 @@ const DEFAULT_OG_IMAGE = "/images/hero-dinner.webp";
 
 export const siteName = "Nalka";
 export const siteDescription =
-  "Nalka aide les organisateurs à piloter participants, programme, décisions, budget, devis prestataires et paiements dans un espace événement clair.";
+  "Nalka vous aide à préparer vos moments en famille et entre amis : listes de cadeaux, Secret Santa, repas partagés et dépenses du groupe au même endroit.";
 
 export type PublicRoute = {
   path: string;

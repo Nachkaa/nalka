@@ -1,102 +1,96 @@
-"use client";
-
+import { ArrowRight, Gift, LockKeyhole, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+
+import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/button";
-import { motion, useReducedMotion } from "framer-motion";
 
-export function Hero() {
-  const reduce = useReducedMotion();
-
-  const badges = ["Gratuit", "1 minute"];
-
+export function Hero({ christmasSeason }: { christmasSeason: boolean }) {
   return (
     <section
       aria-labelledby="homepage-hero-title"
-      className="relative isolate w-full overflow-hidden"
+      className="dark:bg-background overflow-hidden bg-[#fcf8f3]"
     >
-      <div aria-hidden="true" className="absolute inset-0">
-        <Image
-          src="/images/hero-dinner.webp"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-        />
-
-        {/* Scrim simple, chaud, centré sur la zone texte à gauche */}
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(9,24,18,0.78)_0%,rgba(9,24,18,0.55)_30%,rgba(9,24,18,0.25)_55%,rgba(9,24,18,0)_100%)]" />
-      </div>
-
-      <div className="relative z-10">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="grid min-h-[72vh] items-end pt-24 pb-20 lg:grid-cols-12 lg:items-center lg:pt-32">
-            <div className="text-white lg:col-span-7">
-              <motion.h1
-                id="homepage-hero-title"
-                className="mt-5 font-serif text-[clamp(2.6rem,6.2vw,4.8rem)] leading-[1.03] tracking-[-0.02em] drop-shadow-sm"
-                initial={reduce ? false : { opacity: 0, y: 20 }}
-                animate={reduce ? {} : { opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      <Container className="grid items-center gap-10 px-5 py-10 md:px-6 md:py-16 lg:grid-cols-2 lg:gap-14">
+        <div className="space-y-6">
+          <p className="text-primary text-sm font-semibold">
+            {christmasSeason
+              ? "Noël en famille ou entre amis"
+              : "Les bons moments se préparent ensemble"}
+          </p>
+          <h1
+            id="homepage-hero-title"
+            className="text-foreground max-w-xl text-4xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl"
+          >
+            {christmasSeason
+              ? "Cette année, préparez Noël ensemble."
+              : "Plus de moments ensemble. Moins de choses à penser."}
+          </h1>
+          <p className="text-muted-foreground max-w-lg text-lg leading-relaxed">
+            {christmasSeason
+              ? "Les idées de cadeaux, le Secret Santa, qui apporte le dessert… Retrouvez tout au même endroit et laissez chacun participer."
+              : "Un anniversaire, un repas, un week-end entre amis… Rassemblez vos proches, partagez les idées et répartissez les préparatifs avec Nalka."}
+          </p>
+          <div className="space-y-3">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <Button asChild size="lg" className="h-12 rounded-xl px-6 text-base">
+                <Link href={christmasSeason ? "/event/new?occasion=christmas" : "/event/new"}>
+                  {christmasSeason ? "Préparer mon Noël" : "Créer mon événement"}
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              </Button>
+              <Link
+                href="#fonctionnement"
+                className="text-foreground focus-visible:ring-ring rounded-md py-2 text-sm font-medium underline-offset-4 hover:underline focus-visible:ring-2"
               >
-                Votre événement commence ici.
-              </motion.h1>
-
-              <motion.p
-                className="mt-4 max-w-xl text-[clamp(1rem,2vw,1.25rem)] text-white/92"
-                initial={reduce ? false : { opacity: 0, y: 14 }}
-                animate={reduce ? {} : { opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.08 }}
-              >
-                Organisez, partagez, célébrez sans contrainte.
-                <br />
-                Nalka simplifie tout.
-              </motion.p>
-
-              <motion.div
-                className="mt-8 flex flex-wrap items-center gap-3"
-                initial={reduce ? false : { opacity: 0, y: 12 }}
-                animate={reduce ? {} : { opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.15 }}
-              >
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full border-white/50 bg-white/10 px-8 py-6 text-white backdrop-blur-xl transition-all duration-300 hover:border-white/60 hover:bg-white/20"
-                >
-                  <Link href="/event/new">Créer mon événement</Link>
-                </Button>
-
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full border-white/50 bg-white/10 px-8 py-6 text-white backdrop-blur-xl transition-all duration-300 hover:border-white/60 hover:bg-white/20"
-                >
-                  <Link href="#how">Voir comment ça marche</Link>
-                </Button>
-              </motion.div>
-
-              <div aria-hidden="true" className="mt-6 inline-flex flex-wrap items-center gap-2">
-                {badges.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-full bg-white/18 px-3 py-1.5 text-sm text-white/95 shadow-sm backdrop-blur-md"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
+                Comment ça marche ?
+              </Link>
             </div>
+            <p className="text-muted-foreground text-sm">Pas besoin de compte pour commencer.</p>
+          </div>
+          <ul className="text-muted-foreground flex flex-wrap gap-x-5 gap-y-3 pt-2 text-sm">
+            <li className="flex items-center gap-2">
+              <Users className="text-primary size-4" aria-hidden />
+              Vos proches réunis
+            </li>
+            <li className="flex items-center gap-2">
+              <Gift className="text-primary size-4" aria-hidden />
+              Chacun participe
+            </li>
+            <li className="flex items-center gap-2">
+              <LockKeyhole className="text-primary size-4" aria-hidden />
+              Surprises préservées
+            </li>
+          </ul>
+        </div>
 
-            <div className="mt-14 lg:col-span-5 lg:mt-0" />
+        <div className="relative">
+          <div className="relative aspect-[5/4] overflow-hidden rounded-[2rem] sm:aspect-[6/5]">
+            <Image
+              src="/images/hero-dinner.webp"
+              alt="Des proches réunis à la maison pour partager un moment ensemble"
+              fill
+              priority
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              className="object-cover object-[45%_center]"
+            />
+          </div>
+          <div className="bg-card relative mx-4 -mt-14 rounded-2xl border p-5 shadow-lg sm:mx-6">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-primary text-xs font-semibold">Votre prochain moment ensemble</p>
+              <span className="text-muted-foreground text-xs">Exemple</span>
+            </div>
+            <p className="text-foreground mt-2 text-xl font-semibold">
+              {christmasSeason ? "Noël en famille" : "Un week-end entre amis"}
+            </p>
+            <p className="text-muted-foreground mt-2 text-sm">
+              {christmasSeason
+                ? "Les envies de chacun, un tirage au sort et un repas à préparer ensemble."
+                : "Une date à choisir, des idées à partager et des dépenses à répartir."}
+            </p>
           </div>
         </div>
-      </div>
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-b from-transparent to-[var(--cream)]" />
+      </Container>
     </section>
   );
 }

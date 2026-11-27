@@ -74,9 +74,10 @@ export function EventList({ initialEvents }: Props) {
     return (
       <Card className="bg-card/80 rounded-2xl border p-8 text-center">
         <div className="space-y-3">
-          <h2 className="text-foreground text-xl font-semibold">Mes événements</h2>
+          <h2 className="text-foreground text-xl font-semibold">On se retrouve bientôt ?</h2>
           <p className="text-muted-foreground text-sm">
-            Créez votre premier événement pour organiser vos cadeaux sans spoilers.
+            Un anniversaire, un repas ou un week-end entre amis : créez votre premier événement et
+            invitez vos proches à le préparer avec vous.
           </p>
           <div className="pt-2">
             <Button asChild>

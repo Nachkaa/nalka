@@ -1,38 +1,40 @@
-import { BriefcaseBusiness, Building2, Rocket, ShieldCheck, Smartphone, Users } from "lucide-react";
+import { Cake, Mountain, ShieldCheck, Smartphone, TreePine, Users } from "lucide-react";
+import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const highlights = [
-  { icon: BriefcaseBusiness, label: "Pensé pour les organisateurs" },
-  { icon: ShieldCheck, label: "Données sensibles séparées" },
-  { icon: Smartphone, label: "Mobile + desktop" },
+  { icon: Users, label: "En famille ou entre amis" },
+  { icon: ShieldCheck, label: "Des surprises préservées" },
+  { icon: Smartphone, label: "Sur téléphone et ordinateur" },
 ] as const;
 
 const examples = [
   {
-    title: "Séminaire interne",
-    description: "RSVP, programme, décisions de lieu et suivi budgétaire",
-    chips: ["Participants", "Programme", "Budget"],
-    icon: Users,
-    gradientFrom: "#0B84FF",
-    gradientTo: "#08B0FF",
+    title: "Noël ensemble",
+    description: "Les envies de chacun, le repas et un Secret Santa si le cœur vous en dit.",
+    chips: ["Cadeaux", "Secret Santa", "Repas"],
+    icon: TreePine,
+    gradientFrom: "#285B4B",
+    gradientTo: "#407B60",
   },
   {
-    title: "Soirée partenaire",
-    description: "Invitations, devis prestataires, arbitrages et paiements",
-    chips: ["RSVP", "Devis", "Paiements"],
-    icon: Building2,
-    gradientFrom: "#00A676",
-    gradientTo: "#00C38A",
+    title: "Un anniversaire",
+    description: "Invitez vos proches, partagez vos idées de cadeaux et préparez la fête.",
+    chips: ["Invités", "Cadeaux", "Préparatifs"],
+    icon: Cake,
+    gradientFrom: "#975C52",
+    gradientTo: "#B67A6A",
   },
   {
-    title: "Lancement produit",
-    description: "Run of show, décisions rapides et budget engagé",
-    chips: ["Programme", "Décisions", "Budget"],
-    icon: Rocket,
-    gradientFrom: "#6D5DFB",
-    gradientTo: "#8E59FF",
+    title: "Un week-end entre amis",
+    description: "Choisissez une date, répartissez les affaires à apporter et les dépenses.",
+    chips: ["Sondages", "À apporter", "Dépenses"],
+    icon: Mountain,
+    gradientFrom: "#62528E",
+    gradientTo: "#8170AB",
   },
 ] as const;
 
@@ -61,10 +63,10 @@ export function MarketingExamplesSection() {
 
         <div className="space-y-3 text-center">
           <h2 className="text-foreground text-3xl font-semibold tracking-tight md:text-4xl">
-            Exemples de pilotage événementiel
+            Des occasions de se retrouver, toute l&apos;année.
           </h2>
           <p className="text-muted-foreground text-base md:text-lg">
-            Des espaces adaptés aux événements internes, clients et partenaires.
+            Nalka vous accompagne aussi pour les autres moments qui comptent.
           </p>
         </div>
 
@@ -115,6 +117,11 @@ export function MarketingExamplesSection() {
               </Card>
             );
           })}
+        </div>
+        <div className="flex justify-center">
+          <Button asChild size="lg" className="rounded-xl">
+            <Link href="/event/new">Préparer mon prochain événement</Link>
+          </Button>
         </div>
       </Container>
     </section>

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { MarketingExamplesSection } from "@/app/(app)/_components/MarketingExamplesSection";
@@ -8,66 +7,21 @@ import { MarketingModulesSection } from "@/app/(app)/_components/MarketingModule
 import { MarketingPreviewSection } from "@/app/(app)/_components/MarketingPreviewSection";
 import { MarketingPrivacySection } from "@/app/(app)/_components/MarketingPrivacySection";
 import { auth } from "@/auth";
-import { isChristmasSeason } from "@/features/events/christmas-season";
-import { Sparkles } from "lucide-react";
-import { Container } from "@/components/layout/Container";
+import { Hero } from "@/components/home/Hero";
 import { MarketingNavbar } from "@/components/marketing/MarketingNavbar";
 import { StructuredData } from "@/components/seo/StructuredData";
-import { Button } from "@/components/ui/button";
+import { isChristmasSeason } from "@/features/events/christmas-season";
 import { absoluteUrl, buildPublicMetadata } from "@/lib/seo";
 
-const homeTitle = "Pilotage événementiel pour organisateurs professionnels";
+const homeTitle = "Cadeaux, Secret Santa et moments à partager";
 const homeDescription =
-  "Coordonnez participants, programme, décisions, budget, devis prestataires et paiements dans un espace événement clair.";
+  "Préparez Noël, un anniversaire ou un week-end en famille et entre amis : listes de cadeaux, Secret Santa et organisation à plusieurs avec Nalka.";
 
 export const metadata: Metadata = buildPublicMetadata({
   title: homeTitle,
   description: homeDescription,
   path: "/",
 });
-
-function MockEventCard() {
-  return (
-    <div
-      id="demo-evenement"
-      className="card shadow-soft w-full max-w-[520px] rounded-2xl border bg-[linear-gradient(180deg,white_0%,color-mix(in_oklch,var(--primary),white_94%)_100%)] p-5"
-    >
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="text-foreground font-semibold">Espaces événement</span>
-        <span className="rounded-full bg-[color-mix(in_oklch,var(--primary),white_78%)] px-3 py-1 text-xs font-semibold text-[color-mix(in_oklch,var(--primary),black_8%)]">
-          3 en cours
-        </span>
-      </div>
-
-      <div className="mt-4 rounded-xl border bg-[color-mix(in_oklch,var(--primary),white_92%)]/80 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <p className="text-foreground text-sm font-semibold">Séminaire client Q3</p>
-            <p className="text-muted-foreground text-xs">Jeu 18 juin - 09h30</p>
-          </div>
-          <span className="bg-foreground text-background rounded-full px-3 py-1 text-[11px] font-semibold">
-            Organisateur
-          </span>
-        </div>
-
-        <div className="text-muted-foreground mt-4 grid grid-cols-3 gap-3 text-xs">
-          <div>
-            <p className="text-[11px] tracking-[0.03em]">RSVP</p>
-            <p className="text-foreground text-base font-semibold">42 / 60</p>
-          </div>
-          <div>
-            <p className="text-[11px] tracking-[0.03em]">Devis</p>
-            <p className="text-foreground text-base font-semibold">3 à arbitrer</p>
-          </div>
-          <div>
-            <p className="text-[11px] tracking-[0.03em]">Budget</p>
-            <p className="text-foreground text-base font-semibold">18 400 EUR</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default async function MarketingHomePage() {
   const session = await auth();
@@ -88,95 +42,9 @@ export default async function MarketingHomePage() {
         }}
       />
       <MarketingNavbar />
-
-      {isChristmasSeason(new Date()) ? (
-        <section
-          aria-labelledby="christmas-title"
-          className="border-primary/15 bg-primary/5 border-b"
-        >
-          <Container className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <Sparkles className="text-primary mt-1 h-5 w-5 shrink-0" aria-hidden />
-              <div className="space-y-1">
-                <p className="text-primary text-xs font-semibold tracking-wide uppercase">
-                  Noël approche
-                </p>
-                <h2 id="christmas-title" className="font-semibold">
-                  Un Secret Santa à organiser ?
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  Famille, amis, collègues : un tirage privé et des listes de cadeaux en option.
-                </p>
-              </div>
-            </div>
-            <Button asChild className="shrink-0">
-              <Link href="/event/new?occasion=christmas">Préparer mon Secret Santa</Link>
-            </Button>
-          </Container>
-        </section>
-      ) : null}
-
-      <section className="relative isolate overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(110%_70%_at_15%_20%,color-mix(in_oklch,var(--primary),white_86%)_0%,transparent_52%),radial-gradient(90%_60%_at_85%_0%,color-mix(in_oklch,var(--primary),white_90%)_0%,transparent_48%),linear-gradient(to_bottom,white_0%,color-mix(in_oklch,var(--background),black_2%)_55%,var(--background)_100%)]" />
-
-        <div className="absolute inset-x-0 -top-8 h-20 bg-linear-to-b from-white/40 via-white/15 to-transparent" />
-
-        <Container className="relative flex flex-col gap-10 py-12 md:py-16 lg:py-16">
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-14">
-            <div className="space-y-6">
-              <h1 className="text-foreground text-2xl leading-tight font-semibold tracking-tight md:text-5xl lg:text-[2.5rem]">
-                Pilotez vos événements, devis et décisions au même endroit.
-              </h1>
-              <p className="text-muted-foreground max-w-xl text-lg">
-                Centralisez participants, RSVP, programme, arbitrages, budget, devis prestataires et
-                paiements dans un espace opérationnel léger.
-              </p>
-
-              <div className="space-y-2.5">
-                <Button
-                  asChild
-                  size="lg"
-                  className="shadow-soft h-12 rounded-xl bg-(--primary) px-6 text-base text-(--primary-foreground) hover:bg-[color-mix(in_oklch,var(--primary),black_8%)]"
-                >
-                  <Link href="/event/new">Créer mon espace événement</Link>
-                </Button>
-
-                <p className="text-muted-foreground max-w-lg text-sm">
-                  Commencez sans compte. Nous vous demanderons de vous connecter uniquement pour
-                  enregistrer votre événement et vous en attribuer la propriété.
-                </p>
-                <nav aria-label="Acces rapides" className="flex flex-wrap gap-3 text-sm">
-                  <Link
-                    href="#fonctionnement"
-                    className="text-foreground underline-offset-4 hover:underline"
-                  >
-                    Voir comment créer un espace événement
-                  </Link>
-                  <Link
-                    href="#modules-evenement"
-                    className="text-foreground underline-offset-4 hover:underline"
-                  >
-                    Découvrir les modules programme, décisions, budget et devis
-                  </Link>
-                  <Link
-                    href="#idees-evenements"
-                    className="text-foreground underline-offset-4 hover:underline"
-                  >
-                    Explorer des exemples professionnels
-                  </Link>
-                </nav>
-              </div>
-            </div>
-
-            <div className="flex justify-center lg:justify-center lg:pt-6">
-              <MockEventCard />
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      <MarketingPreviewSection />
+      <Hero christmasSeason={isChristmasSeason(new Date())} />
       <MarketingModulesSection />
+      <MarketingPreviewSection />
       <MarketingHowItWorksSection />
       <MarketingPrivacySection />
       <MarketingExamplesSection />
