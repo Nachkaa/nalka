@@ -866,6 +866,9 @@
 .colleaguesOccasion .occasionPhoto {
   aspect-ratio: 1;
 }
+.colleaguesImage {
+  object-position: 50% 35%;
+}
 .colleaguesOccasion h3 {
   margin-top: 0 !important;
 }

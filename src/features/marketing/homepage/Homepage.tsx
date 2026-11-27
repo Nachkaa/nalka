@@ -30,11 +30,14 @@ const serif = localFont({
   display: "swap",
 });
 
-// Existing local assets are kept together for the later photography update.
+// Each visible photo slot has its own scene; retained images keep their existing URLs.
 const images = {
-  christmas: "/images/christmas-gift-exchange.webp",
+  christmas: "/images/homepage/hero-secret-santa.webp",
+  evergreen: "/images/hero-dinner.webp",
   detail: "/images/usecases/christmas.webp",
-  dinner: "/images/hero-dinner.webp",
+  dinner: "/images/homepage/dinner-preparations.webp",
+  colleagues: "/images/homepage/colleagues-courtyard.webp",
+  welcome: "/images/homepage/welcome-home.webp",
   birthday: "/images/usecases/birthday.webp",
 } as const;
 
@@ -116,10 +119,10 @@ export function Homepage({ christmasSeason }: { christmasSeason: boolean }) {
               <div className={styles.heroPhoto} data-reveal="photo" data-delay="120">
                 <div className={styles.parallaxPhoto} data-home-parallax="">
                   <Image
-                    src={christmasSeason ? images.christmas : images.dinner}
+                    src={christmasSeason ? images.christmas : images.evergreen}
                     alt={
                       christmasSeason
-                        ? "Un échange de cadeaux entre collègues à Noël"
+                        ? "Des amis échangent un cadeau lors d’un Secret Santa à la maison"
                         : "Un moment à partager entre amis"
                     }
                     fill
@@ -303,7 +306,7 @@ export function Homepage({ christmasSeason }: { christmasSeason: boolean }) {
                     <div className={styles.parallaxPhoto} data-home-parallax="">
                       <Image
                         src={images.dinner}
-                        alt="Un dîner à la maison entre amis"
+                        alt="Des amis préparent ensemble un dîner dans une cuisine"
                         fill
                         sizes="(min-width: 860px) 47vw, 100vw"
                       />
@@ -319,8 +322,9 @@ export function Homepage({ christmasSeason }: { christmasSeason: boolean }) {
                 <article className={styles.colleaguesOccasion} data-reveal="">
                   <div className={styles.occasionPhoto}>
                     <Image
-                      src={images.christmas}
-                      alt="Des collègues réunis pour un échange de cadeaux"
+                      src={images.colleagues}
+                      alt="Trois collègues partagent une pause et des biscuits dans une cour"
+                      className={styles.colleaguesImage}
                       fill
                       sizes="(min-width: 860px) 18vw, 100vw"
                     />
@@ -347,8 +351,8 @@ export function Homepage({ christmasSeason }: { christmasSeason: boolean }) {
             <div className={styles.finalPhoto} data-reveal="photo">
               <div className={styles.parallaxPhoto} data-home-parallax="">
                 <Image
-                  src={images.dinner}
-                  alt="Le plaisir de se retrouver autour d’une table"
+                  src={images.welcome}
+                  alt="Des amis s’accueillent à la porte d’un appartement"
                   fill
                   sizes="(min-width: 860px) 60vw, 100vw"
                 />
